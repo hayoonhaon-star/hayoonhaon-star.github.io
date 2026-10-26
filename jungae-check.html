@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>중개센터 현장점검</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 한 손 조작 모바일 앱 — 상단 고정 바 + 단일 컬럼 카드 + 하단 고정 이동 버튼 */
+:root{
+  --bg:#EEF2EF; --surface:#FFFFFF; --sunk:#F5F7F5; --ink:#18221D; --muted:#5B6A62; --line:#D3DBD6;
+  --accent:#1E5A43; --accent-ink:#FFFFFF; --accent-soft:#DCEBE3;
+  --ok:#23704A; --ok-soft:#DDF0E5; --warn:#9A5B00; --warn-soft:#FBEBCF; --q:#2F55A4; --q-soft:#E0E8F8;
+  --crit:#B3261E; --crit-soft:#FBE0DE;
+  --f-sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101613; --surface:#18201C; --sunk:#1E2723; --ink:#E4EBE7; --muted:#9AA9A1; --line:#2D3833;
+  --accent:#78C4A0; --accent-ink:#0E1A14; --accent-soft:#1F3A2E;
+  --ok:#74C795; --ok-soft:#1C3527; --warn:#E3B061; --warn-soft:#3A2D16; --q:#94AEEB; --q-soft:#1E2943;
+  --crit:#F28B82; --crit-soft:#3D1F1D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101613; --surface:#18201C; --sunk:#1E2723; --ink:#E4EBE7; --muted:#9AA9A1; --line:#2D3833;
+  --accent:#78C4A0; --accent-ink:#0E1A14; --accent-soft:#1F3A2E;
+  --ok:#74C795; --ok-soft:#1C3527; --warn:#E3B061; --warn-soft:#3A2D16; --q:#94AEEB; --q-soft:#1E2943;
+  --crit:#F28B82; --crit-soft:#3D1F1D; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-sans);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 120px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{max-width:560px;margin:0 auto;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;display:flex;align-items:center;gap:8px;min-height:56px}
+.back{border:0;background:none;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none}
+.back:hover{background:var(--sunk)}
+.bar h1{font-size:17px;font-weight:600;margin:0;line-height:1.3;min-width:0;flex:1;text-wrap:balance}
+.bar .sub{font-size:12px;color:var(--muted);font-weight:500}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.mono{font-family:var(--f-mono);font-size:12px;letter-spacing:.02em;color:var(--muted)}
+.tnum{font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:12px}
+.sec-t{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.06em;margin:14px 2px 2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.notice{font-size:13px;color:var(--muted);background:var(--sunk);border-radius:10px;padding:10px 12px}
+/* 센터 목록 */
+.center{display:flex;flex-direction:column;gap:10px}
+.center h2{font-size:17px;margin:0;font-weight:600}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.prog{height:6px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.prog>i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.row-b{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;min-height:48px;padding:10px 16px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:none}
+/* 영역 리스트 */
+.list{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.li{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;text-align:left;padding:14px 16px;min-height:60px;border-top:1px solid var(--line)}
+.li:first-child{border-top:0}
+.li:hover{background:var(--sunk)}
+.li .no{font-size:18px;width:26px;flex:none;color:var(--accent);font-weight:600}
+.li .tx{flex:1;min-width:0}
+.li .tx b{display:block;font-weight:600}
+.li .tx span{font-size:13px;color:var(--muted)}
+.st{font-size:13px;font-weight:600;white-space:nowrap}
+.st.done{color:var(--ok)} .st.part{color:var(--warn)} .st.none{color:var(--muted)}
+.chev{color:var(--muted);flex:none}
+/* 항목 화면 */
+.steps{display:flex;gap:3px;margin:2px 0 4px}
+.steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.steps i.j{background:var(--accent)} .steps i.cur{background:var(--ink)}
+.it-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.it-title{font-size:20px;font-weight:700;margin:4px 0 0;line-height:1.35;text-wrap:balance}
+.crit-row{font-size:13px;color:var(--crit)}
+.std{border-left:3px solid var(--accent);padding:2px 0 2px 12px;margin:10px 0 0}
+.std .lb{font-size:12px;font-weight:600;color:var(--accent);letter-spacing:.04em}
+.std p{margin:2px 0 0}
+details.more{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+details.more summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);min-height:36px;display:flex;align-items:center}
+dl.kv{display:grid;grid-template-columns:84px 1fr;gap:6px 10px;margin:6px 0 0;font-size:14px}
+dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;min-width:0}
+.guide{display:grid;gap:4px;font-size:13px;margin-top:6px}
+.guide div{display:flex;gap:8px} .guide b{flex:none;width:18px;text-align:center}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.fields .full{grid-column:1/-1}
+.fld label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.fld input[type=number],.fld input[type=text],.fld input[type=date],.fld select,textarea{width:100%;min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);padding:10px 12px}
+.fld .unit{position:relative}
+.fld .unit input{padding-right:46px}
+.fld .unit em{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-style:normal;font-size:13px;color:var(--muted)}
+.chk{display:flex;align-items:flex-start;gap:10px;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);cursor:pointer}
+.chk input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--accent);flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;min-height:40px;padding:6px 14px;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--sunk)}
+.seg button{flex:1;border:0;background:none;min-height:42px;font-size:13px;padding:4px 6px;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.calc{font-size:14px;color:var(--muted)} .calc b{color:var(--ink);font-size:18px}
+.warns{display:grid;gap:8px}
+.w{border-radius:10px;padding:10px 12px;font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.w .tag{font-family:var(--f-mono);font-size:11px;padding:1px 6px;border-radius:5px;flex:none;margin-top:2px}
+.w.warn{background:var(--warn-soft);color:var(--warn)} .w.warn .tag{background:var(--warn);color:var(--surface)}
+.w.check{background:var(--q-soft);color:var(--q)} .w.check .tag{background:var(--q);color:var(--surface)}
+.w.info{background:var(--sunk);color:var(--muted)} .w.info .tag{background:var(--line);color:var(--ink)}
+.w.crit{background:var(--crit-soft);color:var(--crit)} .w.crit .tag{background:var(--crit);color:var(--surface)}
+.judge{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.jb{border:2px solid var(--line);background:var(--surface);border-radius:14px;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:600;font-size:14px}
+.jb .sym{font-size:24px;line-height:1}
+.jb.o[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.jb.w2[aria-pressed="true"]{background:var(--warn);border-color:var(--warn);color:var(--surface)}
+.jb.q[aria-pressed="true"]{background:var(--q);border-color:var(--q);color:var(--surface)}
+textarea{min-height:84px;resize:vertical;line-height:1.5}
+.hint{font-size:13px;color:var(--warn);margin-top:6px}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.dock-in{max-width:560px;margin:0 auto;display:flex;gap:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px}
+.dock .btn{flex:1}
+.dock .btn.sm{flex:0 0 96px}
+/* 사전자료 */
+.doc{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-top:1px solid var(--line)}
+.doc:first-child{border-top:0}
+/* 결과 */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
+.tile b{display:block;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile span{font-size:12px;color:var(--muted)}
+.tile.o b{color:var(--ok)} .tile.w2 b{color:var(--warn)} .tile.q b{color:var(--q)}
+table.b14{width:100%;border-collapse:collapse;font-size:14px}
+table.b14 th,table.b14 td{padding:10px 6px;border-top:1px solid var(--line);text-align:left;vertical-align:middle}
+table.b14 tr:first-child th,table.b14 tr:first-child td{border-top:0}
+table.b14 th{font-weight:500}
+table.b14 small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+table.b14 select{min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--sunk);padding:4px 6px;width:100%}
+.fi{display:flex;flex-direction:column;gap:4px;padding:12px 0;border-top:1px solid var(--line)}
+.fi:first-child{border-top:0;padding-top:0}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:20;max-width:calc(100% - 32px);text-align:center}
+.lock{background:var(--ok-soft);color:var(--ok);border-radius:12px;padding:12px 14px;font-weight:600;font-size:14px}
+.confirm-box{border:1px solid var(--warn);background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:12px;font-size:14px;display:flex;flex-direction:column;gap:10px}
+.confirm-box .btns{display:flex;gap:8px}
+.confirm-box .btn{flex:1;min-height:44px}
+.foot{font-size:12px;color:var(--muted);text-align:center;margin-top:18px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.linkbtn{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:12px;min-height:36px}
+.tabs{border-top:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs-in{max-width:560px;margin:0 auto;display:flex;gap:4px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:6px}
+.tab{flex:none;border:0;background:none;border-radius:10px;min-height:40px;padding:6px 12px;font-size:14px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.tab[aria-current="true"]{background:var(--accent);color:var(--accent-ink)}
+.tab .tb{font-family:var(--f-mono);font-size:11px;font-weight:500;opacity:.85}
+.tab .tb.done{color:var(--ok)} .tab[aria-current="true"] .tb{color:inherit}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;align-items:center}
+.legend b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;margin-right:4px;font-size:13px}
+.lo{background:var(--ok-soft);color:var(--ok)} .lw{background:var(--warn-soft);color:var(--warn)} .lq{background:var(--q-soft);color:var(--q)}
+.qlist{display:flex;flex-direction:column;gap:10px}
+.q-row{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:8px;border-left:5px solid var(--line)}
+.q-row.j-o{border-left-color:var(--ok)} .q-row.j-w{border-left-color:var(--warn)} .q-row.j-q{border-left-color:var(--q)}
+.q-head{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.q-head .kw{font-size:13px;color:var(--muted);font-weight:500}
+.q-txt{margin:0;font-size:17px;font-weight:600;line-height:1.45;text-wrap:pretty}
+.q-mark{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--ink);color:var(--surface);font-size:12px;font-family:var(--f-mono);margin-right:8px;vertical-align:2px}
+.q-row .std{margin:0;background:var(--sunk);border-radius:0 10px 10px 0;padding:8px 12px}
+.q-row .std p{margin:2px 0 0;font-size:14px}
+.q-row .std .std-key{font-weight:600;color:var(--accent);margin-top:4px}
+.exp{align-self:flex-start;border:0;background:none;min-height:40px;padding:4px 2px;font-size:13px;font-weight:600;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.q-judge{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:10px;margin-top:2px}
+.jl{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.06em;flex:none}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1}
+.mj{min-height:56px;border-radius:12px;border:2px solid var(--line);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.1}
+.mj span{font-size:20px;font-weight:600}
+.mj small{font-size:12px;font-weight:600}
+.mj.o[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.mj.w2[aria-pressed="true"]{background:var(--warn);border-color:var(--warn);color:var(--surface)}
+.mj.q[aria-pressed="true"]{background:var(--q);border-color:var(--q);color:var(--surface)}
+.q-panel{display:flex;flex-direction:column;gap:12px;border-top:1px dashed var(--line);padding-top:12px}
+.q-panel .std p{margin:4px 0 0}
+.doc span{font-weight:500}
+.rep-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.rep{padding:16px 12px;font-size:12.5px;line-height:1.5;word-break:keep-all;overflow-wrap:anywhere}
+[data-copyrep]{white-space:nowrap;flex:none}
+.rep-t{font-size:17px;text-align:center;margin:0 0 2px}
+.rep-s{text-align:center;color:var(--muted);margin:0 0 10px;font-size:12px}
+.rep h3{font-size:14px;margin:16px 0 6px}
+.rep h3 small{font-weight:400;color:var(--muted)}
+.rep table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.rep th,.rep td{border:1px solid var(--line);padding:5px 7px;vertical-align:middle;text-align:left}
+.rep th{background:var(--sunk);font-weight:600}
+.rep td.c{text-align:center} .rep td.n{text-align:right}
+.rep-box{border:1px solid var(--line);padding:10px;white-space:pre-wrap}
+.rep-sign{text-align:right;margin:18px 0 0}
+@media (max-width:380px){.fields{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:no-preference){.btn,.chip,.jb,.li{transition:background-color .12s,border-color .12s}}
+</style>
+
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(() => {
+'use strict';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
+const fmt = n => n == null ? '-' : Number(n).toLocaleString('ko-KR');
+const r1 = x => Math.round(x * 10) / 10;
+
+/* ── 지침기준 (’26년 농촌인력중개센터 시행지침, 2026. 9.) ── */
+const B14 = {
+  rural: [['plan','사업계획서 준수 여부'],['fund','지원 자금 사용의 적절성'],['match','중개실적 관리현황'],['staff','전담인력 복무현황'],['will','센터장의 사업추진 의지']],
+  public:[['plan','사업계획서 준수 여부'],['fund','지원 자금 사용의 적절성'],['worker','계절노동자 관리현황'],['staff','전담인력 복무현황'],['dorm','공동 숙식시설 관리현황'],['will','센터장의 사업추진 의지']]
+};
+const W = (lv, text, rule) => ({lv, text, rule});
+
+const RURAL = [
+ {key:'ops', no:'①', name:'운영구조', items:[
+  {id:'O-1-01', t:'운영기관 자격', s:'무료직업소개사업 기관, 농협(조합·공동사업법인 등), 지자체장이 인정한 기관 중 하나에 해당하는지 확인', d:'조직 요건 3종 중 1개 충족', docs:'운영기관 지정·위탁 문서, 무료직업소개사업 신고 확인', ref:'p.20', b14:'plan', g:['자격 서류 확인','서류 일부 미비','운영기관 변경 경위 불명확']},
+  {id:'O-1-02', t:'인력 요건', s:'구인·구직, 교육·상담, 작업장 이동 지원 전담자와 운영 지원인력을 모두 갖췄는지 확인', d:'전담자 1명 이상 + 지원인력 1명 이상(모두 충족)', docs:'근로계약서, 업무분장표', ref:'p.20', b14:'staff', g:['전담·지원인력 각 1명 이상','지원인력 공백·겸직 과다','전담 여부 판단 곤란'],
+   f:[{k:'staff',l:'전담자 수',type:'num',u:'명'},{k:'support',l:'지원인력 수',type:'num',u:'명'},{k:'contract',l:'전담인력 근로계약서 확인',type:'chk',full:1},{k:'period',l:'계약기간',type:'text',ph:'예: 26.1.~12.',full:1},{k:'fulltime',l:'근무형태',type:'seg',o:['상근','비상근'],full:1},{k:'dedi',l:'업무 전담 여부',type:'seg',o:['중개업무 전담','타 업무 겸직'],full:1},{k:'chg',l:'담당자 변경',type:'seg',o:['변경 없음','올해 변경'],full:1}],
+   w:v=>{const s=num(v.staff),p=num(v.support);return (s===0||p===0)?[W('warn','운영기관 인력 요건(전담자·지원인력 각 1명 이상)을 충족하지 못합니다.','R28')]:[]}},
+  {id:'O-1-03', t:'시설·장비 요건', s:'상담 전용 전화회선, 구인·구직 정보 입력용 PC, 사무실을 확보했는지 확인', d:'전용회선 1회선 이상, PC 1대 이상, 사무실(모두 충족)', docs:'현장 확인', ref:'p.20', b14:'plan', g:['3종 모두 확보','일부 공용 사용','현장 확인 불가'],
+   f:[{k:'line',l:'전용 전화회선',type:'seg',o:['확인','미확보'],full:1},{k:'pc',l:'정보 입력용 PC',type:'seg',o:['확인','미확보'],full:1},{k:'office',l:'사무실',type:'seg',o:['확인','미확보'],full:1}],
+   w:v=>['line','pc','office'].some(k=>v[k]==='미확보')?[W('warn','시설·장비 요건 중 미확보 항목이 있습니다.','')]:[]},
+  {id:'O-1-04', t:'담당자 교육 이수', s:'센터 담당자가 안전(중대재해처벌법 포함)·인권·노무 교육을 이수했는지 확인', d:'농식품부·지방정부·농협 주관 교육', docs:'교육 이수증', ref:'p.7', b14:'staff', g:['이수 확인','일부 과정 미이수','이수 여부 확인 곤란'],
+   f:[{k:'edu',l:'이수 현황',type:'seg',o:['이수','일부 미이수','확인 불가'],full:1}]},
+  {id:'O-1-05', t:'업무 범위 수행', s:'정보 수집·제공, 상담·무료직업소개, 작업장 이동 지원, 인력풀 모집·구성, 인력수급 모니터링을 수행하는지 확인', d:'시도형은 교육·상담·홍보 및 시군 지원 업무 집중', docs:'업무분장표, 업무일지', ref:'p.5', b14:'plan', g:['주요 업무 수행 확인','일부 업무 미수행','업무 실적 확인 곤란'],
+   f:[{k:'jobs',l:'전담인력 주요업무 (복수 선택)',type:'chips',o:['구인농가 모집','구직자 모집','농가-구직자 매칭','현장관리','실적 입력','교육·안전관리','인력 수송','기타'],full:1}],
+   w:(v,c)=>c.sub==='시도형'?[W('info','시도형 센터는 교육·상담, 도시구직자 모집 홍보, 시군 지원 업무를 집중 추진합니다.','')]:[]},
+  {id:'O-1-06', t:'유관기관 협력체계', s:'지방정부, 농협, 농업인단체, 출입국사무소·고용복지플러스센터 등과 협력체계를 갖췄는지 확인', d:'성과평가 참고: 전담조직·협력 거버넌스 5점', docs:'협약서, 회의자료', ref:'p.5, 59', b14:'', g:['협력 실적 확인','형식적 협약만 존재','협력 실적 불명확'],
+   f:[{k:'orgs',l:'협력 기관 (복수 선택)',type:'chips',o:['지방정부','농협','농업인단체','출입국사무소','고용복지플러스센터','대학','노인일자리센터','민간 플랫폼'],full:1}]}
+ ]},
+ {key:'pool', no:'②', name:'인력풀', items:[
+  {id:'O-2-01', t:'인력풀 구축·관리', s:'관내·외 인력풀을 구성해 실제로 활용하고 있는지 확인', d:'성과평가 참고: 인력풀 구축·활용 10점(활용 우수~DB 없음)', docs:'인력풀 명부(플랫폼), 작업반 명부', ref:'p.59', b14:'plan', g:['관내외 인력풀 DB 활용','명부만 있고 활용 실적 미흡','실활동 인원 파악 곤란'],
+   f:[{k:'total',l:'인력풀 총원',type:'num',u:'명'},{k:'active',l:'실활동 인원',type:'num',u:'명'},{k:'inner',l:'관내',type:'num',u:'명'},{k:'outer',l:'관외',type:'num',u:'명'},{k:'repeat',l:'반복참여',type:'num',u:'명'},{k:'newc',l:'올해 신규',type:'num',u:'명'}],
+   calc:v=>{const t=num(v.total),a=num(v.active);return t&&a!=null?`실활동 비율 <b class="tnum">${r1(a/t*100)}%</b>`:''}},
+  {id:'O-2-02', t:'영농작업반 구성', s:'인력풀로 작업반을 구성하고, 작업반장이 인솔·일정 관리·농작업 교육을 맡는지 확인', d:'작업반장 포함 최소 3명 이상', docs:'작업반 명부, 반장 활동 기록', ref:'p.6', b14:'plan', g:['3명 이상 구성·반장 역할 수행','인원 미달 반 존재','반장 활동 기록 부족'],
+   f:[{k:'teams',l:'작업반 수',type:'num',u:'개'},{k:'minsize',l:'가장 작은 반 인원',type:'num',u:'명'}],
+   w:v=>{const m=num(v.minsize);return m!=null&&m<3?[W('warn','영농작업반 최소 인원(반장 포함 3명)에 못 미치는 반이 있습니다.','R26')]:[]}},
+  {id:'O-2-03', t:'모집·홍보 활동', s:'관내·외 홍보와 유관기관 연계로 구인·구직자를 모집하는지 확인', d:'성과평가 참고: 모집채널 다양화·매체홍보·업무협약 4건 이상 최고점', docs:'홍보물, 협약서, 게시 사진', ref:'p.5, 59', b14:'plan', g:['다양한 채널 활용','단일 채널 의존','실적 증빙 부족'],
+   f:[{k:'route',l:'모집경로 (복수 선택)',type:'chips',o:['센터 직접','지자체 홍보','농협 등 유관기관','지역 인력사무소','민간 구인플랫폼','지인 소개','타지역 인력','기타'],full:1},{k:'hard',l:'모집 곤란 시기',type:'text',ph:'예: 5~6월 적과기',full:1},{k:'short',l:'인력 부족 정도',type:'seg',o:['부족 심함','다소 부족','충분'],full:1}]},
+  {id:'O-2-04', t:'인력수급 모니터링', s:'농번기 인력수급 현황과 인건비 동향을 품목별 표본농가 중심으로 모니터링하는지 확인', d:'표본농가: 주요 품목·규모별 농가, 이장, 농업인·품목 단체 임원 등', docs:'모니터링 기록, 표본농가 명단', ref:'p.6', b14:'plan', g:['표본농가 기반 정기 모니터링','비정기·기록 부족','실시 여부 불명확'],
+   f:[{k:'mon',l:'모니터링 방식',type:'seg',o:['표본농가 정기','비정기','미실시'],full:1}]},
+  {id:'O-2-05', t:'참여자 사후관리', s:'농작업 참여자 DB를 관리하고 유사 작업 정보를 안내하는지 확인', d:'성과평가 참고: 참여자 사후관리 5점', docs:'참여자 DB, 안내 기록', ref:'p.59', b14:'plan', g:['사후관리 체계 운영','관리 실적 미흡','관리 여부 불명확']},
+  {id:'O-2-06', t:'계절근로자 알선 개입 금지', sev:1, s:'계절근로 전문기관으로 지정되지 않았다면 계절근로자 선발·알선·채용에 개입하지 않았는지 확인', d:'위반 시 3년 이하 징역 또는 3천만원 이하 벌금(출입국관리법)', docs:'중개 기록, 전문기관 지정 여부', ref:'p.4', b14:'plan', g:['해당 없음 또는 지정기관','-','개입 의심 정황'],
+   f:[{k:'desig',l:'지방 계절근로 전문기관 지정',type:'seg',o:['지정','미지정'],full:1}]}
+ ]},
+ {key:'match', no:'③', name:'매칭', items:[
+  {id:'O-3-01', t:'플랫폼 구인공고 게시', s:'도농인력중개플랫폼에 구인공고를 꾸준히 게시하는지 확인', d:'최소 월 2회 원칙, 필요시 수시', docs:'플랫폼 공고 이력', ref:'p.6', b14:'match', g:['월 2회 이상 게시','일부 월 미달','게시 이력 확인 곤란'],
+   f:[{k:'minm',l:'최근 6개월 중 최소 게시 건수',type:'num',u:'건/월',full:1}],
+   w:v=>{const m=num(v.minm);return m!=null&&m<2?[W('check','월 2회 게시 원칙에 못 미치는 달이 있습니다. 사유를 확인하세요.','R25')]:[]}},
+  {id:'O-3-02', t:'중개결과 기록 대조', s:'실제 매칭 사례를 표본으로 뽑아 플랫폼 기록과 실제 실적이 일치하는지 확인', d:'내·외부 중개 결과(매칭 여부, 작업일수 등) 플랫폼 입력·관리 필수', docs:'플랫폼 기록, 지급대장, 작업일지', ref:'p.6', b14:'match', g:['표본 전건 일치','일부 불일치·누락','외부 중개 실적 확인 곤란'], sample:1},
+  {id:'O-3-03', t:'통계·현황 입력', s:'중개실적, 구인·구직자 정보, 인력풀·영농작업반 현황을 플랫폼에 입력하는지 확인', d:'모니터링 내용 포함 입력·관리', docs:'플랫폼 기록', ref:'p.6', b14:'match', g:['정기 입력','일부 항목 미입력','입력 여부 불명확']},
+  {id:'O-3-04', t:'중개 우선순위', s:'①기초생활보호 대상 농가 ②고령농·여성 단독·소규모 영세농 ③노지채소·과수 등 수요 높은 농가 순으로 우선 지원하는지 확인', d:'자연재해·시급한 수요 발생 시 예외', docs:'중개 대장(농가 구분)', ref:'p.6', b14:'match', g:['취약농가 우선 반영','우선순위 관리 미흡','농가 구분 정보 없음']},
+  {id:'O-3-05', t:'운영 대상·범위', s:'농업분야(농업·농촌 및 식품산업 기본법 제3조제1호) 작업에 한해 중개했는지 확인', d:'외국인은 국내 체류 중이며 농업 취업 제한이 없는 사람', docs:'중개 대장(작업 내용)', ref:'p.6', b14:'match', g:['범위 내 중개','범위 외 작업 일부','작업 내용 불명확']},
+  {id:'O-3-06', t:'참여 신청서·개인정보 동의서', s:'구직·구인자 참여 신청서와 개인정보 동의서를 받아 두었는지 확인', d:'별지 2호(참여 신청서), 별지 3호(개인정보 동의서)', docs:'신청서, 동의서', ref:'p.44~47', b14:'match', g:['표본 전건 징구','일부 누락','보관 위치 불명확']},
+  {id:'O-3-07', t:'농기계 운용 노동자', s:'농기계 임대 농가에 알선된 노동자가 임대 농기계를 운용할 때 안전교육을 이수했는지 확인', d:'농기계 안전교육 이수 필수', docs:'안전교육 이수 확인', ref:'p.6~7', b14:'', g:['이수 확인','이수 기록 일부 누락','해당 여부 불명확']}
+ ]},
+ {key:'budget', no:'④', name:'예산 집행', items:[
+  {id:'R-C-01', t:'인건비', grp:'센터운영비', s:'센터 전담인력 인건비와 인건비성 경비(연가보상비, 초과·기타 수당) 집행 가능', d:'농협이 운영하는 센터는 농협 직원 인건비를 전담인력 인건비로 집행할 수 없음', docs:'근로계약서, 급여 지급내역', ref:'p.7', b14:'fund', g:['전담인력 계약·지급내역 일치','지급내역 일부 누락, 수당 산정근거 미비','농협 직원 겸직 여부 불명확'], bud:1,
+   w:(v,c)=>c.op==='농협'?[W('check','농협 운영 센터입니다. 인건비 지급 대상이 농협 직원이 아닌지 확인하세요.','R12')]:[]},
+  {id:'R-C-02', t:'운영비', grp:'센터운영비', s:'사무·공공요금, 기자재 임차, 소모품·수선, 회의·간담회, 안내·홍보물 제작, 전담인력 출장비', d:'출장비는 공무원 여비 기준(별표 5). 토지·건물 등 자본지출과 내구성물품(1년 이상 사용·50만원 이상) 구입 불가', docs:'지출결의서, 영수증, 간담회 회의록·서명·사진, 임차계약서·비교견적', ref:'p.7~8, 10', b14:'fund', g:['용도 범위 내 집행, 증빙 완비','간담회 증빙 일부 누락 등 보완 가능','내구성물품 해당 여부 판단 곤란'], bud:1,
+   f:[{k:'sub',l:'별지14 출력 구분',type:'seg',o:['사업운영','홍보','기타'],full:1},{k:'big',l:'50만원 이상 물품 구입 건 있음',type:'chk',full:1},{k:'land',l:'토지·건물 구입비 집행 있음',type:'chk',full:1},{k:'meet',l:'간담회비 또는 임차비 집행 있음',type:'chk',full:1}],
+   w:v=>[...(v.big?[W('check','내구성물품(1년 이상 사용·50만원 이상) 해당 여부를 확인하세요.','R13')]:[]),...(v.land?[W('warn','토지·건물 등 자본지출은 지원 불가 항목입니다.','R14')]:[]),...(v.meet?[W('check','간담회는 회의록·서명·사진, 임차는 비교견적을 확인하세요.','R16')]:[])]},
+  {id:'R-H-01', t:'교육비(고용인력·농가)', grp:'인력운영비', s:'내·외국인 고용인력과 농가 대상 농작업, 근로기준법, 인권, 안전, 한국어 교육 및 통역 지원', d:'교육 실시 증빙 필요', docs:'교육계획서, 결과보고서, 참석자 명부', ref:'p.8', b14:'fund', g:['교육 실시 증빙 완비','결과보고·명부 일부 누락','교육 실시 여부 확인 곤란'], bud:1},
+  {id:'R-H-02', t:'교육비(신규 구직자, 농가 지급)', grp:'인력운영비', s:'농가가 도시·신규 구직자를 채용할 때 교육비 지급', d:'구직자 1인 1일 20천원, 인당 최대 3일, 일 지급 상한 100천원. 센터 참여 기록이 없는 구직자만 해당', docs:'별지 4호 현장교육비 지급대장 확인서', ref:'p.8', b14:'fund', g:['단가·일수·대상 기준 충족','단가·일수 초과 또는 대장 일부 누락','신규 구직자 해당 여부 불명확'], bud:1,
+   f:[{k:'unit',l:'지급대장 표본: 1인 1일 지급액',type:'num',u:'원',full:1},{k:'days',l:'인당 지급일수',type:'num',u:'일'},{k:'daysum',l:'일 지급 합계',type:'num',u:'원'},{k:'prev',l:'센터 참여 기록이 있는 구직자 포함',type:'chk',full:1}],
+   w:v=>{const o=[];if(num(v.unit)>20000||num(v.days)>3||num(v.daysum)>100000)o.push(W('warn','교육비 지급 상한(1인 1일 20천원, 3일, 일 100천원)을 넘은 건이 있습니다.','R05'));if(v.prev)o.push(W('check','센터 참여 기록이 없는 신규 구직자인지 확인하세요.','R06'));return o}},
+  {id:'R-H-03', t:'임차비 및 차량비', grp:'인력운영비', s:'인력운영용 버스·승용차 등 차량 임차료와 공용차량 유류비', d:'임차는 비교견적을 거쳐 사업기간 안에서만', docs:'임차계약서, 비교견적, 운행일지', ref:'p.8, 10', b14:'fund', g:['임차 목적·기간 적정','운행기록 일부 누락','사업 외 사용 여부 불명확'], bud:1,
+   f:[{k:'rent',l:'차량 임차 있음',type:'chk',full:1}], w:v=>v.rent?[W('check','임차 비교견적과 사업기간 내 임차인지 확인하세요.','R16')]:[]},
+  {id:'R-H-04', t:'교통비', grp:'인력운영비', s:'농작업 참여자 교통비 지급', d:'왕복 30km 미만 1일 최대 10천원, 30km 이상 1일 최대 20천원. 농가가 직접 수송하면 농가에 1일 20천원까지', docs:'별지 5호 교통비 지급대장 확인서', ref:'p.8', b14:'fund', g:['거리 구간별 상한 이내','상한 초과 또는 대장 일부 누락','이동거리 산정근거 불명확'], bud:1,
+   f:[{k:'dist',l:'지급대장 표본: 거리 구간',type:'seg',o:['30km 미만','30km 이상','농가 수송'],full:1},{k:'pay',l:'1일 지급액',type:'num',u:'원',full:1},{k:'dup',l:'같은 날 숙박비도 지급한 건 있음(작업 시작·종료일 제외)',type:'chk',full:1}],
+   w:v=>{const o=[];const lim=v.dist==='30km 미만'?10000:v.dist?20000:null;if(lim&&num(v.pay)>lim)o.push(W('warn',`교통비 상한(1일 ${fmt(lim/1000)}천원)을 넘은 건이 있습니다.`,'R07'));if(v.dup)o.push(W('warn','숙박비와 교통비를 같은 날 중복 지급한 건이 있습니다.','R09'));return o}},
+  {id:'R-H-05', t:'숙박비', grp:'인력운영비', s:'관외 구직자가 3일 이상 연속 참여할 때 숙박비 지급. 지방정부 지정 숙박시설(마을회관 등) 비용도 가능', d:'1박 최대 30천원. 교통비와 중복 지급 불가(작업 시작·종료일 제외)', docs:'별지 7호 숙박비 지급대장 확인서', ref:'p.8', b14:'fund', g:['관외·연속 조건 및 상한 충족','상한 초과, 조건 미충족 건 일부','관외 여부·연속일수 확인 곤란'], bud:1,
+   f:[{k:'night',l:'지급대장 표본: 1박 지급액',type:'num',u:'원',full:1},{k:'outer',l:'관외 구직자 여부',type:'seg',o:['관외','관내']},{k:'cont',l:'연속 참여일수',type:'num',u:'일'}],
+   w:v=>(num(v.night)>30000||v.outer==='관내'||(num(v.cont)!=null&&num(v.cont)<3))?[W('warn','숙박비 지급 조건(관외 구직자, 3일 이상 연속, 1박 30천원 이내)을 확인하세요.','R08')]:[]},
+  {id:'R-H-06', t:'간식비', grp:'인력운영비', s:'농작업 참여자 간식비 지급', d:'1일 최대 5천원, 예산 범위 내, 중복 지급 불가', docs:'지급대장, 영수증', ref:'p.8', b14:'fund', g:['상한 이내','상한 초과 일부','중복 여부 확인 곤란'], bud:1,
+   f:[{k:'snack',l:'지급대장 표본: 1일 지급액',type:'num',u:'원',full:1}], w:v=>num(v.snack)>5000?[W('warn','간식비 상한(1일 5천원)을 넘은 건이 있습니다.','R10')]:[]},
+  {id:'R-H-07', t:'영농작업반장 수당', grp:'인력운영비', s:'영농작업반장 활동일 기준 수당 지급', d:'1일 최대 10천원. 같은 활동일에 공공형 계절노동 작업반장 수당과 중복 지급 불가', docs:'별지 6호 작업반장 수당 지급대장 확인서', ref:'p.9', b14:'fund', g:['활동일·단가 일치','활동일 기록 일부 누락','공공형 수당 중복 여부 확인 필요'], bud:1,
+   f:[{k:'lead',l:'지급대장 표본: 1일 지급액',type:'num',u:'원',full:1},{k:'dupp',l:'같은 날 공공형 수당 지급 의심 건 있음',type:'chk',full:1}],
+   w:v=>[...(num(v.lead)>10000?[W('warn','작업반장 수당 상한(1일 10천원)을 넘은 건이 있습니다.','R11')]:[]),...(v.dupp?[W('check','농촌형·공공형 작업반장 수당 중복 여부를 확인하세요.','R11')]:[])]},
+  {id:'R-H-08', t:'기타(보험·모니터링·안전용품)', grp:'인력운영비', s:'참여자 상해보험료, 농작업 모니터링, 민간 플랫폼 구인 지원, 농작업 도구·안전장비·폭염·한파 대비 예방용품', d:'민간 플랫폼은 농식품부와 연계협력 체계를 갖춘 플랫폼만 해당. 내구성물품 구입 불가', docs:'보험증권, 구입 영수증, 플랫폼 이용내역', ref:'p.9', b14:'fund', g:['용도 범위 내','증빙 일부 누락','연계 플랫폼 해당 여부 확인 필요'], bud:1,
+   f:[{k:'plat',l:'민간 플랫폼 구인 지원 집행 있음',type:'chk',full:1}], w:v=>v.plat?[W('check','농식품부 연계협력 플랫폼인지 확인하세요.','R18')]:[]},
+  {id:'R-Z-01', t:'편성비율·예산 변경', grp:'공통', s:'센터운영비 40%, 인력운영비 60%로 편성(시도형은 센터운영비 60%까지). 목 간 변경은 시도, 세부항목 간 변경은 시군 사전승인', d:'변경 요청·승인은 10일 이내 처리. 센터 간 조정은 농식품부 사전승인', docs:'변경 승인 공문', ref:'p.9~10', b14:'plan', g:['편성비율 준수, 변경 승인 확인','승인 문서 사후 보완 필요','변경 경위 불명확'],
+   f:[{k:'cops',l:'센터운영비 편성액',type:'num',u:'천원',full:1},{k:'chg',l:'편성 대비 예산 변경 있음',type:'chk',full:1}],
+   calc:(v,c)=>{const a=num(v.cops);return a!=null?`센터운영비 비율 <b class="tnum">${r1(a/c.total*100)}%</b> <span class="mono">총사업비 ${fmt(c.total)}천원</span>`:''},
+   w:(v,c)=>{const o=[];const a=num(v.cops),lim=c.sub==='시도형'?60:40;if(a!=null&&a/c.total*100>lim)o.push(W('warn',`센터운영비 편성비율이 기준(${lim}%)을 넘습니다. 승인 여부를 확인하세요.`,'R01'));if(v.chg)o.push(W('check','사전승인 문서(목 간: 시도, 세부항목 간: 시군)를 확인하세요.','R15'));return o}},
+  {id:'R-Z-02', t:'사업비 집행률', grp:'공통', s:'기준일 집행예산 ÷ 총사업비 × 100 (당해 연도 예산 기준, 이월 예산 제외)', d:'농촌형은 고정 경고선 없음. 성과평가(별표 3) 구간을 참고로만 표시', docs:'e나라도움 집행내역', ref:'p.59', b14:'fund', g:['계획 대비 정상 집행','집행 지연, 사유 확인','집행계획 미제출'], rate:1,
+   f:[{k:'exe',l:'기준일 집행액',type:'num',u:'천원',full:1},{k:'why',l:'집행 저조 사유 (해당 시)',type:'chips',o:['인력 채용 지연','사업 착수 지연','인력 모집 곤란','수요 감소','집행시기 미도래','기타'],full:1}],
+   calc:(v,c)=>{const e=num(v.exe);return e!=null?`집행률 <b class="tnum">${r1(e/c.total*100)}%</b> <span class="mono">총사업비 ${fmt(c.total)}천원</span>`:''},
+   w:(v,c)=>{const e=num(v.exe);if(e==null)return[];const r=e/c.total*100;const B=[[95,15],[90,13.5],[85,12],[80,10.5],[70,9],[60,7.5],[50,6],[40,4.5],[30,3]];const b=B.find(x=>r>=x[0]);return[W('info',b?`성과평가 구간: ${b[0]}% 이상(${b[1]}점). 참고용이며 판정 기준이 아닙니다.`:'성과평가 구간: 30% 미만(1.5점). 참고용이며 판정 기준이 아닙니다.','R02')]}},
+  {id:'R-Z-03', t:'증빙자료 보관', grp:'공통', s:'사업비 사용내역을 사용목적별로 5년간 기록·유지하고, 점검기관이 요구하면 제출', d:'통장, 지출품의서, 지출결의서, 영수증 등', docs:'회계 증빙서류 일체', ref:'p.16', b14:'fund', g:['증빙 정리·보관 양호','일부 미정리','증빙 제출 지연']}
+ ]},
+ {key:'field', no:'⑤', name:'운영여건 의견', form:1}
+];
+
+const PUBLIC = [
+ {key:'worker', no:'①', name:'계절노동자 관리', items:[
+  {id:'G-01', t:'근로계약', s:'운영주체(농협)가 계절노동자와 직접 근로계약을 맺고, 임금·노동시간·휴일·장소·업무·숙식비 부담을 명시했는지 확인', d:'표준근로계약서 활용', docs:'근로계약서', ref:'p.22', b14:'worker', g:['표준계약서·필수사항 명시','일부 사항 누락','계약 주체 불명확']},
+  {id:'G-02', t:'노동 범위', s:'농작물 생산과 직접 연관된 분야에서만 노동했는지 확인. 유휴인력은 경제사업장(APC·육묘장) 작업 허용', d:'경제사업장 노동은 노동자별 체류기간 총 노동시간의 30% 이하', docs:'노동자별 근무기록', ref:'p.22', b14:'worker', g:['범위·비율 준수','근무기록 일부 누락','비율 산정 곤란'],
+   f:[{k:'econ',l:'경제사업장 노동 비율(표본 최대값)',type:'num',u:'%',full:1}], w:v=>num(v.econ)>30?[W('warn','경제사업장 노동 비율 30%를 넘은 노동자가 있습니다.','R24')]:[]},
+  {id:'G-03', t:'노동시간·휴게·휴일', s:'1일 7~8시간 기본, 휴게(4시간 30분·8시간 1시간 이상), 매주 1회 또는 월 4회 휴일을 지켰는지 확인', d:'폭염·호우 시 노동자와 합의해 조정 가능', docs:'근무일지', ref:'p.22', b14:'worker', g:['기준 준수','일부 미준수','기록 부족']},
+  {id:'G-04', t:'임금 지급', sev:1, s:'최저임금 이상, 월 1회 이상 정기 지급, 주 35시간 이상 임금 보장, 연장·휴일 가산, 임금명세서 교부를 지켰는지 확인', d:'’26년 시급 10,320원. 연장 50% 가산, 휴일 8시간 이내 50%·초과 100% 가산. 농가가 수당을 직접 지급할 수 없음', docs:'임금대장, 임금명세서, 통장 이체내역', ref:'p.22~23', b14:'worker', g:['전 항목 준수','명세서 교부 일부 누락','가산임금 산정 확인 필요'],
+   f:[{k:'wage',l:'임금대장 표본: 시급',type:'num',u:'원',full:1},{k:'slip',l:'임금명세서 교부 확인',type:'chk',full:1}], w:v=>num(v.wage)!=null&&num(v.wage)<10320?[W('crit','’26년 최저임금(시급 10,320원)보다 낮게 지급한 건이 있습니다.','R22')]:[]},
+  {id:'G-05', t:'보험 가입', s:'산재·건강보험 의무 가입, 고용보험 임의, 국민연금은 체류자격·송출국에 따라 적용', d:'국가별 국민연금 가입 여부는 지침 붙임 참조', docs:'가입 내역', ref:'p.23', b14:'worker', g:['의무보험 가입','일부 미가입','국가별 적용 확인 필요']},
+  {id:'G-06', t:'숙식비 징수', s:'숙식비 공제 시 근로계약서 명시, 공제 동의서 서명, 자국어 숙소시설표 제공·서명을 했는지 확인', d:'상한: 숙식 제공 시 월 통상임금 20%, 숙소만 15%. 침실 1인당 2.5㎡ 이상', docs:'공제 동의서, 숙소시설표, 임금대장', ref:'p.23', b14:'dorm', g:['상한·서류 충족','서류 일부 누락','통상임금 산정 확인 필요'],
+   f:[{k:'mode',l:'제공 형태',type:'seg',o:['숙식 모두','숙소만'],full:1},{k:'ord',l:'월 통상임금',type:'num',u:'원'},{k:'fee',l:'월 숙식비 공제액',type:'num',u:'원'}],
+   calc:v=>{const a=num(v.ord),b=num(v.fee);return a&&b!=null?`통상임금 대비 <b class="tnum">${r1(b/a*100)}%</b>`:''},
+   w:v=>{const a=num(v.ord),b=num(v.fee);if(!a||b==null||!v.mode)return[];const lim=v.mode==='숙식 모두'?20:15;return b/a*100>lim?[W('warn',`숙식비 징수 상한(월 통상임금 ${lim}%)을 넘었습니다.`,'R23')]:[]}},
+  {id:'G-07', t:'여권·통장 보관 금지', sev:1, s:'여권·외국인등록증·임금통장(현금카드)을 고용주나 제3자가 보관하고 있지 않은지 확인', d:'위반 시 3년 이하 징역 또는 3천만원 이하 벌금. 형사처벌 시 참여 배제', docs:'노동자 면담, 현장 확인', ref:'p.24', b14:'worker', g:['본인 보관 확인','-','보관 의심 정황']},
+  {id:'G-08', t:'인신매매 식별지표 조사', s:'공공형 계절노동자 전수조사 후 지방정부와 관할 출입국관서에 조사표·결과를 제출했는지 확인', d:'채용 후 2개월 이내, 필수', docs:'조사표, 제출 공문', ref:'p.24', b14:'worker', g:['기한 내 제출','일부 지연','제출 여부 불명확'],
+   f:[{k:'tip',l:'제출 현황',type:'seg',o:['제출 완료','미제출(2개월 이내)','미제출(2개월 경과)'],full:1}], w:v=>v.tip==='미제출(2개월 경과)'?[W('warn','인신매매 식별지표 전수조사 제출 기한이 지났습니다.','R27')]:[]},
+  {id:'G-09', t:'운영주체 교육 이수', s:'대표·센터장·전임 담당직원이 노무·인권·성희롱·성폭력 예방·안전 교육을 이수했는지 확인', d:'연 1회 이상. 성희롱·성폭력 예방 집합 1시간 이상 포함 4시간 이내, 집합 2시간 이상', docs:'이수증', ref:'p.24', b14:'staff', g:['대상자 전원 이수','일부 미이수','이수 여부 확인 곤란']},
+  {id:'G-10', t:'작업반 구성', s:'내국인 또는 한국어 소통이 가능한 외국인을 작업반장으로 선발해 작업반을 구성했는지 확인', d:'계절노동자 5~10명당 작업반장 1명 이상 권장', docs:'작업반 편성표', ref:'p.24', b14:'worker', g:['권장 비율 충족','반장 부족','편성 기록 없음'],
+   f:[{k:'wk',l:'근무 계절노동자',type:'num',u:'명'},{k:'ld',l:'작업반장',type:'num',u:'명'}],
+   calc:v=>{const a=num(v.wk),b=num(v.ld);return a&&b?`반장 1명당 <b class="tnum">${r1(a/b)}명</b>`:''}},
+  {id:'G-11', t:'지원 대상 농가', sev:1, s:'관내 농가 우선, 일시 수요가 급증한 타 시군 농가 순으로 배정했는지, 성폭력 신고 농가 배정을 중지했는지 확인', d:'성폭력으로 형사처벌된 농가는 참여 배제', docs:'농가 배정 대장', ref:'p.22', b14:'worker', g:['우선순위·배제 준수','우선순위 관리 미흡','배제 대상 농가 확인 필요']}
+ ]},
+ {key:'dorm', no:'②', name:'공동 숙식시설', lab:['적합','부적합','확인필요'], items:[
+  ['D-01','부적합 주거시설 여부','비닐하우스, 컨테이너, 창고 개조 등 부적합 시설을 숙소로 쓰고 있지 않은지',1],
+  ['D-02','주거 시설물 종류','아파트, 단독주택, 다세대 주택, 마을회관 등'],
+  ['D-03','냉·난방 설비','숙소에 적절한 냉·난방 설비 또는 기구가 있는지'],
+  ['D-04','온수 샤워시설','냉온수가 모두 나오는 샤워시설이 있는지'],
+  ['D-05','숙소 내부 잠금장치','침실과 화장실·목욕시설에 잠금장치가 있는지'],
+  ['D-06','침구류·식기류','침구류와 식기류를 갖췄는지'],
+  ['D-07','소화기·화재감지기','소화기와 화재감지기를 갖췄는지'],
+  ['D-08','숙식비 과다 징수','숙식비를 상한보다 많이 받지 않는지(①-G-06 입력값 참고)'],
+  ['D-09','작업장과의 거리','숙소와 작업장 거리가 적정한지'],
+  ['D-10','관리자 유무','지방정부 단체숙소 제공 시 관리자가 배치됐는지'],
+  ['D-11','기타 편의 물품·시설','개인물품 수납공간 등 편의시설을 갖췄는지']
+ ].map(([id,t,s,sev])=>({id,t,s,d:'침실 1인당 2.5㎡ 이상(근로기준법 시행령 제58조), 사생활 보호용 잠금장치·수납공간',docs:'현장 확인',ref:'p.23, 103',b14:'dorm',b14sev:!!sev,g:['적합','보완 필요','현장 확인 불가'],
+   f:id==='D-02'?[{k:'kind',l:'시설 종류',type:'seg',o:['아파트','단독','다세대','마을회관','기타'],full:1}]:null}))},
+ {key:'budget', no:'③', name:'예산 집행', items:[
+  {id:'P-C-01', t:'인건비', grp:'센터운영비', s:'센터 전담인력 인건비와 인건비성 경비 집행 가능', d:'농협 직원 인건비는 전담인력 인건비로 집행 불가', docs:'근로계약서, 급여 지급내역', ref:'p.25', b14:'fund', g:['전담인력 계약·지급내역 일치','지급내역 일부 누락','농협 직원 겸직 여부 불명확'], bud:1,
+   w:()=>[W('check','농협 운영 센터입니다. 인건비 지급 대상이 농협 직원이 아닌지 확인하세요.','R12')]},
+  {id:'P-C-02', t:'운영비', grp:'센터운영비', s:'사무·공공요금, 소모품·수선, 회의·간담회, 기자재 임차, 안내·홍보물 제작, 전담인력 출장비', d:'자본지출·내구성물품(1년 이상·50만원 이상) 구입 불가. 임차는 비교견적·사업기간 내', docs:'지출결의서, 영수증, 간담회 회의록·서명·사진', ref:'p.25, 27', b14:'fund', g:['용도 범위 내 집행, 증빙 완비','증빙 일부 누락','내구성물품 해당 여부 판단 곤란'], bud:1,
+   f:[{k:'sub',l:'별지14 출력 구분',type:'seg',o:['사업운영','홍보','기타'],full:1},{k:'big',l:'50만원 이상 물품 구입 건 있음',type:'chk',full:1}], w:v=>v.big?[W('check','내구성물품(1년 이상 사용·50만원 이상) 해당 여부를 확인하세요.','R13')]:[]},
+  {id:'P-H-01', t:'교육비', grp:'인력운영비', s:'계절노동자 농작업·안전·한국어 교육, 통역 지원', d:'교육 실시 증빙 필요', docs:'교육계획서, 결과보고서, 참석자 명부', ref:'p.25', b14:'fund', g:['교육 실시 증빙 완비','결과보고·명부 일부 누락','교육 실시 여부 확인 곤란'], bud:1},
+  {id:'P-H-02', t:'운송비', grp:'인력운영비', s:'계절노동자 농작업장 운송용 차량 임차료, 운영주체·지방정부 차량 유류비', d:'농가가 제공하는 교통편은 예산지원 제한', docs:'임차계약서, 운행일지, 유류비 영수증', ref:'p.25', b14:'fund', g:['운송 목적·대상 적정','운행기록 일부 누락','농가 제공 교통편 지원 여부 불명확'], bud:1,
+   f:[{k:'farmcar',l:'농가 제공 교통편에 지원한 건 있음',type:'chk',full:1}], w:v=>v.farmcar?[W('warn','농가 제공 교통편은 예산지원이 제한됩니다.','R19')]:[]},
+  {id:'P-H-03', t:'관리·체류 비용', grp:'인력운영비', s:'사증발급인정서 신청 대행비, 통역·숙소 관리인력 인건비, 숙식비 일부(공동숙소 기자재 임차비 포함)', d:'기자재는 기본 기자재가 없거나 부족할 때, 운영기간 동안만', docs:'대행 계약서, 관리인력 계약서, 임차계약서', ref:'p.26', b14:'fund', g:['지원 요건 충족','증빙 일부 누락','기자재 부족 요건 확인 곤란'], bud:1,
+   f:[{k:'equip',l:'공동숙소 기자재 임차 있음',type:'chk',full:1}], w:v=>v.equip?[W('check','기본 기자재 부족 요건과 운영기간 내 임차인지 확인하세요.','R20')]:[]},
+  {id:'P-H-04', t:'영농작업반장 수당', grp:'인력운영비', s:'계절노동자 인솔·작업지시에 따른 작업반장 수당', d:'1일 최대 10천원. 같은 날 농촌인력중개센터 작업반장 수당과 중복 지급 불가', docs:'수당 지급대장', ref:'p.26', b14:'fund', g:['활동일·단가 일치','활동일 기록 일부 누락','농촌형 수당 중복 여부 확인 필요'], bud:1,
+   f:[{k:'lead',l:'지급대장 표본: 1일 지급액',type:'num',u:'원',full:1}], w:v=>num(v.lead)>10000?[W('warn','작업반장 수당 상한(1일 10천원)을 넘은 건이 있습니다.','R11')]:[]},
+  {id:'P-H-05', t:'보험료 등 기타', grp:'인력운영비', s:'운영주체 부담 산재·건강·국민연금·고용보험, 운영 모니터링, 안전용품, 입출국·외국인등록 행정절차 중 노동자 식비·교통비', d:'내구성물품 구입 불가', docs:'보험료 납부내역, 영수증', ref:'p.26', b14:'fund', g:['용도 범위 내','증빙 일부 누락','국가별 국민연금 가입 대상 확인 필요'], bud:1},
+  {id:'P-Z-01', t:'편성비율·예산 변경', grp:'공통', s:'센터운영비 40%, 인력운영비 60%로 편성. 목 간 변경은 시도, 세부항목 간 변경은 시군 사전승인', d:'농촌형-공공형 간 조정은 농식품부 사전승인', docs:'변경 승인 공문', ref:'p.26~27', b14:'plan', g:['편성비율 준수, 변경 승인 확인','승인 문서 사후 보완 필요','변경 경위 불명확'],
+   f:[{k:'cops',l:'센터운영비 편성액',type:'num',u:'천원',full:1}],
+   calc:(v,c)=>{const a=num(v.cops);return a!=null?`센터운영비 비율 <b class="tnum">${r1(a/c.total*100)}%</b> <span class="mono">총사업비 ${fmt(c.total)}천원</span>`:''},
+   w:(v,c)=>{const a=num(v.cops);return a!=null&&a/c.total*100>40?[W('warn','센터운영비 편성비율이 기준(40%)을 넘습니다. 승인 여부를 확인하세요.','R01')]:[]}},
+  {id:'P-Z-02', t:'예산 집행률', grp:'공통', s:'집행액 ÷ 예산액 × 100', d:'30% 미만은 차년도 선정 제외 사유, 실집행률 50% 미만은 차년도 사업비 최대 20% 감액 가능', docs:'e나라도움 집행내역', ref:'p.14', b14:'fund', g:['계획 대비 정상 집행','집행 지연, 사유 확인','집행계획 미제출'], rate:1,
+   f:[{k:'exe',l:'기준일 집행액',type:'num',u:'천원',full:1},{k:'why',l:'집행 저조 사유 (해당 시)',type:'chips',o:['계절노동자 도입 지연','인력 채용 지연','사업 착수 지연','수요 감소','집행시기 미도래','기타'],full:1}],
+   calc:(v,c)=>{const e=num(v.exe);return e!=null?`집행률 <b class="tnum">${r1(e/c.total*100)}%</b> <span class="mono">총사업비 ${fmt(c.total)}천원</span>`:''},
+   w:(v,c)=>{const e=num(v.exe);if(e==null)return[];const r=e/c.total*100;if(r<30)return[W('warn','집행률 30% 미만은 차년도 선정 제외 사유가 될 수 있습니다. 사유를 확인하세요.','R03')];if(r<50)return[W('warn','실집행률 50% 미만이면 차년도 사업비가 최대 20% 감액될 수 있습니다.','R04')];return[]}}
+ ]},
+ {key:'field', no:'④', name:'운영여건 의견', form:1}
+];
+
+const FIELD = [
+ ['hard','현재 운영 애로 (복수 선택)',['인력 확보','농가 수요 확보','담당 인력 부족','교통·이동','숙소','예산','인력 관리','민간 인력시장과 경쟁','기타']],
+ ['chan','지역 민간 인력 공급채널',['인력사무소','민간 구인플랫폼','농협','지역 기업','없음','파악 안 됨']],
+ ['coop','민간과 협력 가능한 방식',['센터 구인정보 공유','민간 구직자 DB 활용','공동 모집','민간 모집 + 센터 매칭','부족 시기만 민간 활용','타지역 인력 연계','협력 어려움']],
+ ['worry','민간 연계 시 우려',['수수료','임금 상승','책임 소재','인력 관리','개인정보','공공 역할 축소','기존 인력사무소와 갈등','기타']]
+];
+const DOCS = {
+ rural:['전담인력 근로계약서','업무분장표','인력풀 현황(플랫폼)','구인·구직 모집 현황','중개 실적(플랫폼 기록)','사업비 집행내역(e나라도움)','지급대장(별지 4~7호)','교육·안전관리 실적','예산 변경 승인 문서'],
+ public:['계절노동자 근로계약서','임금대장·임금명세서','4대보험 가입내역','숙식비 공제 동의서·숙소시설표','인신매매 식별지표 제출 공문','작업반 편성표','교육 이수증','사업비 집행내역(e나라도움)','노동자별 근무기록']
+};
+const DSTATE = ['요청','제출','미제출','현장확인'];
+const TAGS = ['인력모집','민간연계','수송','안전관리','인력풀관리','농가관리','매칭','홍보','교육'];
+
+const CENTERS = [
+ {id:'garam', name:'가람군 농촌인력중개센터', type:'rural', typeL:'농촌형', sub:'시군형', op:'농협', opL:'가람농협 운영', total:80000, date:'10.28.(수)', who:'점검자 김○○', prior:[{y:'’25',t:'교육·안전관리 실적 증빙 미흡'}]},
+ {id:'nuri', name:'누리도 농촌인력중개센터', type:'rural', typeL:'농촌형', sub:'시도형', op:'지자체', opL:'누리도 직영', total:90000, date:'10.29.(목)', who:'점검자 김○○', prior:[]},
+ {id:'daon', name:'다온농협 공공형 계절노동', type:'public', typeL:'공공형', sub:'', op:'농협', opL:'다온농협 운영', total:100000, date:'10.30.(금)', who:'점검자 김○○', prior:[]}
+];
+const areasOf = c => c.type==='rural'?RURAL:PUBLIC;
+const allItems = c => areasOf(c).filter(a=>!a.form).flatMap(a=>a.items);
+
+/* ── 상태 ── */
+const KEY = 'jc-inspect-v1';
+function seed(){
+  const s = {};
+  CENTERS.forEach(c=>{ s[c.id] = {items:{}, docs:{}, field:{}, prior:{}, best:[], b14o:{}, review:'', confirmed:false, follow:{}};
+    DOCS[c.type].forEach(d=>s[c.id].docs[d]='요청'); });
+  const g = s.garam;
+  Object.assign(g.docs, {'전담인력 근로계약서':'제출','업무분장표':'제출','인력풀 현황(플랫폼)':'제출','중개 실적(플랫폼 기록)':'제출','사업비 집행내역(e나라도움)':'제출','지급대장(별지 4~7호)':'현장확인','교육·안전관리 실적':'미제출'});
+  const set=(id,j,v,memo)=>g.items[id]={j,v:v||{},memo:memo||''};
+  set('O-1-01','o'); set('O-1-02','o',{staff:1,support:1,contract:true,period:'26.1.~12.',fulltime:'상근',dedi:'중개업무 전담',chg:'변경 없음'});
+  set('O-1-03','o',{line:'확인',pc:'확인',office:'확인'}); set('O-1-04','w',{edu:'일부 미이수'},'전담인력 1명 중대재해처벌법 과정 미이수');
+  set('O-1-05','o',{jobs:['구인농가 모집','구직자 모집','농가-구직자 매칭','실적 입력']}); set('O-1-06','o',{orgs:['지방정부','농협','고용복지플러스센터']});
+  set('O-2-01','o',{total:420,active:186,inner:350,outer:70,repeat:120,newc:64}); set('O-2-02','o',{teams:6,minsize:4});
+  return s;
+}
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)) || seed(); } catch(e){ S = seed(); }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
+let V = {name:'home'};
+let confirmAsk = false;
+
+const rec = (cid,id) => (S[cid].items[id] ||= {j:'',v:{},memo:''});
+const areaProg = (c,a) => a.form ? [((S[c.id].field.hard||[]).length?1:0),1] : [a.items.filter(i=>S[c.id].items[i.id]?.j).length, a.items.length];
+const centerProg = c => areasOf(c).reduce((t,a)=>{const [d,n]=areaProg(c,a);return [t[0]+d,t[1]+n]},[0,0]);
+const warnsOf = (c,it,v) => { try { return it.w ? it.w(v||{}, c) : []; } catch(e){ return []; } };
+
+/* ── 공통 조각 ── */
+const icoBack = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>';
+const icoChev = '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+const bar = (title, sub, back) => `<header class="bar"><div class="bar-in">${back?`<button class="back" data-go="${back}" aria-label="뒤로">${icoBack}</button>`:''}<h1>${esc(title)}${sub?`<div class="sub">${sub}</div>`:''}</h1></div></header>`;
+const jLabel = {o:'○',w:'△',q:'?'};
+
+function warnHtml(ws){
+  if(!ws.length) return '';
+  const tag = {warn:'경고',check:'확인',info:'참고',crit:'중대'};
+  return ws.map(w=>`<div class="w ${w.lv}"><span class="tag">${w.rule||tag[w.lv]}</span><span>${esc(w.text)}</span></div>`).join('');
+}
+function fieldHtml(f, v, iid){
+  const val = v[f.k];
+  const id = 'f-'+iid+'-'+f.k;
+  const di = `data-id="${iid}"`;
+  const cls = 'fld'+(f.full?' full':'');
+  if(f.type==='num') return `<div class="${cls}"><label for="${id}">${esc(f.l)}</label><div class="unit"><input id="${id}" type="number" inputmode="numeric" data-k="${f.k}" ${di} value="${val??''}"><em>${esc(f.u||'')}</em></div></div>`;
+  if(f.type==='text') return `<div class="${cls}"><label for="${id}">${esc(f.l)}</label><input id="${id}" type="text" data-k="${f.k}" ${di} value="${esc(val??'')}" placeholder="${esc(f.ph||'')}"></div>`;
+  if(f.type==='chk') return `<label class="chk ${f.full?'full':''}"><input id="${id}" type="checkbox" data-k="${f.k}" ${di} ${val?'checked':''}><span>${esc(f.l)}</span></label>`;
+  if(f.type==='seg') return `<div class="${cls}"><label>${esc(f.l)}</label><div class="seg" role="group">${f.o.map(o=>`<button type="button" data-seg="${f.k}" ${di} data-val="${esc(o)}" aria-pressed="${val===o}">${esc(o)}</button>`).join('')}</div></div>`;
+  if(f.type==='chips'){ const arr = val||[]; return `<div class="${cls}"><label>${esc(f.l)}</label><div class="chips">${f.o.map(o=>`<button type="button" class="chip" data-chip="${f.k}" ${di} data-val="${esc(o)}" aria-pressed="${arr.includes(o)}">${esc(o)}</button>`).join('')}</div></div>`; }
+  return '';
+}
+
+/* ── 화면: 오늘의 점검 ── */
+function vHome(){
+  const cards = CENTERS.map(c=>{
+    const [d,n] = centerProg(c); const st = S[c.id];
+    const pct = Math.round(d/n*100);
+    const label = st.confirmed ? '결과 보기' : d ? '이어서 점검' : '점검 시작';
+    return `<div class="card center">
+      <div class="meta"><span class="pill acc">${c.typeL}${c.sub?' · '+c.sub:''}</span><span class="pill">${esc(c.date)}</span>${st.confirmed?'<span class="pill ok">확정 완료</span>':''}</div>
+      <h2>${esc(c.name)}</h2>
+      <div class="row-b"><span class="mono tnum">${d} / ${n} 항목</span><span class="mono tnum">${pct}%</span></div>
+      <div class="prog"><i style="width:${pct}%"></i></div>
+      <button class="btn ${st.confirmed?'':'pri'} block" data-open="${c.id}">${label}</button>
+    </div>`;
+  }).join('');
+  return bar('오늘의 현장점검','’26년 하반기 · 농촌인력중개센터') + `<main class="wrap stack">
+    <div class="notice">가상 센터로 만든 시연용 화면입니다. 입력 내용은 이 기기에만 저장됩니다.</div>
+    ${cards}
+    <div class="foot"><span>기준: ’26년 농촌인력중개센터 시행지침(2026. 9.)</span><button class="linkbtn" data-reset="1">예시 데이터로 되돌리기</button></div>
+  </main>`;
+}
+
+function calcHtml(c,it,v){
+  const parts = [];
+  if(it.bud){ const b=num(v.bud),e=num(v.exe); if(b&&e!=null) parts.push(`세부항목 집행률 <b class="tnum">${r1(e/b*100)}%</b>`); }
+  if(it.calc){ const x = it.calc(v,c); if(x) parts.push(x); }
+  if(it.sample){ const n=v.n||5; let ok=0; for(let i=0;i<n;i++) ok += SAMPLE_K.filter(k=>v['s'+i+k]).length; parts.push(`확인 완료 <b class="tnum">${ok}</b> / ${n*SAMPLE_K.length}`); }
+  return parts.join(' &nbsp;·&nbsp; ');
+}
+const SAMPLE_K = ['계약','작업','일수','이력','플랫폼','조건'];
+const SAMPLE_L = {계약:'근로계약',작업:'실제 작업',일수:'작업일수',이력:'매칭이력',플랫폼:'플랫폼 일치',조건:'임금 등 조건'};
+function sampleHtml(v, iid){
+  const n = v.n||5;
+  let h = `<div class="fld"><label>표본 수</label><div class="seg" role="group">${[3,5,10].map(x=>`<button type="button" data-seg="n" data-id="${iid}" data-val="${x}" aria-pressed="${n===x}">${x}건</button>`).join('')}</div></div>`;
+  for(let i=0;i<n;i++){
+    h += `<div class="fld"><label>표본 ${i+1}</label><div class="chips">${SAMPLE_K.map(k=>`<button type="button" class="chip" data-tog="s${i}${k}" data-id="${iid}" aria-pressed="${!!v['s'+i+k]}">${SAMPLE_L[k]}</button>`).join('')}</div></div>`;
+  }
+  return h + '<div class="notice">표본은 실명 대신 번호로만 관리합니다. 확인된 항목만 누르세요.</div>';
+}
+
+/* ── 화면: 우수사례 ── */
+function vBest(c){
+  const st = S[c.id];
+  const list = st.best.map(b=>`<div class="fi"><b>${esc(b.title)}</b><span class="calc">${esc(b.desc)}</span><div class="chips">${b.tags.map(t=>`<span class="pill">#${esc(t)}</span>`).join('')}</div></div>`).join('');
+  return bar('우수사례 등록', esc(c.name), 'center') + `<main class="wrap stack">
+    <section class="card stack" style="gap:12px">
+      <div class="fld"><label for="bt">제목</label><input id="bt" type="text" placeholder="예: 인근 시군과 수확기 인력 교류"></div>
+      <div class="fld"><label for="bd">내용·효과</label><textarea id="bd" placeholder="무엇을 했고, 어떤 효과가 있었는지"></textarea></div>
+      <div class="fld"><label>다른 센터 적용 가능성</label><div class="seg" role="group" id="bap">${['높음','보통','낮음'].map(o=>`<button type="button" data-bap="${o}" aria-pressed="false">${o}</button>`).join('')}</div></div>
+      <div class="fld"><label>태그</label><div class="chips" id="btags">${TAGS.map(t=>`<button type="button" class="chip" data-btag="${t}" aria-pressed="false">#${t}</button>`).join('')}</div></div>
+      <div class="notice">사진은 2차에 추가합니다. 등록 후 관리자가 검토해 공개합니다.</div>
+      <button class="btn pri block" data-bsave="1">등록</button>
+    </section>
+    ${st.best.length?`<div class="sec-t">등록된 사례</div><section class="card">${list}</section>`:''}
+  </main>`;
+}
+
+/* ── 화면: 결과 ── */
+function judged(c){ return allItems(c).map(i=>({i, r:S[c.id].items[i.id]})); }
+function suggest(c, key){
+  const xs = judged(c).filter(x=>x.i.b14===key && x.r?.j);
+  if(!xs.length) return '';
+  if(xs.some(x=>(x.i.sev||x.i.b14sev) && x.r.j!=='o')) return '매우미흡';
+  const w = xs.filter(x=>x.r.j==='w').length, q = xs.filter(x=>x.r.j==='q').length;
+  if(!w && !q) return '양호'; if(w===1 && !q) return '보통'; return '미흡';
+}
+function draftReview(c){
+  const J = judged(c).filter(x=>x.r?.j);
+  const n = k => J.filter(x=>x.r.j===k).length;
+  const W2 = J.filter(x=>x.r.j==='w').map(x=>x.i.t), Q = J.filter(x=>x.r.j==='q').map(x=>x.i.t);
+  const sev = J.filter(x=>x.i.sev && x.r.j!=='o').map(x=>x.i.t);
+  const rateIt = allItems(c).find(i=>i.rate); const ev = num(S[c.id].items[rateIt.id]?.v?.exe);
+  let t = `${c.name}은(는) 점검 결과 적정 ${n('o')}건, 개선필요 ${n('w')}건, 추가확인 ${n('q')}건으로 확인됨.`;
+  if(ev!=null) t += ` 기준일 사업비 집행률은 ${r1(ev/c.total*100)}%임.`;
+  if(W2.length) t += ` ${W2.join(', ')} 항목은 보완 조치가 필요함.`;
+  if(Q.length) t += ` ${Q.join(', ')} 항목은 추가 확인이 필요함.`;
+  if(sev.length) t += ` 중대 위반 의심 항목(${sev.join(', ')})은 관리자 보고 후 조치 예정.`;
+  if(S[c.id].best.length) t += ` ${S[c.id].best.map(b=>b.title).join(', ')} 사례는 타 센터 공유 대상으로 등록함.`;
+  return t;
+}
+function vResult(c){
+  const st = S[c.id]; const J = judged(c);
+  const cnt = k => J.filter(x=>x.r?.j===k).length;
+  const blank = J.filter(x=>!x.r?.j).length;
+  const sev = J.filter(x=>x.i.sev && x.r?.j && x.r.j!=='o');
+  const issues = J.filter(x=>x.r?.j==='w'||x.r?.j==='q');
+  if(!st.review) st.review = draftReview(c);
+  const rows = B14[c.type].map(([k,l])=>{
+    const sg = k==='will'?'':suggest(c,k); const cur = st.b14o[k] ?? sg;
+    return `<tr><th>${l}<small>${k==='will'?'점검자 직접 선택':sg?`시스템 제안: ${sg}`:'판정된 연계 항목 없음'}</small></th>
+      <td style="width:118px"><select data-b14="${k}" aria-label="${l}" ${st.confirmed?'disabled':''}><option value="">선택</option>${['양호','보통','미흡','매우미흡'].map(o=>`<option ${cur===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`;
+  }).join('');
+  const issueList = issues.map(x=>`<div class="fi"><div class="it-h"><span class="mono">${x.i.id}</span><span class="pill ${x.r.j==='w'?'warn':''}">${jLabel[x.r.j]}</span>${x.i.sev?'<span class="pill crit">중대</span>':''}</div><b>${esc(x.i.t)}</b>
+    
+    <span class="calc">${esc(x.r.memo||'사유 미입력')}</span></div>`).join('');
+  return bar('점검 결과', esc(c.name), 'center') + `<main class="wrap stack">
+    ${st.confirmed?`<div class="lock">${esc(st.confirmedAt)} 확정 · 지적사항 ${issues.length}건은 다음 점검 때 ‘전년도 지적사항’으로 다시 표시됩니다.</div>`:''}
+    <div class="tiles"><div class="tile o"><b>${cnt('o')}</b><span>○ 적정</span></div><div class="tile w2"><b>${cnt('w')}</b><span>△ 개선필요</span></div><div class="tile q"><b>${cnt('q')}</b><span>? 추가확인</span></div><div class="tile"><b>${blank}</b><span>미입력</span></div></div>
+    ${sev.length?`<div class="w crit"><span class="tag">R29</span><span>중대 위반 의심 ${sev.length}건: ${sev.map(x=>esc(x.i.t)).join(', ')}. 확정과 함께 관리자에게 알립니다.</span></div>`:''}
+    <div class="sec-t">${st.confirmed?'지적사항':'개선·확인 필요 사항'}</div>
+    <section class="card">${issueList||'<span class="calc">△·? 판정 항목이 없습니다.</span>'}</section>
+    <div class="sec-t">별지 14호 종합판정</div>
+    <section class="card"><table class="b14">${rows}</table><div class="notice" style="margin-top:10px">연계 항목에 △·?가 없으면 양호, △ 1건이면 보통, 그 이상이면 미흡, 중대 항목이 △·?이면 매우미흡을 제안합니다. 최종 판정은 점검자가 정합니다.</div></section>
+    <div class="sec-t">총평</div>
+    <section class="card stack" style="gap:10px">
+      <div class="fld"><label for="rv">입력값으로 만든 초안입니다. 고쳐서 확정하세요.</label><textarea id="rv" data-review="1" style="min-height:160px" ${st.confirmed?'readonly':''}>${esc(st.review)}</textarea></div>
+      ${st.confirmed?'':'<button class="btn ghost" data-redraft="1">초안 다시 만들기</button>'}
+    </section>
+    <button class="btn block" data-report="1">결과보고서(별지 14호) ${st.confirmed?'보기':'미리보기'}</button>
+    ${st.confirmed?'':
+      confirmAsk?`<div class="confirm-box"><span>${blank?`미입력 항목이 ${blank}건 있습니다. `:''}확정하면 점검자는 더 이상 수정할 수 없습니다.</span><div class="btns"><button class="btn" data-cancel="1">취소</button><button class="btn pri" data-confirm="2">확정</button></div></div>`:
+      `<button class="btn pri block" data-confirm="1">점검 결과 확정</button>`}
+  </main>`;
+}
+
+/* ── 면담용 질문 ── */
+const Q = {
+ 'O-1-01':'운영기관 지정(위탁) 문서와 무료직업소개사업 신고증 보여주시겠어요?',
+ 'O-1-02':'중개 전담하시는 분과 지원 인력은 몇 분이세요? 근로계약서도 볼게요.',
+ 'O-1-03':'상담 전용 전화, 업무용 PC, 사무실은 따로 쓰고 계시죠?',
+ 'O-1-04':'올해 안전·인권·노무 교육 받으셨어요? 이수증 있으세요?',
+ 'O-1-05':'담당자분이 주로 어떤 일을 하세요?',
+ 'O-1-06':'같이 협력하는 기관은 어디어디예요?',
+ 'O-2-01':'인력풀은 몇 명이고, 실제로 일 나가는 분은 몇 명 정도예요?',
+ 'O-2-02':'작업반은 몇 개 운영하세요? 반장님이 인솔하시나요?',
+ 'O-2-03':'사람은 주로 어떻게 모으세요? 언제가 제일 힘드세요?',
+ 'O-2-04':'농번기 인력 사정이나 인건비 동향은 어떻게 파악하세요?',
+ 'O-2-05':'한 번 참여한 분들은 이후에 어떻게 관리하세요?',
+ 'O-2-06':'혹시 계절근로자 모집이나 알선에 관여하신 적 있나요?',
+ 'O-3-01':'플랫폼에 구인공고는 한 달에 몇 번 올리세요?',
+ 'O-3-02':'중개한 건 몇 개만 골라서 플랫폼 기록이랑 맞춰볼게요.',
+ 'O-3-03':'중개실적이나 인력풀 현황도 플랫폼에 입력하고 계시죠?',
+ 'O-3-04':'어느 농가부터 우선 연결해 드리세요?',
+ 'O-3-05':'농업 말고 다른 작업에 연결한 적은 없으시죠?',
+ 'O-3-06':'참여 신청서랑 개인정보 동의서 받아 두셨어요?',
+ 'O-3-07':'농기계 운전하는 작업자분들은 안전교육 받으셨어요?',
+ 'R-C-01':'전담인력 인건비 지급내역 볼게요.',
+ 'R-C-02':'운영비 지출 증빙 볼게요. 간담회·임차 건도 같이요.',
+ 'R-H-01':'고용인력·농가 교육 실시 자료 있으세요?',
+ 'R-H-02':'신규 구직자 교육비 지급대장 몇 건 볼게요.',
+ 'R-H-03':'차량 임차·유류비 내역 볼게요.',
+ 'R-H-04':'교통비 지급대장 몇 건 볼게요.',
+ 'R-H-05':'숙박비 지급대장 볼게요. 관외에서 오신 분들 맞죠?',
+ 'R-H-06':'간식비는 하루 얼마씩 드리세요?',
+ 'R-H-07':'작업반장 수당 지급대장 볼게요.',
+ 'R-H-08':'보험·안전용품 같은 기타 지출 내역 볼게요.',
+ 'R-Z-01':'예산 편성표랑 변경 승인 문서 있으세요?',
+ 'R-Z-02':'오늘 기준 집행액이 얼마나 되세요?',
+ 'R-Z-03':'증빙서류는 어떻게 보관하고 계세요?',
+ 'G-01':'근로계약서는 농협 명의로 쓰셨죠? 표준계약서 쓰셨어요?',
+ 'G-02':'APC나 육묘장에서도 일하나요? 비율은 어느 정도예요?',
+ 'G-03':'하루 몇 시간 일하고, 쉬는 날은 언제예요?',
+ 'G-04':'시급은 얼마로 주시고, 임금명세서도 드리세요?',
+ 'G-05':'산재·건강보험은 다 가입돼 있죠?',
+ 'G-06':'숙식비는 얼마 공제하세요? 동의서 받으셨어요?',
+ 'G-07':'여권이랑 통장은 근로자 본인이 갖고 있나요?',
+ 'G-08':'인신매매 식별지표 조사표는 제출하셨어요?',
+ 'G-09':'대표님·센터장님 교육은 이수하셨어요?',
+ 'G-10':'작업반은 어떻게 짜고, 반장님은 몇 분이세요?',
+ 'G-11':'농가 배정은 어떤 순서로 하세요?',
+ 'P-C-01':'전담인력 인건비 지급내역 볼게요.',
+ 'P-C-02':'운영비 지출 증빙 볼게요.',
+ 'P-H-01':'교육·통역 지출 자료 볼게요.',
+ 'P-H-02':'운송 차량 임차·유류비 내역 볼게요. 농가 차량 지원은 없죠?',
+ 'P-H-03':'비자 대행비, 숙소 관리인력, 기자재 임차 내역 볼게요.',
+ 'P-H-04':'작업반장 수당 지급대장 볼게요.',
+ 'P-H-05':'4대보험료 등 기타 지출 내역 볼게요.',
+ 'P-Z-01':'예산 편성표랑 변경 승인 문서 있으세요?',
+ 'P-Z-02':'오늘 기준 집행액이 얼마나 되세요?'
+};
+const qOf = it => Q[it.id] || it.s;
+const SHORT = {ops:'운영',pool:'인력풀',match:'매칭',budget:'예산',field:'의견',worker:'노동자',dorm:'숙소'};
+const OPEN = new Set();
+let ALLOK = '';
+
+/* ── 탭 구성 ── */
+const tabsOf = c => [{key:'prep',lab:'준비'}, ...areasOf(c).map(a=>({key:a.key,lab:`${a.no}${SHORT[a.key]}`,a})), {key:'result',lab:'결과'}];
+
+function tabBar(c){
+  return `<nav class="tabs" aria-label="점검 영역"><div class="tabs-in">${tabsOf(c).map(t=>{
+    let badge='';
+    if(t.a){ const [d,n]=areaProg(c,t.a); badge=`<span class="tb ${d===n?'done':''}">${t.a.form?(d?'✓':''):`${d}/${n}`}</span>`; }
+    return `<button class="tab" data-tab="${t.key}" aria-current="${V.tab===t.key}">${t.lab}${badge}</button>`;
+  }).join('')}</div></nav>`;
+}
+
+/* ── 준비 탭: 센터 정보·전년도 지적·사전자료·우수사례 ── */
+function tPrep(c){
+  const st = S[c.id];
+  const prior = c.prior.length ? `<div class="sec-t">전년도 지적사항 · 먼저 확인</div><section class="card stack" style="gap:10px">
+      ${c.prior.map((p,i)=>`<div><span class="mono">${p.y}</span> ${esc(p.t)}</div>
+        <div class="seg" role="group">${['이행','미이행','확인 불가'].map(o=>`<button type="button" data-prior="${i}" data-val="${o}" aria-pressed="${st.prior[i]===o}">${o}</button>`).join('')}</div>`).join('')}
+    </section>` : '';
+  const docs = Object.keys(st.docs).map(d=>`<div class="doc"><span>${esc(d)}</span>
+    <div class="seg" role="group">${DSTATE.map(s=>`<button type="button" data-doc="${esc(d)}" data-val="${s}" aria-pressed="${st.docs[d]===s}">${s}</button>`).join('')}</div></div>`).join('');
+  const sub = Object.values(st.docs).filter(x=>x==='제출').length;
+  return `<section class="card stack" style="gap:6px"><div class="meta"><span class="pill acc">${c.typeL}${c.sub?' · '+c.sub:''}</span><span class="pill">${esc(c.date)}</span></div>
+      <b style="font-size:17px">${esc(c.name)}</b><span class="calc">${esc(c.opL)} · 총사업비 ${fmt(c.total)}천원 · ${esc(c.who)}</span></section>
+    ${prior}
+    <div class="sec-t">사전자료 · ${Object.keys(st.docs).length}건 중 제출 ${sub}건</div>
+    <section class="list">${docs}</section>
+    <button class="btn block" data-best="1">우수사례 등록${st.best.length?` (${st.best.length}건)`:''}</button>
+    <button class="btn pri block" data-tab="${areasOf(c)[0].key}">면담 시작 →</button>`;
+}
+
+/* ── 영역 탭: 질문 목록 ── */
+function rowHtml(c, a, it){
+  const r = S[c.id].items[it.id] || {j:'',v:{},memo:''};
+  const lab = a.lab || ['적정','개선필요','추가확인'];
+  const open = OPEN.has(it.id);
+  const ws = warnsOf(c,it,r.v);
+  const lock = S[c.id].confirmed;
+  const hasIn = it.bud || it.f || it.sample;
+  let panel = '';
+  if(open){
+    let extra = '';
+    if(it.bud) extra += `<div class="fields">${fieldHtml({k:'bud',l:'예산액',type:'num',u:'천원'},r.v,it.id)}${fieldHtml({k:'exe',l:'집행액',type:'num',u:'천원'},r.v,it.id)}</div>`;
+    if(it.f) extra += `<div class="fields">${it.f.map(f=>fieldHtml(f,r.v,it.id)).join('')}</div>`;
+    if(it.sample) extra += sampleHtml(r.v, it.id);
+    panel = `<div class="q-panel">
+      ${extra?`<div class="stack" style="gap:10px">${extra}<div class="calc" id="calc-${it.id}">${calcHtml(c,it,r.v)}</div></div>`:''}
+      <dl class="kv"><dt>확인 자료</dt><dd>${esc(it.docs)}</dd><dt>판정 가이드</dt><dd><div class="guide"><div><b>○</b><span>${esc(it.g[0])}</span></div><div><b>△</b><span>${esc(it.g[1])}</span></div><div><b>?</b><span>${esc(it.g[2])}</span></div></div></dd></dl>
+    </div>`;
+  }
+  const needMemo = r.j==='w' || r.j==='q';
+  return `<div class="q-row ${r.j?'j-'+r.j:''}" id="row-${it.id}">
+    <div class="q-head"><span class="mono">${it.id}</span>${it.sev?'<span class="pill crit">중대</span>':''}${it.b14sev?'<span class="pill crit">부적합 시 매우미흡</span>':''}<span class="kw">${esc(it.t)}</span></div>
+    <p class="q-txt"><span class="q-mark" aria-hidden="true">Q</span>${esc(qOf(it))}</p>
+    <div class="std"><div class="lb">지침 기준 · ${esc(it.ref)}</div><p>${esc(it.s)}</p><p class="std-key">${esc(it.d)}</p></div>
+    <button class="exp" data-exp="${it.id}" aria-expanded="${open}">${open?'접기':(hasIn?'확인값 입력 · 판정 가이드':'확인 자료 · 판정 가이드')} <span aria-hidden="true">${open?'▴':'▾'}</span></button>
+    ${panel}
+    <div class="warns" id="warn-${it.id}">${warnHtml(ws)}</div>
+    <div class="q-judge">
+      <span class="jl">판정</span>
+      <div class="mini" role="group" aria-label="${esc(it.t)} 판정">
+        <button class="mj o" data-j="o" data-id="${it.id}" aria-pressed="${r.j==='o'}" ${lock?'disabled':''}><span>○</span><small>${lab[0]}</small></button>
+        <button class="mj w2" data-j="w" data-id="${it.id}" aria-pressed="${r.j==='w'}" ${lock?'disabled':''}><span>△</span><small>${lab[1]}</small></button>
+        <button class="mj q" data-j="q" data-id="${it.id}" aria-pressed="${r.j==='q'}" ${lock?'disabled':''}><span>?</span><small>${lab[2]}</small></button>
+      </div>
+    </div>
+    ${it.sev&&needMemo?'<div class="w crit"><span class="tag">R29</span><span>중대 위반 의심 · 관리자 즉시 알림 대상</span></div>':''}
+    ${needMemo||r.memo?`<div class="fld"><label for="m-${it.id}">판정 사유</label><textarea id="m-${it.id}" data-memo="${it.id}" placeholder="한 줄로 적어 주세요. 결과보고서와 후속관리에 그대로 들어갑니다.">${esc(r.memo)}</textarea></div>`:''}
+  </div>`;
+}
+function tArea(c, a){
+  const tabs = tabsOf(c); const i = tabs.findIndex(t=>t.key===a.key); const next = tabs[i+1];
+  if(a.form){
+    const f = S[c.id].field;
+    return `<div class="notice">2027 운영개선용 의견수렴입니다. 판정은 하지 않습니다.</div>
+      ${FIELD.map(([k,l,o])=>`<section class="card">${fieldHtml({k,l,type:'chips',o,full:1},f,'_field')}</section>`).join('')}
+      <section class="card"><div class="fld"><label for="ff">“이 지역에서 인력중개가 제대로 작동하려면 무엇이 가장 필요할까요?”</label><textarea id="ff" data-fieldtext="1" placeholder="답변을 짧게 적습니다.">${esc(f.text||'')}</textarea></div></section>
+      <button class="btn pri block" data-tab="${next.key}">${next.lab} →</button>`;
+  }
+  const left = a.items.filter(it=>!S[c.id].items[it.id]?.j && !it.sev && !it.b14sev).length;
+  const sevLeft = a.items.filter(it=>!S[c.id].items[it.id]?.j && (it.sev||it.b14sev)).length;
+  const allok = S[c.id].confirmed || !left ? '' : ALLOK===a.key
+    ? `<div class="confirm-box"><span>남은 ${left}건을 모두 ○ 적정으로 표시합니다.${sevLeft?` 중대 항목 ${sevLeft}건은 직접 판정해야 합니다.`:''}</span><div class="btns"><button class="btn" data-allok="cancel">취소</button><button class="btn pri" data-allok="go">적정 처리</button></div></div>`
+    : `<button class="btn ghost block" data-allok="ask">남은 ${left}건 모두 ○ 적정</button>`;
+  let lastGrp = '';
+  const rows = a.items.map(it=>{ let h=''; if(it.grp && it.grp!==lastGrp){ h+=`<div class="sec-t">${it.grp}</div>`; lastGrp=it.grp; } return h+rowHtml(c,a,it); }).join('');
+  return `<div class="legend"><span><b class="lo">○</b> 적정</span><span><b class="lw">△</b> 개선필요</span><span><b class="lq">?</b> 추가확인</span><span class="calc">질문 → 지침 기준 확인 → 판정 순서</span></div>
+    <section class="qlist">${rows}</section>
+    ${allok}
+    <button class="btn pri block" data-tab="${next.key}">${next.lab} →</button>`;
+}
+
+/* ── 결과 탭 ── */
+function tResult(c){
+  return vResult(c).replace(/^[\s\S]*?<main class="wrap stack">/, '').replace(/<\/main>\s*$/, '');
+}
+
+function vWork(c){
+  const t = V.tab || 'prep';
+  let body = '';
+  if(t==='prep') body = tPrep(c);
+  else if(t==='result') body = tResult(c);
+  else body = tArea(c, areasOf(c).find(a=>a.key===t));
+  return `<header class="bar"><div class="bar-in"><button class="back" data-go="home" aria-label="목록으로">${icoBack}</button><h1>${esc(c.name)}<div class="sub">${c.typeL}${c.sub?' · '+c.sub:''} · ${esc(c.date)}${S[c.id].confirmed?' · 확정 완료':''}</div></h1></div>${tabBar(c)}</header>
+    <main class="wrap stack">${S[c.id].confirmed&&t!=='result'?'<div class="lock">확정된 점검입니다. 수정은 관리자만 할 수 있습니다.</div>':''}${body}</main>`;
+}
+
+/* ── 결과보고서(별지 14호) ── */
+const BUDROW = {
+ rural:[['센터운영비','인건비',['R-C-01']],['센터운영비','사업운영비',[['R-C-02','사업운영']]],['센터운영비','홍보비',[['R-C-02','홍보']]],['센터운영비','기타',[['R-C-02','기타']]],
+        ['인력운영비','교육비',['R-H-01','R-H-02']],['인력운영비','농작업 참여비',['R-H-04','R-H-05','R-H-06']],['인력운영비','영농작업반장수당',['R-H-07']],['인력운영비','기타',['R-H-03','R-H-08']]],
+ public:[['센터운영비','인건비',['P-C-01']],['센터운영비','사업운영비',[['P-C-02','사업운영']]],['센터운영비','홍보비',[['P-C-02','홍보']]],['센터운영비','기타',[['P-C-02','기타']]],
+        ['인력운영비','교육비',['P-H-01']],['인력운영비','농작업 참여비',[]],['인력운영비','영농작업반장수당',['P-H-04']],['인력운영비','기타',['P-H-02','P-H-03','P-H-05']]]
+};
+function budSum(c, refs){
+  let b=null,e=null;
+  refs.forEach(ref=>{
+    const [id,sub] = Array.isArray(ref)?ref:[ref,null];
+    const v = S[c.id].items[id]?.v||{};
+    if(sub){ const s=v.sub||'사업운영'; if(s!==sub) return; }
+    const bb=num(v.bud), ee=num(v.exe);
+    if(bb!=null) b=(b||0)+bb; if(ee!=null) e=(e||0)+ee;
+  });
+  return [b,e];
+}
+const pct = (b,e) => b&&e!=null ? r1(e/b*100)+'%' : '-';
+function vReport(c){
+  const st = S[c.id]; const it = id => S[c.id].items[id]?.v||{};
+  const J = judged(c);
+  const issues = J.filter(x=>x.r?.j==='w'||x.r?.j==='q');
+  const staff = c.type==='rural' ? it('O-1-02') : {};
+  const rateIt = allItems(c).find(i=>i.rate); const rv = it(rateIt.id);
+  // 예산표
+  const rows = BUDROW[c.type].map(([g,n,refs])=>({g,n,v:budSum(c,refs)}));
+  const tot = rows.reduce((t,r)=>[r.v[0]!=null?(t[0]||0)+r.v[0]:t[0], r.v[1]!=null?(t[1]||0)+r.v[1]:t[1]],[null,null]);
+  const grpTot = g => rows.filter(r=>r.g===g).reduce((t,r)=>[r.v[0]!=null?(t[0]||0)+r.v[0]:t[0], r.v[1]!=null?(t[1]||0)+r.v[1]:t[1]],[null,null]);
+  const budTr = rows.map((r,i)=>{
+    const first = i===0||rows[i-1].g!==r.g; const gt = grpTot(r.g);
+    return `<tr>${first?`<td rowspan="4" class="c">${r.g}<br>(${r.g==='센터운영비'?'40':'60'}%)</td>`:''}<td>${r.n}</td><td class="n">${fmt(r.v[0])}</td><td class="n">${fmt(r.v[1])}</td>${first?`<td rowspan="4" class="n">${pct(gt[0],gt[1])}</td>`:''}</tr>`;
+  }).join('');
+  const why = (rv.why||[]).join(', ');
+  const exeAll = num(rv.exe);
+  // 종합판정
+  const b14 = B14[c.type].map(([k,l])=>{
+    const val = st.b14o[k] ?? (k==='will'?'':suggest(c,k));
+    const linked = issues.filter(x=>x.i.b14===k).map(x=>`${x.i.t}(${jLabel[x.r.j]})`).join(', ');
+    return `<tr><td>${l}</td><td class="c">${['양호','보통','미흡','매우미흡'].map(o=>(val===o?'■ ':'□ ')+o).join('&nbsp; ')}</td><td>${esc(linked||'-')}</td></tr>`;
+  }).join('');
+  const pool = c.type==='rural' ? it('O-2-01') : {};
+  const team = c.type==='rural' ? it('O-2-02') : it('G-10');
+  const f = st.field;
+  const issueTr = issues.map((x,i)=>`<tr><td class="c">${i+1}</td><td>${esc(x.i.t)}${x.i.sev?' <b>[중대]</b>':''}</td><td class="c">${x.r.j==='w'?'개선필요':'추가확인'}</td><td>${esc(x.r.memo||'-')}</td></tr>`).join('');
+  const now = st.confirmedAt || '미확정';
+  return bar('결과보고서', `별지 14호 서식 · ${esc(c.name)}`, 'result') + `<main class="wrap stack">
+    ${st.confirmed?'':'<div class="confirm-box"><span>아직 확정 전입니다. 미리보기용이며, 확정 후 내용이 고정됩니다.</span></div>'}
+    <div class="row-b"><span class="calc">한글 문서에 붙여 넣을 수 있습니다.</span><button class="btn pri" data-copyrep="1">보고서 복사</button></div>
+    <div class="rep-wrap"><article class="rep" id="rep">
+      <h2 class="rep-t">농촌인력중개센터(${c.typeL}) 현장점검표</h2>
+      <p class="rep-s">점검일 ${esc(c.date)} · 확정 ${esc(now)}</p>
+      <h3>1. 센터 현황</h3>
+      <table><tr><th>센터명</th><td colspan="3">${esc(c.name)}</td></tr>
+        <tr><th>운영기관</th><td colspan="3">${esc(c.opL)}</td></tr>
+        ${c.type==='rural'?`<tr><th>전담인력 수</th><td>${staff.staff??'-'}명</td><th>채용형태</th><td>${esc(staff.fulltime||'-')}</td></tr><tr><th>계약기간</th><td colspan="3">${esc(staff.period||'-')}</td></tr>`:''}
+        <tr><th>예산</th><td colspan="3">${fmt(c.total)}천원 (국비 ${fmt(c.total/2)}, 지방비 ${fmt(c.total/2)})</td></tr></table>
+      <h3>2. 예산 집행현황 <small>(단위: 천원)</small></h3>
+      <table><tr><th>항목</th><th>세부항목</th><th>예산계획</th><th>집행실적</th><th>집행률</th></tr>
+        <tr><td colspan="2" class="c"><b>합계</b></td><td class="n"><b>${fmt(tot[0])}</b></td><td class="n"><b>${fmt(tot[1])}</b></td><td class="n"><b>${pct(tot[0],tot[1])}</b></td></tr>
+        ${budTr}
+        <tr><th colspan="2">기준일 사업비 집행률</th><td colspan="3">${exeAll!=null?`${r1(exeAll/c.total*100)}% (집행액 ${fmt(exeAll)} / 총사업비 ${fmt(c.total)})`:'-'}</td></tr>
+        <tr><th colspan="2">집행부진 사유</th><td colspan="3">${esc(why||'-')}</td></tr></table>
+      <h3>3. 운영현황</h3>
+      <table>${c.type==='rural'?`<tr><th>인력풀</th><td>총 ${pool.total??'-'}명 (관내 ${pool.inner??'-'}명, 관외 ${pool.outer??'-'}명) · 실활동 ${pool.active??'-'}명</td></tr><tr><th>영농작업반</th><td>${team.teams??'-'}개 반</td></tr>`
+        :`<tr><th>근무 계절노동자</th><td>${team.wk??'-'}명</td></tr><tr><th>작업반장</th><td>${team.ld??'-'}명</td></tr>`}</table>
+      <h3>4. 기타 지도·점검 사항</h3>
+      <table><tr><th>구분</th><th>점검결과</th><th>관련 지적 항목</th></tr>${b14}</table>
+      <h3>5. 현장 의견 / 지도·점검 사항</h3>
+      <div class="rep-box">${esc(st.review||draftReview(c))}</div>
+      <h3>[붙임] 지적사항 (${issues.length}건) <small>· 차기 점검 시 이행 여부 확인</small></h3>
+      ${issues.length?`<table><tr><th>번호</th><th>항목</th><th>판정</th><th>사유·보완 요청</th></tr>${issueTr}</table>`:'<p>해당 없음</p>'}
+      <h3>[참고] 2027 운영개선 의견</h3>
+      <table><tr><th>운영 애로</th><td>${esc((f.hard||[]).join(', ')||'-')}</td></tr><tr><th>민간 공급채널</th><td>${esc((f.chan||[]).join(', ')||'-')}</td></tr>
+        <tr><th>협력 가능 방식</th><td>${esc((f.coop||[]).join(', ')||'-')}</td></tr><tr><th>연계 우려</th><td>${esc((f.worry||[]).join(', ')||'-')}</td></tr>
+        <tr><th>현장 의견</th><td>${esc(f.text||'-')}</td></tr></table>
+      <p class="rep-sign">점검자 &nbsp; ${esc(c.who.replace('점검자 ',''))} &nbsp;(인)</p>
+    </article></div>
+  </main>`;
+}
+function copyReport(){
+  const el = document.getElementById('rep'); if(!el) return;
+  const html = `<div style="font-family:'맑은 고딕';font-size:10pt">${el.innerHTML.replace(/<table>/g,'<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%">')}</div>`;
+  const text = el.innerText;
+  const fallback = () => navigator.clipboard.writeText(text).then(()=>toast('복사했습니다(텍스트)')).catch(()=>{ const rg=document.createRange(); rg.selectNodeContents(el); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); toast('보고서가 선택되었습니다. 길게 눌러 복사하세요'); });
+  try{
+    if(window.ClipboardItem && navigator.clipboard?.write){
+      navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]).then(()=>toast('복사했습니다. 한글에 붙여 넣으세요')).catch(fallback);
+    } else fallback();
+  }catch(e){ fallback(); }
+}
+
+/* ── 렌더 ── */
+const app = document.getElementById('app');
+function cur(){ return CENTERS.find(c=>c.id===V.cid); }
+function itemById(c,id){ return allItems(c).find(i=>i.id===id); }
+function render(keepScroll){
+  const y = window.scrollY;
+  let h = '';
+  if(V.name==='home') h = vHome();
+  else if(V.name==='work') h = vWork(cur());
+  else if(V.name==='best') h = vBest(cur());
+  else if(V.name==='report') h = vReport(cur());
+  app.innerHTML = h;
+  window.scrollTo(0, keepScroll ? y : 0);
+  const tb = document.querySelector('.tabs'), ct = document.querySelector('.tab[aria-current="true"]');
+  if(tb && ct) tb.scrollLeft = ct.offsetLeft - (tb.clientWidth - ct.offsetWidth) / 2;
+}
+function live(id){
+  const c = cur(); const it = itemById(c,id); if(!it) return;
+  const v = rec(c.id,id).v;
+  const w = document.getElementById('warn-'+id); if(w) w.innerHTML = warnHtml(warnsOf(c,it,v));
+  const k = document.getElementById('calc-'+id); if(k) k.innerHTML = calcHtml(c,it,v);
+}
+let tt;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.hidden=false; clearTimeout(tt); tt=setTimeout(()=>t.hidden=true,1800); }
+const goWork = (cid, tab) => { V = {name:'work', cid, tab}; ALLOK=''; confirmAsk=false; };
+
+app.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const d = b.dataset; const c = cur();
+  if(d.go==='home'){ V={name:'home'}; return render(); }
+  if(d.go==='center'){ goWork(V.cid, 'prep'); return render(); }
+  if(d.go==='result'){ goWork(V.cid, 'result'); return render(); }
+  if(d.report){ V={name:'report',cid:c.id}; return render(); }
+  if(d.copyrep){ return copyReport(); }
+  if(d.open){ const st=S[d.open]; goWork(d.open, st.confirmed?'result':'prep'); return render(); }
+  if(d.reset){ S = seed(); save(); OPEN.clear(); toast('예시 데이터로 되돌렸습니다'); return render(); }
+  if(d.tab){ goWork(c.id, d.tab); return render(); }
+  if(d.best){ V={name:'best',cid:c.id}; return render(); }
+  if(d.prior){ S[c.id].prior[d.prior]=d.val; save(); return render(true); }
+  if(d.doc){ S[c.id].docs[d.doc]=d.val; save(); return render(true); }
+  if(d.j && d.id){ if(S[c.id].confirmed) return; const r=rec(c.id,d.id); r.j = r.j===d.j?'':d.j;
+    if(r.j==='w'||r.j==='q') OPEN.add(d.id); save(); render(true);
+    if(r.j==='w'||r.j==='q'){ const m=document.getElementById('m-'+d.id); if(m && !r.memo) m.focus({preventScroll:false}); }
+    return; }
+  if(d.exp){ OPEN.has(d.exp)?OPEN.delete(d.exp):OPEN.add(d.exp); return render(true); }
+  if(d.allok==='ask'){ ALLOK=V.tab; return render(true); }
+  if(d.allok==='cancel'){ ALLOK=''; return render(true); }
+  if(d.allok==='go'){ const a=areasOf(c).find(x=>x.key===V.tab); let n=0;
+    a.items.forEach(it=>{ if(!it.sev && !it.b14sev && !S[c.id].items[it.id]?.j){ rec(c.id,it.id).j='o'; n++; } });
+    ALLOK=''; save(); toast(`${n}건을 적정으로 표시했습니다`); return render(true); }
+  if(d.seg && d.id){ const r=rec(c.id,d.id); r.v[d.seg] = d.seg==='n'?Number(d.val):(r.v[d.seg]===d.val?'':d.val); save();
+    if(d.seg==='n') return render(true);
+    b.parentElement.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', String(x.dataset.val===r.v[d.seg]))); return live(d.id); }
+  if(d.chip){
+    const tgt = d.id==='_field' ? S[c.id].field : rec(c.id,d.id).v;
+    const arr = tgt[d.chip] ||= []; const i = arr.indexOf(d.val); i<0?arr.push(d.val):arr.splice(i,1); save();
+    b.setAttribute('aria-pressed', String(i<0));
+    if(d.id==='_field'){ const tb=document.querySelector('[data-tab="field"] .tb'); if(tb) tb.textContent=(S[c.id].field.hard||[]).length?'✓':''; }
+    return d.id==='_field'?undefined:live(d.id); }
+  if(d.tog){ const r=rec(c.id,d.id); r.v[d.tog]=!r.v[d.tog]; save(); b.setAttribute('aria-pressed',String(r.v[d.tog])); return live(d.id); }
+  if(d.bap){ document.querySelectorAll('[data-bap]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); return; }
+  if(d.btag){ b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed')!=='true')); return; }
+  if(d.bsave){ const title=document.getElementById('bt').value.trim();
+    if(!title){ toast('제목을 입력하세요'); return; }
+    S[c.id].best.push({title, desc:document.getElementById('bd').value.trim(), ap:(document.querySelector('[data-bap][aria-pressed="true"]')||{}).dataset?.bap||'', tags:[...document.querySelectorAll('[data-btag][aria-pressed="true"]')].map(x=>x.dataset.btag)});
+    save(); toast('우수사례를 등록했습니다'); goWork(c.id,'prep'); return render(); }
+  if(d.redraft){ S[c.id].review = draftReview(c); save(); return render(true); }
+  if(d.confirm==='1'){ confirmAsk=true; return render(true); }
+  if(d.cancel){ confirmAsk=false; return render(true); }
+  if(d.confirm==='2'){ const st=S[c.id]; const now=new Date();
+    B14[c.type].forEach(([k])=>{ if(st.b14o[k]==null && k!=='will') st.b14o[k]=suggest(c,k); });
+    st.confirmed=true; st.confirmedAt=`${now.getMonth()+1}.${now.getDate()}. ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    confirmAsk=false; save(); toast('점검 결과를 확정했습니다'); return render(); }
+});
+app.addEventListener('input', e=>{
+  const t = e.target; const c = cur(); if(!c) return;
+  if(t.dataset.k && t.dataset.id){ const r=rec(c.id,t.dataset.id); r.v[t.dataset.k] = t.type==='checkbox'?t.checked:t.value; save(); return live(t.dataset.id); }
+  if(t.dataset.memo){ rec(c.id,t.dataset.memo).memo = t.value; save(); return; }
+  if(t.dataset.fieldtext){ S[c.id].field.text = t.value; save(); return; }
+  if(t.dataset.review){ S[c.id].review = t.value; save(); return; }
+  if(t.dataset.fdue){ (S[c.id].follow[t.dataset.fdue] ||= {}).due = t.value; save(); return; }
+});
+app.addEventListener('change', e=>{
+  const t = e.target; const c = cur(); if(!c) return;
+  if(t.dataset.k && t.type==='checkbox' && t.dataset.id){ const r=rec(c.id,t.dataset.id); r.v[t.dataset.k]=t.checked; save(); return live(t.dataset.id); }
+  if(t.dataset.b14){ S[c.id].b14o[t.dataset.b14] = t.value; save(); }
+});
+render();
+})();
+
+</script>
+
+</body>
+</html>
