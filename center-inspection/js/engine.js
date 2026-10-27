@@ -29,14 +29,13 @@ CI.engine = (function () {
     if ((a.reasons || []).includes('ETC')) lines.push(`기타 사유${a.etc ? `(${a.etc.trim()})` : ''} 확인 후 시정 조치`);
     return lines.map(l => '- ' + l).join('\n');
   }
-  // 미흡 항목 완료 요건: 사유 1개 이상, (기타 선택 시 기타 내용), 현장 확인 내용, 시정 권고
+  // 미흡 항목 완료 요건: 사유 1개 이상, (기타 선택 시 기타 내용), 현장 확인 내용
   function deficiencyGaps(a) {
     const g = [];
     if (!a || a.status !== 'N') return g;
     if (!(a.reasons || []).length) g.push('미흡 사유 선택');
     if ((a.reasons || []).includes('ETC') && !(a.etc || '').trim()) g.push('기타 사유 내용');
     if (!(a.note || '').trim()) g.push('현장 확인 내용');
-    if (!(a.rec || '').trim()) g.push('시정 권고');
     return g;
   }
   function itemDone(a) { return !!(a && a.status) && deficiencyGaps(a).length === 0; }

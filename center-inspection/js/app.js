@@ -1,6 +1,6 @@
 /*
  * 화면 구성 (app.js)
- * 흐름: 점검관리 → 사전점검 → 현장점검 → 미흡 사유·시정 권고 → 결과·보고서 → 시정조치(후속관리) → 대시보드
+ * 흐름: 점검관리 → 사전점검 → 현장점검 → 미흡 사유·현장 확인 내용 → 결과·보고서 → 시정조치(후속관리) → 대시보드
  * 모든 기록은 기기 내부(IndexedDB)에만 저장되며 외부로 전송하지 않습니다.
  */
 (function () {
@@ -96,7 +96,6 @@
       <div class="prog"><div class="bar"><i id="pbar" style="width:${Math.round(pr.done / pr.total * 100)}%"></i></div><span id="ptext">${pr.done}/${pr.total}</span></div>
       <div class="seg tabs4">${tabs.map(([k, l]) => `<a href="#/${k}/${insp.id}" role="button" aria-pressed="${active === k}">${l}</a>`).join('')}</div></div>`;
   }
-  const gOpen = new Set();
   const locked = () => cur && cur.status === 'done';
   const lockNote = () => locked() ? `<div class="alert">완료된 점검입니다. 수정하려면 [결과·보고서]에서 '수정 재개'를 누르세요. 시정조치 상태는 계속 갱신할 수 있습니다.</div>` : '';
 
@@ -116,7 +115,7 @@
       <nav class="menu">
         <a class="mi primary" href="#/manage"><b>1. 점검관리</b><span>새 점검 · 이어서 작성 · 복제 · 지난 점검</span></a>
         <a class="mi" href="#/pick/pre"><b>2. 사전점검</b><span>사전자료 접수 확인 · 사전제출 엑셀 불러오기</span></a>
-        <a class="mi" href="#/pick/i"><b>3. 현장점검</b><span>항목별 결과 · 미흡 사유 · 시정 권고</span></a>
+        <a class="mi" href="#/pick/i"><b>3. 현장점검</b><span>항목별 결과 · 미흡 사유 · 현장 확인 내용</span></a>
         <a class="mi" href="#/fix"><b>4. 시정조치</b><span>미흡 사항 모음 · 조치 상태 관리</span></a>
         <a class="mi" href="#/pick/r"><b>5. 결과·보고서</b><span>자동 검증 · 종합의견 · A4 PDF</span></a>
         <a class="mi" href="#/dash"><b>6. 대시보드</b><span>점검 현황 · 분야별 미흡 · 조치 현황</span></a>
@@ -313,8 +312,7 @@
         ${E.reasons(it).map(r => `<label class="ck"><input type="checkbox" data-reason="${it.id}" value="${r.c}" ${(a.reasons || []).includes(r.c) ? 'checked' : ''} ${locked() ? 'disabled' : ''}><span>${esc(r.l)}</span></label>`).join('')}
         ${(a.reasons || []).includes('ETC') ? `<label class="fi"><span>기타 사유 <em class="reqtag">필수</em></span><input type="text" data-ans="etc" data-item="${it.id}" value="${esc(a.etc || '')}" maxlength="200" ${locked() ? 'disabled' : ''}><span class="pii" hidden></span></label>` : ''}
         <label class="fi"><span>현장 확인 내용 <em class="reqtag">필수</em> <small>확인된 수치·지출 표본·사유로 자동 작성 · 수정 가능 · ${PII_NOTE}</small></span><textarea rows="${Math.min(8, Math.max(2, (a.note || '').split('\n').length + 1))}" data-ans="note" data-item="${it.id}" maxlength="600" ${locked() ? 'disabled' : ''}>${esc(a.note || '')}</textarea><span class="pii" hidden></span></label>
-        <label class="fi"><span>시정 권고 <small>선택한 사유로 자동 작성 · 수정 가능</small></span><textarea rows="3" data-ans="rec" data-item="${it.id}" maxlength="800" ${locked() ? 'disabled' : ''}>${esc(a.rec || '')}</textarea><span class="pii" hidden></span></label>
-        ${locked() ? '' : `<button class="btn sm" data-act="regen" data-item="${it.id}">확인 내용·권고 다시 만들기</button>`}
+        ${locked() ? '' : `<button class="btn sm" data-act="regen" data-item="${it.id}">확인 내용 다시 만들기</button>`}
         <div class="sm ${gaps.length ? 'neg' : 'okc'}">${gaps.length ? '작성 필요: ' + gaps.join(', ') : '미흡 상세 작성 완료'}${it.fu ? ` · 후속 조치: ${esc(it.fu)}` : ''}</div></div>`;
     } else if (st === 'U') {
       body += `<label class="fi"><span>추가로 확인할 내용 <small>${PII_NOTE}</small></span><textarea rows="2" data-ans="note" data-item="${it.id}" maxlength="400" ${locked() ? 'disabled' : ''}>${esc(a.note || '')}</textarea><span class="pii" hidden></span></label>`;
@@ -327,9 +325,9 @@
         <div class="crit-c"><b>확인 기준</b> ${esc(it.c)}</div>
         <div class="src">근거: ${esc(CFG.source.short)} ${esc(it.ref)}${it.confirm ? ` · 행정 확인 필요: ${esc(it.confirm)}` : ''}</div>
         ${docChips ? `<div class="dchips">${docChips}</div>` : ''}
-        <button class="gbtn" data-act="guide" data-item="${it.id}" aria-expanded="${gOpen.has(it.id)}">${gOpen.has(it.id) ? '기준 접기 ▴' : '기준 자세히 ▾'}</button></div>
+        </div>
         <div class="opts">${CFG.results.map(o => `<button data-act="st" data-item="${it.id}" data-v="${o.v}" class="o-${o.v}" aria-pressed="${st === o.v}" ${locked() ? 'disabled' : ''}>${esc(o.l)}</button>`).join('')}</div>
-        ${gOpen.has(it.id) ? `<div class="gin">${guideHTML(it, cur.type)}</div>` : ''}</div>
+        </div>
       ${body}</article>`;
   }
   // 현장 확인 내용: 비어 있거나 자동 작성본 그대로일 때만 자동으로 다시 씀(직접 고친 내용은 보존)
@@ -356,7 +354,7 @@
       ${it.confirm ? `<dt>행정 확인 필요 <small>세부 기준 없음</small></dt><dd>${esc(it.confirm)}</dd>` : ''}
       <dt>확인 서류</dt><dd>${docs.length ? `<ul>${docs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '현장 확인'}</dd>
       ${rules.length ? `<dt>자동 검증 기준</dt><dd><ul>${rules.map(r => `<li>${esc(r.l)}: ${r.std.map(k => esc(E.stdText(k))).join(' / ') || esc(r.ref || '')} <small>(${r.kind === 'violation' ? '기준 위반 판단' : '확인 필요'})</small></li>`).join('')}</ul></dd>` : ''}
-      <dt>미흡 사유 → 시정 권고 <small>운영 참고</small></dt><dd><ul>${(it.reasons || []).map(r => `<li>${esc(r.l)} → ${esc(r.r)}</li>`).join('')}<li>기타 → 기타 사유 확인 후 시정 조치</li></ul></dd>
+      <dt>미흡 사유 <small>운영 참고</small></dt><dd><ul>${(it.reasons || []).map(r => `<li>${esc(r.l)}</li>`).join('')}<li>기타</li></ul></dd>
       <dt>후속 조치</dt><dd>${esc(it.fu || '')}</dd></dl>`;
   }
 
@@ -378,7 +376,7 @@
         <div class="cm">${esc(E.period(insp))} · ${esc(fmtDate(insp.date))} 점검${insp.sample ? ' · 예시' : ''}${ac.case ? '' : ' · 미흡 상세 작성 후 조치 관리'}</div>
         <div><b class="sm">미흡 사유</b> ${esc(d.labels.join(', ') || '-')}${d.gaps.length ? ` <span class="neg sm">(작성 필요: ${esc(d.gaps.join(', '))})</span>` : ''}</div>
         <div class="sm"><b>현장 확인</b> ${esc(d.a.note || '-')}</div>
-        <div class="gen"><div><span class="gl r">권고</span><span class="pre-inline">${esc(d.a.rec || '-')}</span></div><div><span class="gl v">후속</span>${esc(d.item.fu || '')}</div></div>
+        <div class="gen"><div><span class="gl v">후속</span>${esc(d.item.fu || '')}</div></div>
         ${ac.case ? `<div class="seg">${CFG.actionStatus.map(s => `<button data-act="acst" data-insp="${insp.id}" data-item="${d.item.id}" data-v="${s}" aria-pressed="${(ac.status || '조치 전') === s}">${s}</button>`).join('')}</div>
         <div class="fgrid"><label class="fi"><span>조치 완료일</span><input type="date" data-acdate="${d.item.id}" data-insp="${insp.id}" value="${esc(ac.date || '')}"></label>
           <label class="fi"><span>조치 확인 메모 <small>${PII_NOTE}</small></span><input type="text" data-acmemo="${d.item.id}" data-insp="${insp.id}" value="${esc(ac.memo || '')}" maxlength="200"><span class="pii" hidden></span></label></div>` : '<div class="hint">미흡 상세(사유·현장 확인·권고)를 모두 작성하면 사례번호가 부여되고 조치 상태를 관리할 수 있습니다.</div>'}
@@ -596,7 +594,7 @@
     if (act === 'doc') { cur.docs = cur.docs || {}; cur.docs[b.dataset.doc] = cur.docs[b.dataset.doc] === b.dataset.v ? '' : b.dataset.v; queueSave(); return viewPreKeep(); }
     if (act === 'preSeg') { cur.pre = cur.pre || {}; cur.pre[b.dataset.k] = cur.pre[b.dataset.k] === b.dataset.v ? '' : b.dataset.v; queueSave(); return viewPreKeep(); }
     if (act === 'st') { const a = ans(b.dataset.item); a.status = a.status === b.dataset.v ? '' : b.dataset.v;
-      if (a.status === 'N') { const it = E.item(cur.type, b.dataset.item); if (!(a.reasons || []).length) a.reasons = E.autoReasons(cur, it); if (!a.rec || !a.recEdited) a.rec = E.autoRec(it, a); autoNoteSet(it, a); }
+      if (a.status === 'N') { const it = E.item(cur.type, b.dataset.item); if (!(a.reasons || []).length) a.reasons = E.autoReasons(cur, it); autoNoteSet(it, a); }
       queueSave(); redrawItem(b.dataset.item); return; }
     if (act === 'preApply' && pendingPre) { cur.pre = cur.pre || {}; Object.assign(cur.pre, pendingPre.vals); cur.imports = cur.imports || []; cur.imports.push({ fmt: pendingPre.fmt, at: new Date().toISOString(), vals: pendingPre.vals });
       const n = Object.keys(pendingPre.vals).length; pendingPre = null; $('#sheet').innerHTML = ''; queueSave(); toast(`${n}개 항목을 채웠습니다`); return viewPre(cur.id); }
@@ -607,9 +605,9 @@
     if (act === 'lgSeg') { const r = cur.ledger[+b.dataset.i]; r.dist = r.dist === b.dataset.v ? '' : b.dataset.v; queueSave(); return redrawLedger(); }
     if (act === 'chkSeg') { const a = ans(b.dataset.item); a.checks = a.checks || {}; a.checks[b.dataset.k] = a.checks[b.dataset.k] === b.dataset.v ? '' : b.dataset.v; queueSave(); redrawItem(b.dataset.item); return; }
     if (act === 'dorm') { const a = ans(b.dataset.item); a.dorm = a.dorm || {}; a.dorm[b.dataset.i] = a.dorm[b.dataset.i] === b.dataset.v ? '' : b.dataset.v; queueSave(); redrawItem(b.dataset.item); return; }
-    if (act === 'regen') { const a = ans(b.dataset.item), it = E.item(cur.type, b.dataset.item); a.rec = E.autoRec(it, a); a.recEdited = false; a.note = ''; autoNoteSet(it, a); queueSave(); redrawItem(b.dataset.item); return; }
+    if (act === 'regen') { const a = ans(b.dataset.item), it = E.item(cur.type, b.dataset.item); a.note = ''; autoNoteSet(it, a); queueSave(); redrawItem(b.dataset.item); return; }
     if (act === 'allC') { const cat = E.type(cur.type).categories.find(c => c.id === b.dataset.cat); let n = 0; cat.items.forEach(it => { const a = ans(it.id); if (!a.status) { a.status = 'C'; n++; redrawItem(it.id); } }); queueSave(); toast(n ? `${n}개 항목을 적정으로 표시했습니다` : '미응답 항목이 없습니다'); return; }
-    if (act === 'guide') { if (!cur) return openGuide(b.dataset.item); const id = b.dataset.item; gOpen.has(id) ? gOpen.delete(id) : gOpen.add(id); return redrawItem(id); }
+    if (act === 'guide') return openGuide(b.dataset.item);
     if (act === 'grade') { cur.form = cur.form || {}; cur.form[b.dataset.k] = cur.form[b.dataset.k] === b.dataset.v ? '' : b.dataset.v; queueSave(); b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === cur.form[b.dataset.k]))); return; }
     if (act === 'opDraft') { cur.opinion = E.opinionDraft(cur); queueSave(); const t = document.querySelector('[data-op]'); if (t) t.value = cur.opinion; return; }
     if (act === 'complete') {
@@ -651,7 +649,7 @@
     if (t.dataset.lg !== undefined && cur) { if (t.dataset.lf !== 'k') return; const r = cur.ledger[+t.dataset.lg]; r.k = t.value; queueSave(); return redrawLedger(); }
     if (t.dataset.reason) { const it = E.item(cur.type, t.dataset.reason), a = ans(t.dataset.reason); a.reasons = a.reasons || [];
       const i = a.reasons.indexOf(t.value); t.checked ? (i < 0 && a.reasons.push(t.value)) : (i >= 0 && a.reasons.splice(i, 1));
-      if (!a.recEdited) a.rec = E.autoRec(it, a); autoNoteSet(it, a); queueSave(); redrawItem(t.dataset.reason); return; }
+      autoNoteSet(it, a); queueSave(); redrawItem(t.dataset.reason); return; }
     if (t.dataset.prefile && t.files[0]) { const f = t.files[0]; t.value = ''; await readPreFile(f); return; }
     if (t.dataset.import && t.files[0]) { await importFile(t.files[0]); t.value = ''; return; }
     if (t.dataset.dash !== undefined) { dashF[t.dataset.dash] = t.value; return viewDash(); }
@@ -678,7 +676,7 @@
       queueSave(); const b = E.budget(cur.pre); const s = $('#budsum'); if (s && b.all[0]) s.textContent = `집행률 ${b.rate}% · 센터운영비 편성 ${b.ratio}%`; return; }
     if (t.dataset.chk) { const a = ans(t.dataset.item); a.checks = a.checks || {}; const v = t.value.replace(/[^\d.]/g, ''); if (v !== t.value) t.value = v; a.checks[t.dataset.chk] = v === '' ? '' : Number(v); queueSave(); return; }
     if (t.dataset.lg !== undefined && t.dataset.lf !== 'k') { const r = cur.ledger[+t.dataset.lg]; const v = t.value.replace(/[^\d]/g, ''); if (v !== t.value) t.value = v; r[t.dataset.lf] = v === '' ? '' : Number(v); queueSave(); refreshLedger(); return; }
-    if (t.dataset.ans) { const a = ans(t.dataset.item); a[t.dataset.ans] = t.value; if (t.dataset.ans === 'rec') a.recEdited = true; if (t.dataset.ans === 'note') a.noteAuto = null; if (t.dataset.ans === 'etc') { const it = E.item(cur.type, t.dataset.item); if (!a.recEdited) { a.rec = E.autoRec(it, a); const rt = document.querySelector(`[data-ans="rec"][data-item="${t.dataset.item}"]`); if (rt) rt.value = a.rec; } if (autoNoteSet(it, a)) { const nt = document.querySelector(`[data-ans="note"][data-item="${t.dataset.item}"]`); if (nt) nt.value = a.note; } } queueSave(); return; }
+    if (t.dataset.ans) { const a = ans(t.dataset.item); a[t.dataset.ans] = t.value; if (t.dataset.ans === 'rec') a.recEdited = true; if (t.dataset.ans === 'note') a.noteAuto = null; if (t.dataset.ans === 'etc') { const it = E.item(cur.type, t.dataset.item); if (autoNoteSet(it, a)) { const nt = document.querySelector(`[data-ans="note"][data-item="${t.dataset.item}"]`); if (nt) nt.value = a.note; } } queueSave(); return; }
     if (t.dataset.op) { cur.opinion = t.value; queueSave(); return; }
   });
 
