@@ -289,6 +289,7 @@
       <div class="bottombar">
         <a class="btn" href="#/i/${cur.id}">← 점검표</a><span class="grow"></span>
         ${cur.status === 'done' ? `<button class="btn" data-act="reopen">수정 재개</button>` : `<button class="btn" data-act="complete" ${r.unanswered.length ? 'aria-disabled="true"' : ''}>점검 완료</button>`}
+        <button class="btn danger" data-act="askDel" data-id="${cur.id}" data-from="review">삭제</button>
         <a class="btn primary" href="#/p/${cur.id}">보고서 · PDF</a>
       </div>
     `);
@@ -301,11 +302,10 @@
     const rows = list.filter(i => kind === 'done' ? i.status === 'done' : i.status !== 'done');
     render(`
       <h2 class="pt">${kind === 'done' ? '완료 보고서' : '저장된 점검'}</h2>
-      ${kind === 'done' ? '<div class="hint">보고서를 여러 개 선택해 한 번에 PDF로 저장할 수 있습니다.</div>' : ''}
-      ${rows.length ? `<div class="list">${rows.map(i => kind === 'done'
-        ? `<div class="pickrow"><label class="ck"><input type="checkbox" data-pick="${i.id}"><span></span></label>${card(i)}</div>` : card(i)).join('')}</div>`
+      <div class="hint">${kind === 'done' ? '보고서를 선택해 한 번에 PDF로 저장하거나, 필요 없는 기록을 골라 삭제할 수 있습니다.' : '필요 없는 기록은 선택해 삭제할 수 있습니다.'}</div>
+      ${rows.length ? `<div class="list">${rows.map(i => `<div class="pickrow"><label class="ck"><input type="checkbox" data-pick="${i.id}" aria-label="${esc(i.label)} 선택"><span></span></label>${card(i)}</div>`).join('')}</div>`
         : `<div class="empty">${kind === 'done' ? '완료된 점검이 없습니다.' : '작성 중인 점검이 없습니다.'}</div>`}
-      ${kind === 'done' && rows.length ? `<div class="bottombar"><button class="btn" data-act="pickAll">전체 선택</button><span class="grow"></span><button class="btn primary" data-act="multiPdf">선택 보고서 PDF</button></div>` : ''}
+      ${rows.length ? `<div class="bottombar"><button class="btn" data-act="pickAll">전체 선택</button><button class="btn danger" data-act="askDel" data-from="${kind}">선택 삭제</button><span class="grow"></span>${kind === 'done' ? '<button class="btn primary" data-act="multiPdf">선택 보고서 PDF</button>' : ''}</div>` : ''}
     `);
   }
 
@@ -397,6 +397,23 @@
       cur.status = 'done'; cur.completedAt = new Date().toISOString(); await store.put(cur); toast('점검을 완료했습니다'); return viewReview(cur.id);
     }
     if (act === 'reopen') { cur.status = 'draft'; await store.put(cur); go('/i/' + cur.id); return; }
+    if (act === 'askDel') {
+      const ids = b.dataset.id ? [b.dataset.id] : [...picked];
+      if (!ids.length) { toast('삭제할 기록을 선택하세요'); return; }
+      const names = ids.map(id => (list.find(i => i.id === id) || cur || {}).label).filter(Boolean);
+      $('#sheet').innerHTML = `<div class="sheetbg" data-act="closeSheet"></div><div class="sheetbox" role="alertdialog" aria-modal="true" aria-label="기록 삭제 확인">
+        <div class="shh"><b>점검 기록 삭제</b><button class="x" data-act="closeSheet">닫기</button></div>
+        <div class="shb"><div class="alert crit"><b>${ids.length}건을 이 기기에서 삭제합니다. 되돌릴 수 없습니다.</b><br>${names.map(esc).join(', ')}<br>보고서가 필요하면 먼저 PDF로 저장하십시오.</div>
+        <div class="row" style="margin-top:12px"><button class="btn" data-act="closeSheet">취소</button><span class="grow"></span><button class="btn danger" data-act="doDel" data-ids="${ids.join(',')}" data-from="${esc(b.dataset.from || '')}">삭제</button></div></div></div>`;
+      return;
+    }
+    if (act === 'doDel') {
+      const ids = b.dataset.ids.split(','), from = b.dataset.from;
+      for (const id of ids) await store.remove(id);
+      $('#sheet').innerHTML = ''; toast(`${ids.length}건을 삭제했습니다`);
+      if (from === 'review') { cur = null; go('/saved'); return; }
+      return viewList(from === 'done' ? 'done' : 'draft');
+    }
     if (act === 'pickAll') { document.querySelectorAll('[data-pick]').forEach(c => { c.checked = true; picked.add(c.dataset.pick); }); return; }
     if (act === 'multiPdf') { if (!picked.size) { toast('보고서를 선택하세요'); return; } go('/p/' + [...picked].join(',')); return; }
     if (act === 'print') { try { window.print(); } catch (err) { toast('이 브라우저에서는 인쇄를 지원하지 않습니다'); } return; }
