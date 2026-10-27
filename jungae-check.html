@@ -397,10 +397,11 @@ function suggest(list){
 function rateBand(r){ const B=[[95,15],[90,13.5],[85,12],[80,10.5],[70,9],[60,7.5],[50,6],[40,4.5],[30,3]]; const b=B.find(x=>r>=x[0]); return b?`${b[0]}% 이상 구간(${b[1]}점)`:'30% 미만 구간(1.5점)'; }
 
 /* ── 상태 ── */
-const KEY = 'jc-check-v2';
+const KEY = 'jc-check-v3';
+try{ localStorage.removeItem('jc-check-v2'); localStorage.removeItem('jc-inspect-v1'); }catch(e){}
 const EXAMPLES = [
- {id:'garam', name:'가람군 농촌인력중개센터', type:'rural', typeL:'농촌형', sub:'시군형', op:'농협', date:'11.17.(화)', prior:[{y:'’25',t:'사업계획서 준수 여부 미흡 — 영농작업반 인원 미달'}]},
- {id:'daon', name:'다온농협 공공형 계절노동', type:'public', typeL:'공공형', sub:'', op:'농협', date:'11.19.(목)', prior:[]}
+ {id:'garam', name:'농촌형 예시-01', type:'rural', typeL:'농촌형', sub:'시군형', op:'농협', date:'11.17.(화)', prior:[{y:'’25',t:'사업계획서 준수 여부 미흡 — 영농작업반 인원 미달'}]},
+ {id:'daon', name:'공공형 예시-01', type:'public', typeL:'공공형', sub:'', op:'농협', date:'11.19.(목)', prior:[]}
 ];
 const blank = () => ({v:{}, g:{}, memo:{}, prior:{}, opinion:'', insp:{}, confirmed:false});
 function seed(){
@@ -441,14 +442,14 @@ function vHome(){
   const cards = centers().map(c=>{
     const st=S[c.id]; const [cr,w,k]=errCount(c); const done=CATS[c.type].filter(([key])=>st.g[key]).length, n=CATS[c.type].length;
     return `<div class="card center">
-      <div class="meta"><span class="pill acc">${c.typeL}${c.sub?' · '+c.sub:''}</span><span class="pill">${esc(c.date)}</span>${st.confirmed?'<span class="pill ok">확정</span>':''}${cr?`<span class="pill crit">중대 ${cr}</span>`:''}${w?`<span class="pill warn">오류 ${w}</span>`:''}${k?`<span class="pill">확인 ${k}</span>`:''}</div>
+      <div class="meta"><span class="pill acc">${c.typeL}${c.sub?' · '+c.sub:''}</span>${c.date?`<span class="pill">${esc(c.date)}</span>`:''}${st.confirmed?'<span class="pill ok">확정</span>':''}${cr?`<span class="pill crit">중대 ${cr}</span>`:''}${w?`<span class="pill warn">오류 ${w}</span>`:''}${k?`<span class="pill">확인 ${k}</span>`:''}</div>
       <h2>${esc(c.name)}</h2>
       <div class="row-b"><span class="mono tnum">점검사항 판정 ${done} / ${n}</span></div>
       <div class="prog"><i style="width:${Math.round(done/n*100)}%"></i></div>
       <button class="btn ${st.confirmed?'':'pri'} block" data-open="${c.id}">${st.confirmed?'결과 보기':'점검하기'}</button></div>`;
   }).join('');
   return bar('현장점검','’26년 하반기 농촌인력중개센터 운영실태 점검') + `<main class="wrap stack">
-    <div class="notice">입력 내용은 이 기기 안에만 저장되고 외부로 전송되지 않습니다. 점검 확정 후 결과 파일로 저장해 원 내부 공유폴더에 올려 주세요.</div>
+    <div class="notice"><b>보안 원칙</b> · 센터는 관리코드로만 입력하고, 센터명·사람 이름·연락처는 쓰지 않습니다. 입력 내용은 이 기기에만 저장되며 외부로 전송되지 않습니다. 확정 후 파일로 저장해 원 내부 공유폴더에 올리고 기기에서는 삭제합니다.</div>
     <div class="fields"><button class="btn" data-add="1">+ 센터 등록</button><button class="btn" data-agg="1">결과 모아보기</button></div>
     ${cards||'<div class="notice">등록된 센터가 없습니다.</div>'}
     <details class="card more"><summary>적용 기준치 보기 (’26년 시행지침)</summary><dl class="kv">${STD_ROWS.map(([t,p])=>`<dt class="mono">${p}</dt><dd>${esc(t)}</dd>`).join('')}</dl></details>
@@ -474,8 +475,7 @@ function tInfo(c){
     ${prior}
     <label class="btn block" for="prevfile">지난 점검 결과 불러오기(.json)</label><input id="prevfile" type="file" accept=".json,application/json" data-importprev="1" hidden>
     <div class="sec-t">센터 현황</div><section class="card stack" style="gap:12px">
-      ${F([{k:'mgr',l:'담당자',type:'text'},{k:'tel',l:'연락처',type:'text'},{k:'addr',l:'주소',type:'text',full:1},
-          {k:'staff',l:'전담인력 수',type:'num',u:'명',std:()=>'기준 ≥ 1명'},...(pub?[]:[{k:'support',l:'운영 지원인력',type:'num',u:'명',std:()=>'기준 ≥ 1명'}]),
+      ${F([{k:'staff',l:'전담인력 수',type:'num',u:'명',std:()=>'기준 ≥ 1명'},...(pub?[]:[{k:'support',l:'운영 지원인력',type:'num',u:'명',std:()=>'기준 ≥ 1명'}]),
           {k:'hire',l:'채용형태',type:'seg',o:['계약직','내부직원'],full:1},{k:'period',l:'계약기간',type:'text',ph:'26.1.~12.',full:1},
           {k:'bud_total',l:'예산',type:'num',u:'백만원',full:1},{k:'bud_nat',l:'국비',type:'num',u:'백만원'},{k:'bud_loc',l:'지방비',type:'num',u:'백만원'}])}
     </section>
@@ -541,7 +541,7 @@ function tCats(c){
       ${dorm}
       <div class="warns" data-live="cat-${k}">${errHtml(list)}</div>
       <div class="q-judge"><span class="jl">판정</span><div class="g4" role="group">${GRADES.map(gd=>`<button class="gb" data-grade="${k}" data-val="${gd}" aria-pressed="${st.g[k]===gd}" ${st.confirmed?'disabled':''}>${gd}${gd===sg?'<small data-live="sg-'+k+'">제안</small>':''}</button>`).join('')}</div></div>
-      <div class="fld"><label for="m-${k}">비고·판정 사유</label><textarea id="m-${k}" data-memo="${k}" placeholder="${st.g[k]&&st.g[k]!=='양호'?'사유를 한 줄 적어 주세요.':'특이사항이 있을 때만'}">${esc(st.memo[k]||'')}</textarea></div>
+      <div class="fld"><label for="m-${k}">비고·판정 사유</label><textarea id="m-${k}" data-memo="${k}" placeholder="${st.g[k]&&st.g[k]!=='양호'?'사유를 한 줄 적어 주세요(실명·연락처 쓰지 않기).':'특이사항이 있을 때만(실명·연락처 쓰지 않기)'}">${esc(st.memo[k]||'')}</textarea></div>
     </section>`; }).join('') + `<button class="btn pri block" data-tab="result">④ 결과 →</button>`;
 }
 function tResult(c){
@@ -555,15 +555,13 @@ function tResult(c){
     <div class="sec-t">판정 현황</div>
     <section class="card"><table class="b14">${CATS[c.type].map(([a,b])=>`<tr><th>${b}</th><td style="width:96px">${st.g[a]?`<b>${st.g[a]}</b>`:'<span class="calc">미판정</span>'}</td></tr>`).join('')}</table></section>
     <div class="sec-t">현장 의견 / 지도·점검 사항</div>
-    <section class="card stack" style="gap:10px"><textarea data-opinion="1" style="min-height:120px" ${st.confirmed?'readonly':''} placeholder="현장 의견과 지도 사항을 적습니다.">${esc(st.opinion)}</textarea>
+    <section class="card stack" style="gap:10px"><textarea data-opinion="1" style="min-height:120px" ${st.confirmed?'readonly':''} placeholder="현장 의견과 지도 사항을 적습니다(실명·연락처 쓰지 않기).">${esc(st.opinion)}</textarea>
       ${st.confirmed?'':'<button class="btn ghost" data-draft="1">자동 점검 결과로 초안 만들기</button>'}</section>
-    <div class="sec-t">점검자</div>
-    <section class="card"><div class="fields">${['org:소속','pos:직위','name:성명'].map(x=>{const [kk,l]=x.split(':');return `<div class="fld ${kk==='org'?'full':''}"><label for="i-${kk}">${l}</label><input id="i-${kk}" type="text" data-insp="${kk}" value="${esc(st.insp[kk]||'')}" ${st.confirmed?'readonly':''}></div>`;}).join('')}</div></section>
     <button class="btn block" data-report="1">점검표(붙임 ${c.type==='rural'?'2':'3'}) 양식으로 보기</button>
-    ${st.confirmed?`<div class="sec-t">결과 파일 저장 · 원 내부 공유폴더에 보관</div><div class="fields"><button class="btn pri" data-expjson="1">결과 파일(.json)</button><button class="btn" data-expcsv="1">엑셀용(.csv)</button></div>`:
+    ${st.confirmed?`<div class="sec-t">결과 파일 저장 · 원 내부 공유폴더에 보관</div><div class="fields"><button class="btn pri" data-expjson="1">결과 파일(.json)</button><button class="btn" data-expcsv="1">엑셀용(.csv)</button></div><div class="notice">파일을 공유폴더에 올린 뒤에는 아래 [이 기기에서 삭제]로 기기에 남은 기록을 지워 주세요.</div>`:
       ASK==='confirm'?`<div class="confirm-box"><span>${blankG?`미판정 ${blankG}건이 있습니다. `:''}확정하면 수정할 수 없습니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-confirm="go">확정</button></div></div>`:
       `<button class="btn pri block" data-ask="confirm">점검 결과 확정</button>`}
-    <div class="foot">${ASK==='del'?'<div class="confirm-box"><span>이 센터와 입력 내용을 지웁니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-delc="go">삭제</button></div></div>':'<button class="linkbtn" data-ask="del">이 센터 삭제</button>'}</div>`;
+    <div class="foot">${ASK==='del'?'<div class="confirm-box"><span>이 센터와 입력 내용을 지웁니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-delc="go">삭제</button></div></div>':`<button class="${st.confirmed?'btn block':'linkbtn'}" data-ask="del">이 기기에서 삭제</button>`}</div>`;
 }
 function draftOpinion(c){
   const st=S[c.id], all=checks(c).filter(e=>e.lv!=='info'); const names=Object.fromEntries(CATS[c.type].map(([a,b])=>[a,b]));
@@ -593,13 +591,13 @@ function vReport(c){
   const memoOf = k => [st.memo[k], ...checks(c).filter(e=>e.cat===k&&e.lv!=='info').map(e=>e.text)].filter(Boolean).join(' / ');
   return bar('점검표', `붙임 ${pub?3:2} · ${esc(c.name)}`, 'result') + `<main class="wrap stack">
     ${st.confirmed?'':'<div class="confirm-box"><span>확정 전 미리보기입니다.</span></div>'}
-    <div class="row-b"><span class="calc">한글 문서에 붙여 넣을 수 있습니다.</span><button class="btn pri" data-copyrep="1">점검표 복사</button></div>
+    <div class="row-b"><span class="calc">원 내부 PC에서 한글 점검표에 붙여 넣고 센터명 등을 채웁니다.</span><button class="btn pri" data-copyrep="1">점검표 복사</button></div>
     <div class="rep-wrap"><article class="rep" id="rep">
-      <h2 class="rep-t">농촌인력중개센터(${pub?'공공형':'농촌형'}) 현장점검표</h2>
+      <h2 class="rep-t">농촌인력중개센터(${pub?'공공형':'농촌형'}) 현장점검표</h2><p class="rep-s">센터명·담당자·연락처·주소·점검자는 원 내부에서 작성</p>
       <table><tr><th colspan="4">센터 현황</th></tr>
-        <tr><th>센터명</th><td colspan="3">${esc(c.name)}</td></tr>
-        <tr><th>담당자</th><td>${esc(v.mgr||'')}</td><th>연락처</th><td>${esc(v.tel||'')}</td></tr>
-        <tr><th>주소</th><td colspan="3">${esc(v.addr||'')}</td></tr>
+        <tr><th>센터명</th><td colspan="3">(관리코드 ${esc(c.name)})</td></tr>
+        <tr><th>담당자</th><td></td><th>연락처</th><td></td></tr>
+        <tr><th>주소</th><td colspan="3"></td></tr>
         <tr><th>전담인력 수</th><td>${fmt(num(v.staff))}명</td><th>채용형태</th><td>${esc(v.hire||'')}</td></tr>
         <tr><th>계약기간</th><td colspan="3">${esc(v.period||'')}</td></tr>
         <tr><th>예산</th><td colspan="3">${fmt(num(v.bud_total))}백만원 (국비 ${fmt(num(v.bud_nat))}백만원, 지방비 ${fmt(num(v.bud_loc))}백만원)</td></tr></table>
@@ -618,7 +616,7 @@ function vReport(c){
         ${names.map(([k,l])=>`<tr><td>${l}</td><td class="c">${GRADES.map(gd=>(st.g[k]===gd?'■ ':'□ ')+gd).join(' ')}</td><td>${esc(memoOf(k))}</td></tr>`).join('')}
         <tr><th>현장 의견/지도·점검 사항</th><td colspan="2" class="pre">${esc(st.opinion||'')}</td></tr></table>
       ${pub?`<table><tr><th colspan="3">[참고] 공동 숙식시설 점검표</th></tr><tr><th>구분</th><th>점검사항</th><th>점검결과</th></tr>${DORM.map((t,j)=>`<tr><td class="c">${j+1}</td><td>${esc(t)}</td><td class="c">${esc(v['d'+j]||'')}</td></tr>`).join('')}</table>`:''}
-      <p class="rep-sign">점검자 &nbsp; 소속: ${esc(st.insp.org||'')} &nbsp; 직위: ${esc(st.insp.pos||'')} &nbsp; 성명: ${esc(st.insp.name||'')} (인)</p>
+      <p class="rep-sign">점검자 &nbsp; 소속: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 직위: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 성명: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (인)</p>
     </article></div></main>`;
 }
 
@@ -627,7 +625,8 @@ function vAdd(){
   const d = S.__draft || (S.__draft = {type:'농촌형', sub:'시군형', op:'지자체'});
   const seg = (k,o) => `<div class="seg" role="group">${o.map(x=>`<button type="button" data-addseg="${k}" data-val="${x}" aria-pressed="${d[k]===x}">${x}</button>`).join('')}</div>`;
   return bar('센터 등록','점검 대상 센터를 추가합니다','home') + `<main class="wrap stack"><section class="card stack" style="gap:12px">
-    <div class="fld"><label for="a-name">센터명</label><input id="a-name" type="text" value="${esc(d.name||'')}" placeholder="예: ○○군 농촌인력중개센터"></div>
+    <div class="fld"><label for="a-name">관리코드</label><input id="a-name" type="text" value="${esc(d.name||'')}" placeholder="예: 08 (점검계획 붙임 1 연번)"></div>
+    <div class="notice">센터명·지역명은 입력하지 않습니다. 연번(관리코드)과 센터 대조표는 원 내부에만 둡니다.</div>
     <div class="fld"><label>사업유형</label>${seg('type',['농촌형','공공형'])}</div>
     ${d.type==='농촌형'?`<div class="fld"><label>세부유형</label>${seg('sub',['시군형','시도형'])}</div>`:''}
     <div class="fld"><label>운영기관</label>${seg('op',['지자체','농협','기타'])}</div>
@@ -641,12 +640,13 @@ function download(name, text, mime){
   catch(e){ toast('이 환경에서는 파일 저장이 막혀 있습니다'); }
 }
 const safe = s => String(s).replace(/[\\/:*?"<>|\s]+/g,'_');
+const fbase = c => { const d=new Date(); const ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; return `jungae_${c.type==='rural'?'R':'P'}-${(c.name.split('-').slice(1).join('-')||c.id).replace(/[^0-9A-Za-z-]/g,'')||c.id}_${ymd}`; };
 const csv = v => { const s=String(v??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
 function summary(c){
   const st=S[c.id], {all}=budgetCalc(c), ch=checks(c).filter(e=>e.lv!=='info');
   return {rate:pct(all[1],all[0]), grades:Object.fromEntries(CATS[c.type].map(([k,l])=>[l,st.g[k]||''])), errors:ch.map(e=>({lv:e.lv,text:e.text,cat:(CATS[c.type].find(x=>x[0]===e.cat)||[])[1]||''}))};
 }
-function exportJson(c){ download(`점검결과_${safe(c.name)}_${safe(c.date)}.json`, JSON.stringify({app:'jungae-check', ver:2, savedAt:new Date().toISOString(), center:c, state:S[c.id], summary:summary(c)},null,1), 'application/json'); }
+function exportJson(c){ download(`${fbase(c)}.json`, JSON.stringify({app:'jungae-check', ver:2, savedAt:new Date().toISOString(), center:{...c, prior:[]}, state:{...S[c.id], insp:undefined, prior:undefined}, summary:summary(c)},null,1), 'application/json'); }
 function exportCsv(c){
   const st=S[c.id], sm=summary(c); const rows=[['구분','항목','값·판정','비고']];
   rows.push(['센터',c.name,`${c.typeL}${c.sub?' '+c.sub:''}`,`점검일 ${c.date} / 확정 ${st.confirmedAt||'미확정'}`]);
@@ -655,7 +655,7 @@ function exportCsv(c){
   CATS[c.type].forEach(([k,l])=>rows.push(['점검사항',l,st.g[k]||'',st.memo[k]||'']));
   sm.errors.forEach(e=>rows.push(['자동점검',e.cat,LV[e.lv][0],e.text]));
   rows.push(['현장 의견','','',st.opinion||'']);
-  download(`점검결과_${safe(c.name)}_${safe(c.date)}.csv`, '﻿'+rows.map(r=>r.map(csv).join(',')).join('\r\n'), 'text/csv');
+  download(`${fbase(c)}.csv`, '﻿'+rows.map(r=>r.map(csv).join(',')).join('\r\n'), 'text/csv');
 }
 function readJson(files, cb){ const out=[]; let n=files.length; if(!n) return; [...files].forEach(f=>{ const fr=new FileReader(); fr.onload=()=>{ try{ const p=JSON.parse(fr.result); if(p.app==='jungae-check'&&p.ver===2) out.push(p);}catch(e){} if(--n===0) cb(out); }; fr.onerror=()=>{ if(--n===0) cb(out); }; fr.readAsText(f); }); }
 function vAgg(){
@@ -674,7 +674,7 @@ function vAgg(){
 }
 function aggCsv(){ const rows=[['센터명','유형','점검일','집행률','중대','오류','확인','판정','자동점검 내용']];
   AGG.forEach(p=>{ const s=p.summary,c=p.center; rows.push([c.name,c.typeL,c.date,s.rate!=null?s.rate+'%':'',s.errors.filter(e=>e.lv==='crit').length,s.errors.filter(e=>e.lv==='warn').length,s.errors.filter(e=>e.lv==='check').length,Object.entries(s.grades).map(([l,g])=>`${l}:${g}`).join(' / '),s.errors.map(e=>e.text).join(' / ')]); });
-  download('점검결과_집계.csv','﻿'+rows.map(r=>r.map(csv).join(',')).join('\r\n'),'text/csv'); }
+  download('jungae_summary.csv','﻿'+rows.map(r=>r.map(csv).join(',')).join('\r\n'),'text/csv'); }
 function copyReport(){
   const el=document.getElementById('rep'); if(!el) return;
   const html=`<div style="font-family:'맑은 고딕';font-size:10pt">${el.innerHTML.replace(/<table>/g,'<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%;margin-bottom:6px">')}</div>`, text=el.innerText;
@@ -703,6 +703,8 @@ function live(){
   if(V.tab==='cats') CATS[c.type].forEach(([k])=>{ if(k==='will') return; const sg=suggest(all.filter(e=>e.cat===k));
     document.querySelectorAll(`[data-grade="${k}"]`).forEach(b=>{ const s=b.querySelector('small'); if(b.dataset.val===sg){ if(!s) b.insertAdjacentHTML('beforeend','<small>제안</small>'); } else if(s) s.remove(); }); });
 }
+const PII = [/01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/g, /0\d{1,2}-\d{3,4}-\d{4}/g, /\d{6}-?[1-4]\d{6}/g, /[\w.+-]+@[\w-]+\.[\w.]+/g, /\b[A-Z]{1,2}\d{7,8}\b/g];
+function mask(t){ let hit=false; let o=String(t); PII.forEach(r=>{ o=o.replace(r,()=>{hit=true; return '***';}); }); return [o,hit]; }
 let tt; function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.hidden=false; clearTimeout(tt); tt=setTimeout(()=>t.hidden=true,1800); }
 
 app.addEventListener('click', e=>{
@@ -719,8 +721,8 @@ app.addEventListener('click', e=>{
   if(d.copyrep) return copyReport();
   if(d.addseg){ const dr=S.__draft; ['name','date'].forEach(k=>{const el=document.getElementById('a-'+k); if(el) dr[k]=el.value;}); dr[d.addseg]=d.val; save(); return render(true); }
   if(d.addsave){ const dr=S.__draft; ['name','date'].forEach(k=>{const el=document.getElementById('a-'+k); if(el) dr[k]=el.value.trim();});
-    if(!dr.name){ toast('센터명을 입력하세요'); return; } const type=dr.type==='공공형'?'public':'rural';
-    const nc={id:'c'+Date.now(), name:dr.name, type, typeL:dr.type, sub:type==='rural'?dr.sub:'', op:dr.op, date:dr.date||'', prior:[]};
+    if(!dr.name){ toast('관리코드를 입력하세요'); return; } const type=dr.type==='공공형'?'public':'rural';
+    const nc={id:'c'+Date.now(), name:`${dr.type}-${dr.name.replace(/[^0-9A-Za-z-]/g,'')||dr.name.slice(0,4)}`, type, typeL:dr.type, sub:type==='rural'?dr.sub:'', op:dr.op, date:dr.date||'', prior:[]};
     centers().push(nc); S[nc.id]=blank(); delete S.__draft; save(); toast('센터를 등록했습니다'); V={name:'home'}; return render(); }
   if(d.delc==='go'){ S.__c=centers().filter(x=>x.id!==c.id); delete S[c.id]; ASK=''; save(); V={name:'home'}; toast('삭제했습니다'); return render(); }
   if(d.prior){ S[c.id].prior[d.prior]=d.val; save(); return render(true); }
@@ -743,6 +745,7 @@ app.addEventListener('input', e=>{
 });
 app.addEventListener('change', e=>{
   const t=e.target;
+  if((t.tagName==='TEXTAREA' || (t.tagName==='INPUT' && t.type==='text')) && cur()){ const [m,hit]=mask(t.value); if(hit){ t.value=m; t.dispatchEvent(new Event('input',{bubbles:true})); toast('개인정보로 보이는 내용(전화번호 등)을 *** 로 가렸습니다'); } }
   if(t.dataset.aggfiles){ readJson(t.files, list=>{ list.forEach(p=>{ const i=AGG.findIndex(x=>x.center.id===p.center.id); i<0?AGG.push(p):AGG.splice(i,1,p); }); toast(`${list.length}개 파일을 불러왔습니다`); render(true); }); return; }
   const c=cur(); if(!c) return;
   if(t.dataset.importprev){ readJson(t.files, list=>{ const p=list[0]; if(!p){ toast('점검 결과 파일이 아닙니다'); return; }
