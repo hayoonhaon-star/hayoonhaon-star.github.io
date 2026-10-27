@@ -34,6 +34,7 @@
   function render(html) { $('#view').innerHTML = html; }
   function netState() { const el = $('#net'); const on = navigator.onLine; el.className = 'net ' + (on ? 'on' : 'off'); el.textContent = on ? '온라인' : '오프라인 사용 중'; }
   window.addEventListener('online', netState); window.addEventListener('offline', netState);
+  const APP_VER = '1.1.2 (10. 27.)';
   const typeName = t => (E.type(t) || {}).short || t;
   const statusName = s => s === 'done' ? '완료' : '작성 중';
 
@@ -108,7 +109,7 @@
     const openAct = real.reduce((t, i) => t + Object.values(i.actions || {}).filter(a => a.case && a.status !== '조치 완료').length, 0);
     render(`
       <div class="alert storenote"><b>기록은 이 기기에만 저장됩니다</b>브라우저 데이터 삭제, 앱 삭제, 기기 초기화 시 기록이 사라질 수 있습니다. 점검을 마치면 [설정·백업]에서 백업 파일을 내보내 원 내부 공유폴더에 보관하십시오.</div>
-      <section class="hero"><h2>농촌인력중개센터 운영실태 현장점검</h2><p>${esc(CFG.plan.title)} · 기준: ${esc(CFG.source.title)}</p></section>
+      <section class="hero"><h2>농촌인력중개센터 운영실태 현장점검</h2><p>${esc(CFG.plan.title)} · 기준: ${esc(CFG.source.title)}</p><p class="sm muted">앱 버전 ${APP_VER}</p></section>
       ${storeWarn()}
       ${demoBox()}
       <div class="tiles t5"><div class="tile"><div class="v">${real.length}</div><div class="l">전체 점검${onlySmp ? '(예시)' : ''}</div></div><div class="tile"><div class="v">${drafts.length}</div><div class="l">작성 중</div></div><div class="tile"><div class="v">${done.length}</div><div class="l">완료</div></div><div class="tile c"><div class="v">${defs}</div><div class="l">미흡 항목</div></div><div class="tile w"><div class="v">${openAct}</div><div class="l">조치 미완료</div></div></div>
@@ -686,7 +687,11 @@
     settings = Object.assign(settings, (await store.getMeta('settings')) || {});
     netState(); route();
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-      navigator.serviceWorker.register('./sw.js').then(reg => {
+      // 새 버전이 설치되면 화면을 한 번 자동으로 새로 고침
+      const hadCtrl = !!navigator.serviceWorker.controller; let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtrl && !reloaded) { reloaded = true; location.reload(); } });
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
+        reg.update().catch(() => {});
         $('#net').title = '오프라인 사용 준비 완료';
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && navigator.onLine) reg.update().catch(() => {}); });
       }).catch(() => {});
