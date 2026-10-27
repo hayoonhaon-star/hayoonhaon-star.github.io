@@ -6,9 +6,6 @@
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>중개센터 현장점검</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 /* Layout: 한 손 조작 모바일 앱 — 상단 고정 바 + 단일 컬럼 카드 + 하단 고정 이동 버튼 */
 :root{
@@ -16,8 +13,8 @@
   --accent:#1E5A43; --accent-ink:#FFFFFF; --accent-soft:#DCEBE3;
   --ok:#23704A; --ok-soft:#DDF0E5; --warn:#9A5B00; --warn-soft:#FBEBCF; --q:#2F55A4; --q-soft:#E0E8F8;
   --crit:#B3261E; --crit-soft:#FBE0DE;
-  --f-sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --f-sans:"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  --f-mono:ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#101613; --surface:#18201C; --sunk:#1E2723; --ink:#E4EBE7; --muted:#9AA9A1; --line:#2D3833;
@@ -198,6 +195,8 @@ table.b14 select{min-height:40px;border:1px solid var(--line);border-radius:8px;
 .rep th{background:var(--sunk);font-weight:600}
 .rep td.c{text-align:center} .rep td.n{text-align:right}
 .rep-box{border:1px solid var(--line);padding:10px;white-space:pre-wrap}
+.rep td small{display:block;color:var(--muted);font-size:11px}
+label.btn{cursor:pointer;text-align:center}
 .rep-sign{text-align:right;margin:18px 0 0}
 @media (max-width:380px){.fields{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,1fr)}}
 @media (prefers-reduced-motion:no-preference){.btn,.chip,.jb,.li{transition:background-color .12s,border-color .12s}}
@@ -378,7 +377,7 @@ const DOCS = {
 const DSTATE = ['요청','제출','미제출','현장확인'];
 const TAGS = ['인력모집','민간연계','수송','안전관리','인력풀관리','농가관리','매칭','홍보','교육'];
 
-const CENTERS = [
+const EXAMPLES = [
  {id:'garam', name:'가람군 농촌인력중개센터', type:'rural', typeL:'농촌형', sub:'시군형', op:'농협', opL:'가람농협 운영', total:80000, date:'10.28.(수)', who:'점검자 김○○', prior:[{y:'’25',t:'교육·안전관리 실적 증빙 미흡'}]},
  {id:'nuri', name:'누리도 농촌인력중개센터', type:'rural', typeL:'농촌형', sub:'시도형', op:'지자체', opL:'누리도 직영', total:90000, date:'10.29.(목)', who:'점검자 김○○', prior:[]},
  {id:'daon', name:'다온농협 공공형 계절노동', type:'public', typeL:'공공형', sub:'', op:'농협', opL:'다온농협 운영', total:100000, date:'10.30.(금)', who:'점검자 김○○', prior:[]}
@@ -388,10 +387,10 @@ const allItems = c => areasOf(c).filter(a=>!a.form).flatMap(a=>a.items);
 
 /* ── 상태 ── */
 const KEY = 'jc-inspect-v1';
+const blankState = c => { const o={items:{}, docs:{}, field:{}, prior:{}, best:[], b14o:{}, review:'', confirmed:false, follow:{}}; DOCS[c.type].forEach(d=>o.docs[d]='요청'); return o; };
 function seed(){
-  const s = {};
-  CENTERS.forEach(c=>{ s[c.id] = {items:{}, docs:{}, field:{}, prior:{}, best:[], b14o:{}, review:'', confirmed:false, follow:{}};
-    DOCS[c.type].forEach(d=>s[c.id].docs[d]='요청'); });
+  const s = {__centers: JSON.parse(JSON.stringify(EXAMPLES))};
+  EXAMPLES.forEach(c=>{ s[c.id] = blankState(c); });
   const g = s.garam;
   Object.assign(g.docs, {'전담인력 근로계약서':'제출','업무분장표':'제출','인력풀 현황(플랫폼)':'제출','중개 실적(플랫폼 기록)':'제출','사업비 집행내역(e나라도움)':'제출','지급대장(별지 4~7호)':'현장확인','교육·안전관리 실적':'미제출'});
   const set=(id,j,v,memo)=>g.items[id]={j,v:v||{},memo:memo||''};
@@ -402,7 +401,9 @@ function seed(){
   return s;
 }
 let S;
-try { S = JSON.parse(localStorage.getItem(KEY)) || seed(); } catch(e){ S = seed(); }
+try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e){ S = null; }
+if(!S || !S.__centers) S = seed();
+const centers = () => S.__centers;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
 let V = {name:'home'};
 let confirmAsk = false;
@@ -438,7 +439,7 @@ function fieldHtml(f, v, iid){
 
 /* ── 화면: 오늘의 점검 ── */
 function vHome(){
-  const cards = CENTERS.map(c=>{
+  const cards = centers().map(c=>{
     const [d,n] = centerProg(c); const st = S[c.id];
     const pct = Math.round(d/n*100);
     const label = st.confirmed ? '결과 보기' : d ? '이어서 점검' : '점검 시작';
@@ -451,9 +452,11 @@ function vHome(){
     </div>`;
   }).join('');
   return bar('오늘의 현장점검','’26년 하반기 · 농촌인력중개센터') + `<main class="wrap stack">
-    <div class="notice">가상 센터로 만든 시연용 화면입니다. 입력 내용은 이 기기에만 저장됩니다.</div>
-    ${cards}
-    <div class="foot"><span>기준: ’26년 농촌인력중개센터 시행지침(2026. 9.) · 화면 수정 26.10.26.</span><button class="linkbtn" data-reset="1">예시 데이터로 되돌리기</button></div>
+    <div class="notice">입력 내용은 이 기기 안에만 저장되고 외부로 전송되지 않습니다. 점검 확정 후 결과 파일로 저장해 원 내부 공유폴더에 올려 주세요.</div>
+    <div class="fields"><button class="btn" data-add="1">+ 센터 등록</button><button class="btn" data-agg="1">결과 모아보기</button></div>
+    ${cards||'<div class="notice">등록된 센터가 없습니다. [+ 센터 등록]으로 추가하세요.</div>'}
+    <div class="foot"><span>기준: ’26년 농촌인력중개센터 시행지침(2026. 9.) · 화면 수정 26.10.27.</span>
+      ${ASK==='reset'?'<div class="confirm-box"><span>등록한 센터와 입력 내용이 모두 지워지고 예시 센터만 남습니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-reset="go">초기화</button></div></div>':'<button class="linkbtn" data-ask="reset">전체 초기화(예시 센터로 되돌리기)</button>'}</div>
   </main>`;
 }
 
@@ -544,6 +547,7 @@ function vResult(c){
       ${st.confirmed?'':'<button class="btn ghost" data-redraft="1">초안 다시 만들기</button>'}
     </section>
     <button class="btn block" data-report="1">결과보고서(별지 14호) ${st.confirmed?'보기':'미리보기'}</button>
+    ${st.confirmed?`<div class="sec-t">결과 파일 저장 · 원 내부 공유폴더에 보관</div><div class="fields"><button class="btn pri" data-expjson="1">결과 파일(.json)</button><button class="btn" data-expcsv="1">엑셀용(.csv)</button></div><div class="notice">.json 파일은 [결과 모아보기]와 다음 점검의 ‘지난 결과 불러오기’에 씁니다.</div>`:''}
     ${st.confirmed?'':
       confirmAsk?`<div class="confirm-box"><span>${blank?`미입력 항목이 ${blank}건 있습니다. `:''}확정하면 점검자는 더 이상 수정할 수 없습니다.</span><div class="btns"><button class="btn" data-cancel="1">취소</button><button class="btn pri" data-confirm="2">확정</button></div></div>`:
       `<button class="btn pri block" data-confirm="1">점검 결과 확정</button>`}
@@ -637,7 +641,10 @@ function tPrep(c){
     <div class="sec-t">사전자료 · ${Object.keys(st.docs).length}건 중 제출 ${sub}건</div>
     <section class="list">${docs}</section>
     <button class="btn block" data-best="1">우수사례 등록${st.best.length?` (${st.best.length}건)`:''}</button>
-    <button class="btn pri block" data-tab="${areasOf(c)[0].key}">면담 시작 →</button>`;
+    <label class="btn block" for="prevfile">지난 점검 결과 불러오기(.json)</label>
+    <input id="prevfile" type="file" accept=".json,application/json" data-importprev="1" hidden>
+    <button class="btn pri block" data-tab="${areasOf(c)[0].key}">면담 시작 →</button>
+    <div class="foot">${ASK==='del'?'<div class="confirm-box"><span>이 센터와 입력 내용을 지웁니다. 저장한 결과 파일은 지워지지 않습니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-delc="go">삭제</button></div></div>':'<button class="linkbtn" data-ask="del">이 센터 삭제</button>'}</div>`;
 }
 
 /* ── 영역 탭: 질문 목록 ── */
@@ -808,9 +815,110 @@ function copyReport(){
   }catch(e){ fallback(); }
 }
 
+/* ── 오프라인 기능: 센터 등록·파일 저장·불러오기·모아보기 ── */
+let ASK = '';            // 두 단계 확인용
+let AGG = [];            // 모아보기용(메모리에만, 저장 안 함)
+const today = () => { const d=new Date(); return `${String(d.getFullYear()).slice(2)}.${d.getMonth()+1}.${d.getDate()}.`; };
+function download(name, text, mime){
+  try{
+    const blob = new Blob([text], {type: mime});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toast('파일을 저장했습니다. 다운로드 폴더를 확인하세요');
+  }catch(e){ toast('이 환경에서는 파일 저장이 막혀 있습니다'); }
+}
+const safeName = s => String(s).replace(/[\\/:*?"<>|\s]+/g,'_');
+const csvCell = v => { const s=String(v??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+function summaryOf(c){
+  const st = S[c.id]; const J = judged(c);
+  const cnt = k => J.filter(x=>x.r?.j===k).length;
+  const rateIt = allItems(c).find(i=>i.rate); const ev = num(st.items[rateIt.id]?.v?.exe);
+  return {
+    o:cnt('o'), w:cnt('w'), q:cnt('q'), blank:J.filter(x=>!x.r?.j).length,
+    rate: ev!=null ? r1(ev/c.total*100) : null,
+    sev: J.filter(x=>x.i.sev && x.r?.j && x.r.j!=='o').map(x=>x.i.t),
+    issues: J.filter(x=>x.r?.j==='w'||x.r?.j==='q').map(x=>({id:x.i.id, t:x.i.t, j:x.r.j, memo:x.r.memo||''})),
+    b14: Object.fromEntries(B14[c.type].map(([k,l])=>[l, st.b14o[k] ?? (k==='will'?'':suggest(c,k))]))
+  };
+}
+function exportJson(c){
+  const payload = {app:'jungae-check', ver:1, savedAt:new Date().toISOString(), center:c, state:S[c.id], summary:summaryOf(c)};
+  download(`점검결과_${safeName(c.name)}_${safeName(c.date)}.json`, JSON.stringify(payload,null,1), 'application/json');
+}
+function exportCsv(c){
+  const st = S[c.id]; const sm = summaryOf(c);
+  const rows = [['구분','항목ID','항목명','판정','사유·입력값']];
+  rows.push(['센터','',c.name,'',`${c.typeL}${c.sub?' '+c.sub:''} / ${c.opL} / 총사업비 ${c.total}천원 / 점검일 ${c.date} / ${c.who} / 확정 ${st.confirmedAt||'미확정'}`]);
+  allItems(c).forEach(i=>{ const r=st.items[i.id]||{}; const L={bud:'예산액(천원)',exe:'집행액(천원)',n:'표본 수'}; (i.f||[]).forEach(f=>L[f.k]=f.l); const vals=Object.entries(r.v||{}).filter(([k,v])=>v!==''&&v!=null&&v!==false&&!/^s\d/.test(k)&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>`${L[k]||k}: ${v===true?'예':Array.isArray(v)?v.join('/'):v}`).join('; ');
+    rows.push(['항목',i.id,i.t,{o:'적정',w:'개선필요',q:'추가확인'}[r.j]||'미입력',[r.memo,vals].filter(Boolean).join(' | ')]); });
+  Object.entries(sm.b14).forEach(([l,v])=>rows.push(['별지14','',l,v||'','']));
+  rows.push(['집행률','','기준일 사업비 집행률','',sm.rate!=null?sm.rate+'%':'']);
+  rows.push(['총평','','','',st.review||'']);
+  download(`점검결과_${safeName(c.name)}_${safeName(c.date)}.csv`, '﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n'), 'text/csv');
+}
+function readJsonFiles(files, cb){
+  const out=[]; let n=files.length; if(!n) return;
+  [...files].forEach(f=>{ const fr=new FileReader(); fr.onload=()=>{ try{ const p=JSON.parse(fr.result); if(p.app==='jungae-check') out.push(p); }catch(e){} if(--n===0) cb(out); }; fr.onerror=()=>{ if(--n===0) cb(out); }; fr.readAsText(f); });
+}
+
+/* 센터 등록 */
+function vAdd(){
+  const d = S.__draft || (S.__draft = {type:'농촌형', sub:'시군형', op:'지자체'});
+  const seg = (k,o) => `<div class="seg" role="group">${o.map(x=>`<button type="button" data-addseg="${k}" data-val="${x}" aria-pressed="${d[k]===x}">${x}</button>`).join('')}</div>`;
+  return bar('센터 등록','실제 점검 대상 센터를 추가합니다','home') + `<main class="wrap stack">
+    <section class="card stack" style="gap:12px">
+      <div class="fld"><label for="a-name">센터명</label><input id="a-name" type="text" value="${esc(d.name||'')}" placeholder="예: ○○군 농촌인력중개센터"></div>
+      <div class="fld"><label>사업유형</label>${seg('type',['농촌형','공공형'])}</div>
+      ${d.type==='농촌형'?`<div class="fld"><label>세부유형</label>${seg('sub',['시군형','시도형'])}</div>`:''}
+      <div class="fld"><label>운영기관 구분</label>${seg('op',['지자체','농협','기타'])}</div>
+      <div class="fld"><label for="a-opl">운영기관명</label><input id="a-opl" type="text" value="${esc(d.opl||'')}" placeholder="예: ○○농협"></div>
+      <div class="fields">
+        <div class="fld"><label for="a-total">총사업비</label><div class="unit"><input id="a-total" type="number" inputmode="numeric" value="${esc(d.total||'')}"><em>천원</em></div></div>
+        <div class="fld"><label for="a-date">점검일</label><input id="a-date" type="text" value="${esc(d.date||'')}" placeholder="예: 11.5.(수)"></div>
+        <div class="fld full"><label for="a-who">점검자</label><input id="a-who" type="text" value="${esc(d.who||'')}" placeholder="예: 점검자 홍○○"></div>
+      </div>
+      <div class="notice">센터 담당자·근로자 개인정보(실명, 연락처 등)는 입력하지 않습니다.</div>
+      <button class="btn pri block" data-addsave="1">등록</button>
+    </section></main>`;
+}
+
+/* 결과 파일 모아보기 */
+function vAgg(){
+  const rows = AGG.map(p=>{ const s=p.summary, c=p.center; return `<tr><td>${esc(c.name)}<small>${esc(c.typeL)} · ${esc(c.date)}</small></td><td class="n">${s.o}</td><td class="n">${s.w}</td><td class="n">${s.q}</td><td class="n">${s.sev.length||'-'}</td><td class="n">${s.rate!=null?s.rate+'%':'-'}</td></tr>`; }).join('');
+  const issueMap = {};
+  AGG.forEach(p=>p.summary.issues.forEach(x=>{ (issueMap[x.t] ||= new Set()).add(p.center.name); }));
+  const common = Object.entries(issueMap).sort((a,b)=>b[1].size-a[1].size).slice(0,10)
+    .map(([t,s])=>`<tr><td>${esc(t)}</td><td class="n">${s.size}곳</td></tr>`).join('');
+  const lows = AGG.filter(p=>p.summary.rate!=null).sort((a,b)=>a.summary.rate-b.summary.rate).slice(0,5)
+    .map(p=>`<tr><td>${esc(p.center.name)}</td><td class="n">${p.summary.rate}%</td></tr>`).join('');
+  const sevs = AGG.filter(p=>p.summary.sev.length).map(p=>`<div class="w crit"><span class="tag">중대</span><span>${esc(p.center.name)}: ${esc(p.summary.sev.join(', '))}</span></div>`).join('');
+  return bar('결과 모아보기','실원들의 결과 파일을 불러와 집계합니다','home') + `<main class="wrap stack">
+    <section class="card stack" style="gap:10px">
+      <label class="btn pri block" for="aggfiles">결과 파일(.json) 불러오기 — 여러 개 선택 가능</label>
+      <input id="aggfiles" type="file" accept=".json,application/json" multiple data-aggfiles="1" hidden>
+      <span class="calc">불러온 파일 ${AGG.length}개 · 이 화면을 닫으면 집계는 사라지고, 원본 파일은 그대로 남습니다.</span>
+      ${AGG.length?'<button class="btn block" data-aggcsv="1">집계표 엑셀용 저장(.csv)</button><button class="btn ghost block" data-aggclear="1">불러온 파일 비우기</button>':''}
+    </section>
+    ${AGG.length?`
+    ${sevs?`<div class="sec-t">중대 위반 의심</div><div class="warns">${sevs}</div>`:''}
+    <div class="sec-t">센터별 결과</div>
+    <div class="rep-wrap"><div class="rep"><table><tr><th>센터</th><th>○</th><th>△</th><th>?</th><th>중대</th><th>집행률</th></tr>${rows}</table></div></div>
+    <div class="sec-t">공통 지적사항 (센터 수 기준 상위 10)</div>
+    <div class="rep-wrap"><div class="rep"><table><tr><th>항목</th><th>센터 수</th></tr>${common||'<tr><td colspan="2">없음</td></tr>'}</table></div></div>
+    <div class="sec-t">집행률 낮은 센터 (하위 5)</div>
+    <div class="rep-wrap"><div class="rep"><table><tr><th>센터</th><th>집행률</th></tr>${lows||'<tr><td colspan="2">입력 없음</td></tr>'}</table></div></div>`
+    :'<div class="notice">실원들이 점검 확정 후 저장한 결과 파일을 원 내부 공유폴더에서 내려받아 여기서 한꺼번에 불러오면 됩니다.</div>'}
+  </main>`;
+}
+function aggCsv(){
+  const rows=[['센터명','유형','점검일','점검자','적정','개선필요','추가확인','중대','집행률','지적사항']];
+  AGG.forEach(p=>{ const s=p.summary,c=p.center; rows.push([c.name,c.typeL+(c.sub?' '+c.sub:''),c.date,c.who,s.o,s.w,s.q,s.sev.join('/'),s.rate!=null?s.rate+'%':'',s.issues.map(x=>x.t).join('/')]); });
+  download(`점검결과_집계_${safeName(today())}.csv`, '﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n'), 'text/csv');
+}
+
 /* ── 렌더 ── */
 const app = document.getElementById('app');
-function cur(){ return CENTERS.find(c=>c.id===V.cid); }
+function cur(){ return centers().find(c=>c.id===V.cid); }
 function itemById(c,id){ return allItems(c).find(i=>i.id===id); }
 function render(keepScroll){
   const y = window.scrollY;
@@ -819,6 +927,8 @@ function render(keepScroll){
   else if(V.name==='work') h = vWork(cur());
   else if(V.name==='best') h = vBest(cur());
   else if(V.name==='report') h = vReport(cur());
+  else if(V.name==='add') h = vAdd();
+  else if(V.name==='agg') h = vAgg();
   app.innerHTML = h;
   window.scrollTo(0, keepScroll ? y : 0);
   const tb = document.querySelector('.tabs'), ct = document.querySelector('.tab[aria-current="true"]');
@@ -837,13 +947,27 @@ const goWork = (cid, tab) => { V = {name:'work', cid, tab}; ALLOK=''; confirmAsk
 app.addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
   const d = b.dataset; const c = cur();
-  if(d.go==='home'){ V={name:'home'}; return render(); }
+  if(d.go==='home'){ V={name:'home'}; ASK=''; return render(); }
+  if(d.ask!==undefined){ ASK=d.ask; return render(true); }
+  if(d.add){ V={name:'add'}; return render(); }
+  if(d.agg){ V={name:'agg'}; return render(); }
+  if(d.addseg){ const dr=S.__draft; ['name','opl','total','date','who'].forEach(k=>{const el=document.getElementById('a-'+k); if(el) dr[k]=el.value;}); dr[d.addseg]=d.val; save(); return render(true); }
+  if(d.addsave){ const dr=S.__draft; ['name','opl','total','date','who'].forEach(k=>{const el=document.getElementById('a-'+k); if(el) dr[k]=el.value.trim();});
+    if(!dr.name){ toast('센터명을 입력하세요'); return; } if(!num(dr.total)){ toast('총사업비를 입력하세요'); return; }
+    const type = dr.type==='공공형'?'public':'rural';
+    const c = {id:'c'+Date.now(), name:dr.name, type, typeL:dr.type, sub:type==='rural'?dr.sub:'', op:dr.op, opL:dr.opl?`${dr.opl} 운영`:dr.op, total:num(dr.total), date:dr.date||today(), who:dr.who||'', prior:[]};
+    centers().push(c); S[c.id]=blankState(c); delete S.__draft; save(); toast('센터를 등록했습니다'); V={name:'home'}; return render(); }
+  if(d.delc==='go'){ S.__centers = centers().filter(x=>x.id!==c.id); delete S[c.id]; ASK=''; save(); toast('센터를 삭제했습니다'); V={name:'home'}; return render(); }
+  if(d.expjson){ return exportJson(c); }
+  if(d.expcsv){ return exportCsv(c); }
+  if(d.aggcsv){ return aggCsv(); }
+  if(d.aggclear){ AGG=[]; return render(); }
   if(d.go==='center'){ goWork(V.cid, 'prep'); return render(); }
   if(d.go==='result'){ goWork(V.cid, 'result'); return render(); }
   if(d.report){ V={name:'report',cid:c.id}; return render(); }
   if(d.copyrep){ return copyReport(); }
   if(d.open){ const st=S[d.open]; goWork(d.open, st.confirmed?'result':'prep'); return render(); }
-  if(d.reset){ S = seed(); save(); OPEN.clear(); toast('예시 데이터로 되돌렸습니다'); return render(); }
+  if(d.reset==='go'){ S = seed(); ASK=''; save(); OPEN.clear(); toast('예시 센터로 되돌렸습니다'); return render(); }
   if(d.tab){ goWork(c.id, d.tab); return render(); }
   if(d.best){ V={name:'best',cid:c.id}; return render(); }
   if(d.prior){ S[c.id].prior[d.prior]=d.val; save(); return render(true); }
@@ -891,7 +1015,12 @@ app.addEventListener('input', e=>{
   if(t.dataset.fdue){ (S[c.id].follow[t.dataset.fdue] ||= {}).due = t.value; save(); return; }
 });
 app.addEventListener('change', e=>{
-  const t = e.target; const c = cur(); if(!c) return;
+  const t = e.target;
+  if(t.dataset.aggfiles){ readJsonFiles(t.files, list=>{ list.forEach(p=>{ const i=AGG.findIndex(x=>x.center.id===p.center.id && x.center.date===p.center.date); i<0?AGG.push(p):AGG.splice(i,1,p); }); toast(`${list.length}개 파일을 불러왔습니다`); render(true); }); return; }
+  const c = cur(); if(!c) return;
+  if(t.dataset.importprev){ readJsonFiles(t.files, list=>{ const p=list[0]; if(!p){ toast('점검 결과 파일이 아닙니다'); return; }
+    c.prior = p.summary.issues.map(x=>({y:p.center.date, t:x.t+(x.memo?' — '+x.memo:'')})); S[c.id].prior={}; save();
+    toast(`지난 지적사항 ${c.prior.length}건을 불러왔습니다`); render(true); }); return; }
   if(t.dataset.k && t.type==='checkbox' && t.dataset.id){ const r=rec(c.id,t.dataset.id); r.v[t.dataset.k]=t.checked; save(); return live(t.dataset.id); }
   if(t.dataset.b14){ S[c.id].b14o[t.dataset.b14] = t.value; save(); }
 });
