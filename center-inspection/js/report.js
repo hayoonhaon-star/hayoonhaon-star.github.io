@@ -41,6 +41,7 @@ CI.report = (function () {
         <tr><td>${r.total}</td><td>${r.C}</td><td class="${r.N ? 'neg' : ''}">${r.N}</td><td class="${r.U ? 'unv' : ''}">${r.U}</td><td>${r.NA}</td><td>${r.unanswered.length}</td></tr></table>
       <h3>분야별 결과</h3>
       <table class="cat"><tr><th class="l">분야</th><th>항목</th><th>적정</th><th>미흡</th><th>확인필요</th><th>해당없음</th></tr>${catRows}</table>
+      ${ledgerSec(insp)}
       <h2>3. 주요 미흡 사항</h2>${defs}
       <h2>4. 시정 권고</h2>${recs}
       <h2>5. 추가 확인 필요 사항 <small>(확정된 미흡 사항 아님)</small></h2>${vers}
@@ -49,6 +50,18 @@ CI.report = (function () {
       ${sign()}
       <p class="foot">※ 기준: ${esc(C().source.title)}. 미흡 사유·권고 문안은 운영 참고 분류이며 법령 위반·행정처분 판단이 아님. [행정 확인 필요] 항목은 시행지침에 세부 기준이 없어 점검자 판단으로 기록함.</p>
     </section>`;
+  }
+
+  function ledgerSec(insp) {
+    const rows = insp.ledger || []; if (!rows.length) return '';
+    const sm = E().ledgerSummary(insp), defs = E().ledgerDefs(insp.type);
+    const tr = rows.map((r, i) => { const d = defs.find(x => x.k === r.k) || {}, fs = sm.fs.filter(f => f.row === i), u = E().num(r.unit), q = E().num(r.qty);
+      return `<tr><td>${i + 1}</td><td class="l">${esc(d.l || '-')}${r.dist ? `<br><span class="sm">${esc(r.dist)}</span>` : ''}</td><td class="r">${u != null ? E().won(u) : ''}</td><td class="r">${q != null ? E().won(q) : ''}</td><td class="r">${u != null && q != null ? E().won(u * q) : ''}</td>
+        <td class="l">${fs.length ? fs.map(f => `${f.kind === 'verify' ? '확인 필요' : '위반'}: ${esc(f.msg)}`).join('<br>') : '이상 없음'}</td><td class="r">${fs.reduce((t, f) => t + (f.over || 0), 0) ? E().won(fs.reduce((t, f) => t + (f.over || 0), 0)) : ''}</td></tr>`; }).join('');
+    return `<h2>※ 예산 집행 지출 표본 점검 <small>(시행지침 사업비 편성·집행 기준 대조, 원)</small></h2>
+      <table class="items"><tr><th style="width:5%">No</th><th style="width:17%">비목</th><th style="width:10%">단가</th><th style="width:7%">수량</th><th style="width:11%">금액</th><th>대조 결과</th><th style="width:11%">초과·부적정</th></tr>${tr}
+      <tr><th colspan="4">합계 (표본 ${sm.n}건)</th><th class="r">${E().won(sm.amt)}</th><th class="l">기준 위반 ${sm.bad}건 · 확인 필요 ${sm.verify}건</th><th class="r">${E().won(sm.over)}</th></tr></table>
+      <p class="sm">※ 초과·부적정 금액은 입력한 표본 기준 추정액이며, 환수 여부는 증빙 확인 후 결정함.</p>`;
   }
 
   /* 2) 시정조치 요청서 */

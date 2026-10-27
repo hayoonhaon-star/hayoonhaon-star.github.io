@@ -96,6 +96,7 @@
       <div class="prog"><div class="bar"><i id="pbar" style="width:${Math.round(pr.done / pr.total * 100)}%"></i></div><span id="ptext">${pr.done}/${pr.total}</span></div>
       <div class="seg tabs4">${tabs.map(([k, l]) => `<a href="#/${k}/${insp.id}" role="button" aria-pressed="${active === k}">${l}</a>`).join('')}</div></div>`;
   }
+  const gOpen = new Set();
   const locked = () => cur && cur.status === 'done';
   const lockNote = () => locked() ? `<div class="alert">완료된 점검입니다. 수정하려면 [결과·보고서]에서 '수정 재개'를 누르세요. 시정조치 상태는 계속 갱신할 수 있습니다.</div>` : '';
 
@@ -107,6 +108,7 @@
     const defs = real.reduce((t, i) => t + E.evaluate(i).N, 0);
     const openAct = real.reduce((t, i) => t + Object.values(i.actions || {}).filter(a => a.case && a.status !== '조치 완료').length, 0);
     render(`
+      <div class="alert storenote"><b>기록은 이 기기에만 저장됩니다</b>브라우저 데이터 삭제, 앱 삭제, 기기 초기화 시 기록이 사라질 수 있습니다. 점검을 마치면 [설정·백업]에서 백업 파일을 내보내 원 내부 공유폴더에 보관하십시오.</div>
       <section class="hero"><h2>농촌인력중개센터 운영실태 현장점검</h2><p>${esc(CFG.plan.title)} · 기준: ${esc(CFG.source.title)}</p></section>
       ${storeWarn()}
       ${demoBox()}
@@ -121,7 +123,7 @@
         <a class="mi" href="#/guide/A"><b>점검기준</b><span>항목별 근거·확인서류·미흡 사유</span></a>
         <a class="mi" href="#/settings"><b>설정·백업</b><span>백업 내보내기·복원 · 예시 · 보안 안내</span></a>
       </nav>
-      <div class="alert storenote"><b>기록은 이 기기에만 저장됩니다</b>브라우저 데이터 삭제, 앱 삭제, 기기 초기화 시 기록이 사라질 수 있습니다. 점검을 마치면 [설정·백업]에서 백업 파일을 내보내 원 내부 공유폴더에 보관하십시오.</div>`);
+`);
   }
   let demoSet = false;
   function demoAuto() { if (!demoSet && list.length && list.every(i => i.sample)) { dashF.sample = true; demoSet = true; } }
@@ -203,13 +205,15 @@
     if (!(await load(id))) return;
     const t = cur.type, docs = CFG.docs[t], dst = cur.docs || {};
     const miss = docs.filter(d => dst[d.id] === 'M'), none = docs.filter(d => !dst[d.id]);
-    const preRules = E.validate(cur).filter(x => ['STAFF', 'TEAM', 'RATIO', 'MATCH', 'LEADPER', 'PUBRATE'].includes(x.rule));
+    const preRules = E.validate(cur).filter(x => ['STAFF', 'TEAM', 'RATIO', 'MATCH', 'BUDOVER', 'LEADPER', 'PUBRATE'].includes(x.rule));
     const b = E.budget(cur.pre);
     const budRows = E.BROWS.map(([k, g, n]) => `<tr><td class="l">${g === '센터운영비' ? '센터' : '인력'} · ${n}</td><td><input type="text" inputmode="numeric" data-pre="p_${k}" value="${esc((cur.pre || {})['p_' + k] ?? '')}" aria-label="${n} 예산계획" ${locked() ? 'disabled' : ''}></td><td><input type="text" inputmode="numeric" data-pre="e_${k}" value="${esc((cur.pre || {})['e_' + k] ?? '')}" aria-label="${n} 집행실적" ${locked() ? 'disabled' : ''}></td></tr>`).join('');
     render(`${subnav(cur, 'pre')}${lockNote()}
-      <section class="panel"><div class="lbl">사전제출 자료 불러오기 <small>지방정부 제출 엑셀(docs/사전제출양식.xlsx 양식)</small></div>
-        <label class="btn" for="prexlsx">엑셀 파일 선택(.xlsx)</label><input id="prexlsx" type="file" accept=".xlsx" data-prexlsx="1" hidden ${locked() ? 'disabled' : ''}>
-        <div class="hint">파일은 이 기기 안에서만 읽습니다. 센터명·담당자 등 양식에 없는 칸은 불러오지 않습니다.</div></section>
+      <section class="panel"><div class="lbl">사전제출 자료 불러오기 <small>현장점검표(붙임 ${t === 'A' ? 2 : 3}) · 한글·PDF·엑셀</small></div>
+        ${locked() ? '' : `<label class="btn primary" for="prefile">파일 선택 (.hwp · .hwpx · .pdf · .xlsx)</label><input id="prefile" type="file" accept=".hwp,.hwpx,.pdf,.xlsx" data-prefile="1" hidden>`}
+        <div class="hint">파일은 이 기기 안에서만 읽고 원본은 저장하지 않습니다. 센터명·담당자·연락처·주소 칸은 읽지 않습니다. 읽은 값은 확인한 뒤 적용합니다.</div>
+        ${(cur.imports || []).length ? `<div class="list">${cur.imports.map((m, i) => `<div class="docrow"><div><b>${esc(FMT[m.fmt] || m.fmt)} 파일</b><span class="src"> ${esc(fmtDT(m.at))} · ${Object.keys(m.vals || {}).length}개 항목 채움</span></div>${locked() ? '' : `<button class="btn sm danger" data-act="impDel" data-i="${i}">삭제</button>`}</div>`).join('')}</div>
+          <div class="hint">삭제하면 그 파일에서 채운 값을 지웁니다(불러온 뒤 직접 고친 값은 남깁니다).</div>` : ''}</section>
       <section class="panel"><div class="lbl">사전자료 접수 확인 <small>접수 ${docs.filter(d => dst[d.id] === 'R').length} · 미제출 ${miss.length} · 미확인 ${none.length}</small></div>
         <div class="list">${docs.map(d => `<div class="docrow"><div><b>${esc(d.l)}</b><span class="src"> ${esc(d.ref.startsWith('p') ? CFG.source.short + ' ' + d.ref : d.ref)}</span></div>
           <div class="seg">${[['R', '접수'], ['M', '미제출'], ['NA', '해당없음']].map(([v, l]) => `<button data-act="doc" data-doc="${d.id}" data-v="${v}" aria-pressed="${dst[d.id] === v}" ${locked() ? 'disabled' : ''}>${l}</button>`).join('')}</div></div>`).join('')}</div>
@@ -240,9 +244,54 @@
     render(`${subnav(cur, 'i')}${lockNote()}${prior}
       ${T.categories.map(cat => { const its = cat.items; const d = its.filter(i => E.itemDone((cur.answers || {})[i.id])).length;
         return `<details class="catsec" open><summary class="cath">${esc(cat.name)} <small>${d}/${its.length}</small></summary>
+          ${its.some(i => i.ledger) ? ledgerPanel() : ''}
           ${locked() ? '' : `<button class="btn sm" data-act="allC" data-cat="${cat.id}">미응답 항목 모두 적정</button>`}
           ${its.map(it => itemCard(Object.assign({ cat: cat.id }, it))).join('')}</details>`; }).join('')}
       <div class="bottombar"><a class="btn" href="#/pre/${cur.id}">← 사전점검</a><span class="grow"></span><a class="btn primary" href="#/r/${cur.id}">결과·보고서 →</a></div>`);
+  }
+  /* 지출 표본 점검(예산 집행기준 대조) */
+  function ledgerPanel() {
+    const defs = E.ledgerDefs(cur.type), L = CFG.ledger, sm = E.ledgerSummary(cur), lk = locked() ? 'disabled' : '';
+    const rows = (cur.ledger || []).map((r, i) => {
+      const d = defs.find(x => x.k === r.k), fs = sm.fs.filter(f => f.row === i), pf = r.proofs || {}, fl = r.flags || {};
+      const num = (f, l, u) => `<label class="fi"><span>${esc(l)}${u ? ` <small>(${u})</small>` : ''}</span><input type="text" inputmode="numeric" data-lg="${i}" data-lf="${f}" value="${esc(r[f] ?? '')}" ${lk}></label>`;
+      const ck = (grp, k, l) => `<label class="ck"><input type="checkbox" data-lgc="${i}" data-lt="${grp}" data-lk="${k}" ${(grp === 'flags' ? fl : pf)[k] ? 'checked' : ''} ${lk}><span>${esc(l)}</span></label>`;
+      const amt = (E.num(r.unit) || 0) * (E.num(r.qty) || 0);
+      let body = '';
+      if (d) {
+        body += `${d.dist ? `<div class="fi"><span>왕복 이동거리</span><div class="seg">${['30㎞ 미만', '30㎞ 이상', '농가 수송'].map(o => `<button data-act="lgSeg" data-i="${i}" data-v="${o}" aria-pressed="${r.dist === o}" ${lk}>${o}</button>`).join('')}</div></div>` : ''}
+          <div class="fgrid">${num('unit', d.unitL, '원')}${num('qty', d.qtyL)}${d.days ? num('days', d.days, '일') : ''}${d.dayTotal ? num('dayTotal', d.dayTotal, '원') : ''}</div>
+          <div class="lgck"><b class="sm">증빙 확인</b>${L.common.map(n => ck('proofs', n.k, n.l)).join('')}${(d.need || []).map(n => ck('proofs', n.k, n.l)).join('')}</div>
+          <div class="lgck"><b class="sm">해당 사항 <small>(맞으면 체크)</small></b>${(d.flags || []).map(f => ck('flags', f.k, f.l) + (f.need && fl[f.k] ? `<div class="lgsub">${f.need.map(n => ck('proofs', n.k, n.l)).join('')}</div>` : '')).join('')}</div>
+          <div class="sm muted" id="lgamt-${i}">${amt ? `표본 금액 ${E.won(amt)}원` : ''}</div>
+          <div class="lgres" id="lgres-${i}">${lgRes(r, fs)}</div>`;
+      }
+      return `<div id="lgrow-${i}" class="lgrow ${fs.some(f => f.kind === 'violation') ? 'bad' : fs.length ? 'ver' : ''}">
+        <div class="lgh"><b>표본 ${i + 1}</b><select data-lg="${i}" data-lf="k" aria-label="비목" ${lk}><option value="">비목 선택</option>${defs.map(x => `<option value="${x.k}" ${r.k === x.k ? 'selected' : ''}>${esc(x.l)}</option>`).join('')}</select>${lk ? '' : `<button class="btn sm danger" data-act="lgDel" data-i="${i}">삭제</button>`}</div>${body}</div>`;
+    }).join('');
+    return `<section class="panel ledger" id="ledger"><div class="lbl">지출 표본 점검 <small>시행지침 사업비 집행기준 자동 대조</small></div>
+      <div class="hint">e나라도움 집행내역·지급대장에서 표본을 골라 단가·수량과 증빙을 입력합니다. 교통비·숙박비·간식비·교육비·작업반장 수당 상한, 숙박비 지급 조건, 중요자산(50만원 이상) 구입, 간담회·임차 증빙, 중복 지급, 증빙 누락을 자동으로 확인해 관련 점검 항목에 연결합니다. 표본 수는 시행지침에 정해진 기준이 없어 점검자가 정합니다.</div>
+      <div id="lgsum">${lgSum(sm)}</div>
+      ${rows}${lk ? '' : '<button class="btn" data-act="lgAdd">+ 지출 표본 추가</button>'}</section>`;
+  }
+  const lgSum = sm => sm.n ? `<div class="lgsum"><span>표본 <b>${sm.n}</b>건 · ${E.won(sm.amt)}원</span><span class="neg">기준 위반 <b>${sm.bad}</b>건</span><span class="neg">초과·부적정 지급 추정 <b>${E.won(sm.over)}</b>원</span><span class="unv">확인 필요 <b>${sm.verify}</b>건</span></div>` : '';
+  const lgRes = (r, fs) => fs.length ? fs.map(f => `<div class="${f.kind === 'verify' ? 'unv' : 'neg'}"><span class="vk ${f.kind === 'verify' ? 'unv' : 'neg'}">${f.kind === 'verify' ? '확인 필요' : '기준 위반'}</span>${esc(f.msg)} <small>→ ${esc(f.item.id)} · ${esc(f.ref)}</small></div>`).join('')
+    : (E.num(r.unit) != null ? '<div class="okc">시행지침 집행기준과 대조한 결과 이상 없음</div>' : '<div class="sm muted">단가·수량을 넣으면 자동 대조합니다</div>');
+  // 숫자 입력 중에는 입력칸은 그대로 두고 결과·합계·관련 항목만 갱신(터치 끊김 방지)
+  let lgTimer = null;
+  function refreshLedger() {
+    clearTimeout(lgTimer); lgTimer = setTimeout(() => {
+      const sm = E.ledgerSummary(cur);
+      (cur.ledger || []).forEach((r, i) => { const fs = sm.fs.filter(f => f.row === i), el = document.getElementById('lgres-' + i), row = document.getElementById('lgrow-' + i), am = document.getElementById('lgamt-' + i);
+        if (el) el.innerHTML = lgRes(r, fs); if (row) { row.classList.toggle('bad', fs.some(f => f.kind === 'violation')); row.classList.toggle('ver', fs.length > 0 && !fs.some(f => f.kind === 'violation')); }
+        if (am) { const a = (E.num(r.unit) || 0) * (E.num(r.qty) || 0); am.textContent = a ? `표본 금액 ${E.won(a)}원` : ''; } });
+      const s = document.getElementById('lgsum'); if (s) s.innerHTML = lgSum(sm);
+      E.items(cur.type).filter(i => i.ledger).forEach(i => { const a = (cur.answers || {})[i.id]; if (a && a.status === 'N') autoNoteSet(i, a); redrawItem(i.id); });
+    }, 300);
+  }
+  function redrawLedger() {
+    const el = $('#ledger'); if (el && el.isConnected) { const tmp = document.createElement('div'); tmp.innerHTML = ledgerPanel(); el.replaceWith(tmp.firstElementChild); }
+    E.items(cur.type).filter(i => i.ledger).forEach(i => { const a = (cur.answers || {})[i.id]; if (a && a.status === 'N') autoNoteSet(i, a); redrawItem(i.id); });
   }
   function chkInput(it, c, a) {
     const v = (a.checks || {})[c.k];
@@ -256,15 +305,16 @@
     let body = '';
     if (it.checks) body += `<div class="fgrid">${it.checks.map(c => chkInput(it, c, a)).join('')}</div>`;
     if (it.dorm) body += `<details class="panel sm-panel"><summary>숙소 참고 점검표 11개 항목 (부적합만 표시)</summary>${CFG.dormChecklist.map((t, i) => `<div class="docrow"><div>${i + 1}. ${esc(t)}</div>${i === 1 ? `<div class="seg">${['아파트', '단독', '다세대', '마을회관', '기타'].map(o => `<button data-act="dorm" data-item="${it.id}" data-i="1" data-v="${o}" aria-pressed="${(a.dorm || {})[1] === o}" ${locked() ? 'disabled' : ''}>${o}</button>`).join('')}</div>` : `<div class="seg">${['적합', '부적합'].map(o => `<button data-act="dorm" data-item="${it.id}" data-i="${i}" data-v="${o}" aria-pressed="${(a.dorm || {})[i] === o}" ${locked() ? 'disabled' : ''}>${o}</button>`).join('')}</div>`}</div>`).join('')}</details>`;
+    if (it.ledger && !(cur.ledger || []).length) body += `<div class="hint">이 분야 맨 위 '지출 표본 점검'에 표본을 넣으면 시행지침 집행기준과 자동 대조한 결과가 여기에 연결됩니다.</div>`;
     if (rf.length) body += `<div class="autochk">${warnList(rf)}</div>`;
     if (st === 'N') {
       const gaps = E.deficiencyGaps(a);
       body += `<div class="rs"><div class="rsh">미흡 사유 <small>복수 선택 · 운영 참고 분류(법령 위반 판정 아님)</small></div>
         ${E.reasons(it).map(r => `<label class="ck"><input type="checkbox" data-reason="${it.id}" value="${r.c}" ${(a.reasons || []).includes(r.c) ? 'checked' : ''} ${locked() ? 'disabled' : ''}><span>${esc(r.l)}</span></label>`).join('')}
         ${(a.reasons || []).includes('ETC') ? `<label class="fi"><span>기타 사유 <em class="reqtag">필수</em></span><input type="text" data-ans="etc" data-item="${it.id}" value="${esc(a.etc || '')}" maxlength="200" ${locked() ? 'disabled' : ''}><span class="pii" hidden></span></label>` : ''}
-        <label class="fi"><span>현장 확인 내용 <em class="reqtag">필수</em> <small>${PII_NOTE}</small></span><textarea rows="2" data-ans="note" data-item="${it.id}" maxlength="600" ${locked() ? 'disabled' : ''}>${esc(a.note || '')}</textarea><span class="pii" hidden></span></label>
+        <label class="fi"><span>현장 확인 내용 <em class="reqtag">필수</em> <small>확인된 수치·지출 표본·사유로 자동 작성 · 수정 가능 · ${PII_NOTE}</small></span><textarea rows="${Math.min(8, Math.max(2, (a.note || '').split('\n').length + 1))}" data-ans="note" data-item="${it.id}" maxlength="600" ${locked() ? 'disabled' : ''}>${esc(a.note || '')}</textarea><span class="pii" hidden></span></label>
         <label class="fi"><span>시정 권고 <small>선택한 사유로 자동 작성 · 수정 가능</small></span><textarea rows="3" data-ans="rec" data-item="${it.id}" maxlength="800" ${locked() ? 'disabled' : ''}>${esc(a.rec || '')}</textarea><span class="pii" hidden></span></label>
-        ${locked() ? '' : `<button class="btn sm" data-act="regen" data-item="${it.id}">권고 문안 다시 만들기</button>`}
+        ${locked() ? '' : `<button class="btn sm" data-act="regen" data-item="${it.id}">확인 내용·권고 다시 만들기</button>`}
         <div class="sm ${gaps.length ? 'neg' : 'okc'}">${gaps.length ? '작성 필요: ' + gaps.join(', ') : '미흡 상세 작성 완료'}${it.fu ? ` · 후속 조치: ${esc(it.fu)}` : ''}</div></div>`;
     } else if (st === 'U') {
       body += `<label class="fi"><span>추가로 확인할 내용 <small>${PII_NOTE}</small></span><textarea rows="2" data-ans="note" data-item="${it.id}" maxlength="400" ${locked() ? 'disabled' : ''}>${esc(a.note || '')}</textarea><span class="pii" hidden></span></label>`;
@@ -277,12 +327,19 @@
         <div class="crit-c"><b>확인 기준</b> ${esc(it.c)}</div>
         <div class="src">근거: ${esc(CFG.source.short)} ${esc(it.ref)}${it.confirm ? ` · 행정 확인 필요: ${esc(it.confirm)}` : ''}</div>
         ${docChips ? `<div class="dchips">${docChips}</div>` : ''}
-        <button class="gbtn" data-act="guide" data-item="${it.id}">기준 자세히</button></div>
-        <div class="opts">${CFG.results.map(o => `<button data-act="st" data-item="${it.id}" data-v="${o.v}" class="o-${o.v}" aria-pressed="${st === o.v}" ${locked() ? 'disabled' : ''}>${esc(o.l)}</button>`).join('')}</div></div>
+        <button class="gbtn" data-act="guide" data-item="${it.id}" aria-expanded="${gOpen.has(it.id)}">${gOpen.has(it.id) ? '기준 접기 ▴' : '기준 자세히 ▾'}</button></div>
+        <div class="opts">${CFG.results.map(o => `<button data-act="st" data-item="${it.id}" data-v="${o.v}" class="o-${o.v}" aria-pressed="${st === o.v}" ${locked() ? 'disabled' : ''}>${esc(o.l)}</button>`).join('')}</div>
+        ${gOpen.has(it.id) ? `<div class="gin">${guideHTML(it, cur.type)}</div>` : ''}</div>
       ${body}</article>`;
   }
+  // 현장 확인 내용: 비어 있거나 자동 작성본 그대로일 때만 자동으로 다시 씀(직접 고친 내용은 보존)
+  function autoNoteSet(it, a) {
+    if (a.status !== 'N') return false;
+    if ((a.note || '').trim() && a.note !== a.noteAuto) return false;
+    const n = E.autoNote(cur, it, a); a.note = n; a.noteAuto = n; return true;
+  }
   function redrawItem(id) {
-    const it = Object.assign({}, E.item(cur.type, id)); const el = document.getElementById('it-' + id); if (!el) return;
+    const it = Object.assign({}, E.item(cur.type, id)); const el = document.getElementById('it-' + id); if (!el || !el.isConnected) return;
     const tmp = document.createElement('div'); tmp.innerHTML = itemCard(it); el.replaceWith(tmp.firstElementChild);
     const pr = progress(cur); const pb = $('#pbar'), pt = $('#ptext'); if (pb) pb.style.width = Math.round(pr.done / pr.total * 100) + '%'; if (pt) pt.textContent = `${pr.done}/${pr.total}`;
   }
@@ -481,17 +538,33 @@
 
   /* ---------------- 사전제출 엑셀 적용 ---------------- */
   const PRE_NUM = /^(staff|support|bud_|farms|match|alloc|intro|escape|ended|current|p_|e_|pool_|teams|team_people|interp_n)/;
-  async function applyXlsx(file) {
-    let kv; try { kv = await CI.xlsx.readKV(file); } catch (e) { toast(e.message || '엑셀을 읽지 못했습니다'); return; }
-    const t = kv.type === '공공형' ? 'B' : kv.type === '농촌형' ? 'A' : null;
-    if (t && t !== cur.type) { toast(`파일의 사업유형(${kv.type})이 이 점검 유형과 다릅니다`); return; }
-    let n = 0; cur.pre = cur.pre || {};
-    Object.entries(kv).forEach(([k, v]) => {
-      if (['code', 'type', 'sub', 'op'].includes(k)) return;
-      if (PRE_NUM.test(k)) { const x = num(String(v).replace(/,/g, '')); if (x != null) { cur.pre[k] = x; n++; } }
-      else if (['hire', 'period', 'base', 'trend', 'wtrend', 'why', 'interp'].includes(k)) { if (piiHits(v).length) return; cur.pre[k] = v; n++; }
-    });
-    queueSave(); toast(`사전제출 자료 ${n}개 항목을 불러왔습니다`); viewPre(cur.id);
+  const FMT = { hwp: '한글(.hwp)', hwpx: '한글(.hwpx)', pdf: 'PDF', xlsx: '엑셀' };
+  const fmtDT = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}. ${d.getDate()}. ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  function preLabel(k) {
+    const t = cur.type, all = [...PRE_FIELDS.center(t), ...PRE_FIELDS.progress(t), ...PRE_FIELDS.ops(t)];
+    const f = all.find(x => x[0] === k); if (f) return f[1] + (f[2] ? ` (${f[2]})` : '');
+    const b = E.BROWS.find(x => 'p_' + x[0] === k || 'e_' + x[0] === k); if (b) return `${b[1]} ${b[2]} ${k[0] === 'p' ? '예산계획' : '집행실적'} (천원)`;
+    return { hire: '채용형태', why: '집행부진 사유', trend: '수급 동향', wtrend: '인건비 동향', interp: '통역지원자' }[k] || k;
+  }
+  let pendingPre = null;
+  async function readPreFile(file) {
+    toast('파일을 읽는 중입니다…');
+    let r; try { r = await CI.docread.read(file); } catch (e) { toast(e.message || '파일을 읽지 못했습니다'); return; }
+    let vals = {}, ftype = null;
+    if (r.kv) { ftype = r.kv.type === '공공형' ? 'B' : r.kv.type === '농촌형' ? 'A' : null;
+      Object.entries(r.kv).forEach(([k, v]) => { if (PRE_NUM.test(k)) { const x = num(String(v).replace(/,/g, '')); if (x != null) vals[k] = x; } else if (['hire', 'period', 'base', 'trend', 'wtrend', 'why', 'interp'].includes(k)) vals[k] = v; }); }
+    else { const p = CI.docread.parse(r.text, cur.type); vals = p.vals; ftype = p.type; }
+    if (ftype && ftype !== cur.type) { toast(`파일이 ${ftype === 'A' ? '농촌형' : '공공형'} 점검표입니다. 이 점검(${typeName(cur.type)})과 유형이 다릅니다`); return; }
+    const dropped = []; Object.keys(vals).forEach(k => { if (typeof vals[k] === 'string' && piiHits(vals[k]).length) { dropped.push(preLabel(k)); delete vals[k]; } });
+    const keys = Object.keys(vals);
+    if (!keys.length) { toast('점검표에서 읽은 값이 없습니다. 붙임 2·3 양식인지 확인하거나 직접 입력하세요'); return; }
+    pendingPre = { fmt: r.fmt, vals };
+    const pre = cur.pre || {};
+    $('#sheet').innerHTML = `<div class="sheetbg" data-act="closeSheet"></div><div class="sheetbox" role="dialog" aria-modal="true" aria-label="불러온 값 확인"><div class="shh"><b>${esc(FMT[r.fmt])} 파일에서 읽은 값 ${keys.length}개</b><button class="x" data-act="closeSheet">닫기</button></div>
+      <div class="shb"><div class="hint">원본과 맞는지 확인한 뒤 적용하세요. 이미 입력된 값은 바뀝니다(파란 표시).</div>
+      <div class="tw"><table class="tb"><tr><th class="l">항목</th><th>읽은 값</th><th>현재 값</th></tr>${keys.map(k => `<tr><td class="l">${esc(preLabel(k))}</td><td><b>${esc(typeof vals[k] === 'number' ? E.won(vals[k]) : vals[k])}</b></td><td class="${pre[k] != null && pre[k] !== '' && pre[k] !== vals[k] ? 'chg' : 'muted'}">${esc(pre[k] == null || pre[k] === '' ? '-' : typeof pre[k] === 'number' ? E.won(pre[k]) : pre[k])}</td></tr>`).join('')}</table></div>
+      ${dropped.length ? `<div class="alert warn">개인정보로 보이는 형식이 있어 읽지 않은 칸: ${esc(dropped.join(', '))}</div>` : ''}
+      <div class="row" style="margin-top:12px"><button class="btn" data-act="closeSheet">취소</button><span class="grow"></span><button class="btn primary" data-act="preApply">적용</button></div></div></div>`;
   }
 
   /* ---------------- 이벤트 ---------------- */
@@ -523,13 +596,20 @@
     if (act === 'doc') { cur.docs = cur.docs || {}; cur.docs[b.dataset.doc] = cur.docs[b.dataset.doc] === b.dataset.v ? '' : b.dataset.v; queueSave(); return viewPreKeep(); }
     if (act === 'preSeg') { cur.pre = cur.pre || {}; cur.pre[b.dataset.k] = cur.pre[b.dataset.k] === b.dataset.v ? '' : b.dataset.v; queueSave(); return viewPreKeep(); }
     if (act === 'st') { const a = ans(b.dataset.item); a.status = a.status === b.dataset.v ? '' : b.dataset.v;
-      if (a.status === 'N' && !a.rec) a.rec = E.autoRec(E.item(cur.type, b.dataset.item), a);
+      if (a.status === 'N') { const it = E.item(cur.type, b.dataset.item); if (!(a.reasons || []).length) a.reasons = E.autoReasons(cur, it); if (!a.rec || !a.recEdited) a.rec = E.autoRec(it, a); autoNoteSet(it, a); }
       queueSave(); redrawItem(b.dataset.item); return; }
+    if (act === 'preApply' && pendingPre) { cur.pre = cur.pre || {}; Object.assign(cur.pre, pendingPre.vals); cur.imports = cur.imports || []; cur.imports.push({ fmt: pendingPre.fmt, at: new Date().toISOString(), vals: pendingPre.vals });
+      const n = Object.keys(pendingPre.vals).length; pendingPre = null; $('#sheet').innerHTML = ''; queueSave(); toast(`${n}개 항목을 채웠습니다`); return viewPre(cur.id); }
+    if (act === 'impDel') { const m = cur.imports[+b.dataset.i]; let n = 0; Object.entries(m.vals || {}).forEach(([k, v]) => { if (cur.pre[k] === v) { delete cur.pre[k]; n++; } });
+      cur.imports.splice(+b.dataset.i, 1); queueSave(); toast(`불러온 값 ${n}개를 지웠습니다`); return viewPre(cur.id); }
+    if (act === 'lgAdd') { cur.ledger = cur.ledger || []; cur.ledger.push({ k: '', proofs: {}, flags: {} }); queueSave(); return redrawLedger(); }
+    if (act === 'lgDel') { cur.ledger.splice(+b.dataset.i, 1); queueSave(); return redrawLedger(); }
+    if (act === 'lgSeg') { const r = cur.ledger[+b.dataset.i]; r.dist = r.dist === b.dataset.v ? '' : b.dataset.v; queueSave(); return redrawLedger(); }
     if (act === 'chkSeg') { const a = ans(b.dataset.item); a.checks = a.checks || {}; a.checks[b.dataset.k] = a.checks[b.dataset.k] === b.dataset.v ? '' : b.dataset.v; queueSave(); redrawItem(b.dataset.item); return; }
     if (act === 'dorm') { const a = ans(b.dataset.item); a.dorm = a.dorm || {}; a.dorm[b.dataset.i] = a.dorm[b.dataset.i] === b.dataset.v ? '' : b.dataset.v; queueSave(); redrawItem(b.dataset.item); return; }
-    if (act === 'regen') { const a = ans(b.dataset.item); a.rec = E.autoRec(E.item(cur.type, b.dataset.item), a); a.recEdited = false; queueSave(); redrawItem(b.dataset.item); return; }
+    if (act === 'regen') { const a = ans(b.dataset.item), it = E.item(cur.type, b.dataset.item); a.rec = E.autoRec(it, a); a.recEdited = false; a.note = ''; autoNoteSet(it, a); queueSave(); redrawItem(b.dataset.item); return; }
     if (act === 'allC') { const cat = E.type(cur.type).categories.find(c => c.id === b.dataset.cat); let n = 0; cat.items.forEach(it => { const a = ans(it.id); if (!a.status) { a.status = 'C'; n++; redrawItem(it.id); } }); queueSave(); toast(n ? `${n}개 항목을 적정으로 표시했습니다` : '미응답 항목이 없습니다'); return; }
-    if (act === 'guide') return openGuide(b.dataset.item);
+    if (act === 'guide') { if (!cur) return openGuide(b.dataset.item); const id = b.dataset.item; gOpen.has(id) ? gOpen.delete(id) : gOpen.add(id); return redrawItem(id); }
     if (act === 'grade') { cur.form = cur.form || {}; cur.form[b.dataset.k] = cur.form[b.dataset.k] === b.dataset.v ? '' : b.dataset.v; queueSave(); b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === cur.form[b.dataset.k]))); return; }
     if (act === 'opDraft') { cur.opinion = E.opinionDraft(cur); queueSave(); const t = document.querySelector('[data-op]'); if (t) t.value = cur.opinion; return; }
     if (act === 'complete') {
@@ -567,10 +647,12 @@
 
   document.addEventListener('change', async e => {
     const t = e.target;
+    if (t.dataset.lgc !== undefined && cur) { const r = cur.ledger[+t.dataset.lgc]; r[t.dataset.lt] = r[t.dataset.lt] || {}; r[t.dataset.lt][t.dataset.lk] = t.checked; queueSave(); return redrawLedger(); }
+    if (t.dataset.lg !== undefined && cur) { if (t.dataset.lf !== 'k') return; const r = cur.ledger[+t.dataset.lg]; r.k = t.value; queueSave(); return redrawLedger(); }
     if (t.dataset.reason) { const it = E.item(cur.type, t.dataset.reason), a = ans(t.dataset.reason); a.reasons = a.reasons || [];
       const i = a.reasons.indexOf(t.value); t.checked ? (i < 0 && a.reasons.push(t.value)) : (i >= 0 && a.reasons.splice(i, 1));
-      if (!a.recEdited) a.rec = E.autoRec(it, a); queueSave(); redrawItem(t.dataset.reason); return; }
-    if (t.dataset.prexlsx && t.files[0]) { await applyXlsx(t.files[0]); t.value = ''; return; }
+      if (!a.recEdited) a.rec = E.autoRec(it, a); autoNoteSet(it, a); queueSave(); redrawItem(t.dataset.reason); return; }
+    if (t.dataset.prefile && t.files[0]) { const f = t.files[0]; t.value = ''; await readPreFile(f); return; }
     if (t.dataset.import && t.files[0]) { await importFile(t.files[0]); t.value = ''; return; }
     if (t.dataset.dash !== undefined) { dashF[t.dataset.dash] = t.value; return viewDash(); }
     if (t.dataset.act2 === 'dashSample') { dashF.sample = t.checked; return viewDash(); }
@@ -595,7 +677,8 @@
     if (t.dataset.pre) { cur.pre = cur.pre || {}; const k = t.dataset.pre; if (t.dataset.ptype === 'text') cur.pre[k] = t.value; else { const v = t.value.replace(/[^\d.]/g, ''); if (v !== t.value) t.value = v; cur.pre[k] = v === '' ? '' : Number(v); }
       queueSave(); const b = E.budget(cur.pre); const s = $('#budsum'); if (s && b.all[0]) s.textContent = `집행률 ${b.rate}% · 센터운영비 편성 ${b.ratio}%`; return; }
     if (t.dataset.chk) { const a = ans(t.dataset.item); a.checks = a.checks || {}; const v = t.value.replace(/[^\d.]/g, ''); if (v !== t.value) t.value = v; a.checks[t.dataset.chk] = v === '' ? '' : Number(v); queueSave(); return; }
-    if (t.dataset.ans) { const a = ans(t.dataset.item); a[t.dataset.ans] = t.value; if (t.dataset.ans === 'rec') a.recEdited = true; if (t.dataset.ans === 'etc' && !a.recEdited) { a.rec = E.autoRec(E.item(cur.type, t.dataset.item), a); const rt = document.querySelector(`[data-ans="rec"][data-item="${t.dataset.item}"]`); if (rt) rt.value = a.rec; } queueSave(); return; }
+    if (t.dataset.lg !== undefined && t.dataset.lf !== 'k') { const r = cur.ledger[+t.dataset.lg]; const v = t.value.replace(/[^\d]/g, ''); if (v !== t.value) t.value = v; r[t.dataset.lf] = v === '' ? '' : Number(v); queueSave(); refreshLedger(); return; }
+    if (t.dataset.ans) { const a = ans(t.dataset.item); a[t.dataset.ans] = t.value; if (t.dataset.ans === 'rec') a.recEdited = true; if (t.dataset.ans === 'note') a.noteAuto = null; if (t.dataset.ans === 'etc') { const it = E.item(cur.type, t.dataset.item); if (!a.recEdited) { a.rec = E.autoRec(it, a); const rt = document.querySelector(`[data-ans="rec"][data-item="${t.dataset.item}"]`); if (rt) rt.value = a.rec; } if (autoNoteSet(it, a)) { const nt = document.querySelector(`[data-ans="note"][data-item="${t.dataset.item}"]`); if (nt) nt.value = a.note; } } queueSave(); return; }
     if (t.dataset.op) { cur.opinion = t.value; queueSave(); return; }
   });
 

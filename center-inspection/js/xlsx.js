@@ -42,5 +42,5 @@ CI.xlsx = (function () {
     const kv = {}; Object.values(rows).forEach(r => { if (r.A && r.C !== undefined && String(r.C).trim() !== '') kv[String(r.A).trim()] = String(r.C).trim(); });
     return kv;
   }
-  return { readKV };
+  return { readKV, entries };
 })();

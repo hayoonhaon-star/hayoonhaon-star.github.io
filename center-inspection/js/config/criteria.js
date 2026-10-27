@@ -45,6 +45,9 @@ CI.CONFIG = {
     centerRatioSido: { v: 60, ref: 'p.9', l: '시도형은 센터운영비 60%까지 편성 가능' },
     eduUnit: { v: 20000, ref: 'p.8', l: '신규 구직자 교육비 1인 1일 20천원' },
     eduDays: { v: 3, ref: 'p.8', l: '교육비 인당 최대 3일' },
+    eduDayCap: { v: 100000, ref: 'p.8', l: '교육비 일 최대 지급 상한 100천원' },
+    lodgeDays: { v: 3, ref: 'p.8', l: '숙박비는 관외 구직자가 3일 이상 연속 참여하는 경우 지급' },
+    durable: { v: 500000, ref: 'p.10, 27', l: '중요자산(1년 이상 계속 사용·50만원 이상) 구입 불가' },
     transNear: { v: 10000, ref: 'p.8', l: '교통비 왕복 30㎞ 미만 1일 최대 10천원' },
     transFar: { v: 20000, ref: 'p.8', l: '교통비 왕복 30㎞ 이상 1일 최대 20천원(농가 직접 수송 1일 20천원)' },
     lodge: { v: 30000, ref: 'p.8', l: '숙박비 1박 최대 30천원(관외·3일 이상 연속 참여)' },
@@ -118,14 +121,41 @@ CI.CONFIG = {
   /* 공동 숙식시설 참고 점검표(점검계획 붙임 3 참고, 시행지침 p.103) */
   dormChecklist: ['부적합 주거시설 여부(비닐하우스, 컨테이너, 창고 개조 등)', '주거 시설물 종류(아파트, 단독주택, 다세대 주택, 마을회관 등)', '냉·난방 설비 유무', '온수 샤워시설 유무', '숙소 내부에 잠금장치 설치 유무', '침구류 및 식기류 비치', '화재용 소화기 및 화재감지기 설치', '숙식비 금액 과다 징수 여부', '작업장과의 거리 적정성', '관리자 유무(지방정부 단체숙소 제공 시)', '기타 편의 물품 또는 시설'],
 
+  /* 지출 표본 점검표 비목 (시행지침 사업비 편성·집행 기준)
+   *  fields: unit(단가) qty(수량) days(일수) dist(거리) dayTotal(1일 합계)
+   *  flags: 체크하면 판정에 쓰이는 사실 확인 항목   need: 갖춰야 할 증빙(체크 해제 시 '증빙 누락') */
+  ledger: {
+    common: [{ k: 'enara', l: 'e나라도움 집행 등록', ref: 'p.3' }, { k: 'voucher', l: '지출결의서·영수증(카드전표)', ref: 'p.16' }],
+    A: [
+      { k: 'PAY', l: '인건비(전담인력)', item: 'A5-01', ref: 'p.7', unitL: '월 지급액', qtyL: '개월', flags: [{ k: 'nh', l: '농협 직원 인건비를 전담인력 인건비로 집행', reason: 'PAY-NH' }] },
+      { k: 'OP', l: '운영비(사무·회의·홍보·임차 등)', item: 'A5-02', ref: 'p.7, 10', unitL: '단가(물품은 개당)', qtyL: '수량', flags: [{ k: 'cap', l: '토지·건물 구입 등 자본 지출', reason: 'OP-CAP' }, { k: 'dur', l: '1년 이상 계속 쓰는 물품', reason: 'OP-DUR', durable: true }, { k: 'rent', l: '시설·장비 임차', need: [{ k: 'quote', l: '비교견적' }], reason: 'OP-RENT' }, { k: 'meet', l: '간담회·회의비', need: [{ k: 'minutes', l: '회의록' }, { k: 'sign', l: '참여자 서명' }, { k: 'photo', l: '회의 사진' }], reason: 'OP-MEET' }, { k: 'purp', l: '사업목적과 관련성 확인 필요', reason: 'OP-PURP', verify: true }] },
+      { k: 'TRIP', l: '출장비', item: 'A5-02', ref: 'p.8', unitL: '1회 지급액', qtyL: '횟수', flags: [{ k: 'trip', l: '공무원 여비 기준과 다르게 지급', reason: 'OP-TRIP' }] },
+      { k: 'EDU', l: '신규 구직자 교육비', item: 'A5-03', ref: 'p.8', unitL: '1인 1일 지급액', qtyL: '지급 인·일 수', days: '인당 지급일수', dayTotal: '농가 1일 지급 합계', need: [{ k: 'ledger4', l: '지급대장(별지 4호)' }], needReason: 'EDUP-LEDGER', flags: [{ k: 'old', l: '농작업 참여 기록이 있는 기존 참여자에게 지급', reason: 'EDUP-TGT' }] },
+      { k: 'TRANS', l: '교통비(참여자)', item: 'A5-04', ref: 'p.8', unitL: '1인 1일 지급액', qtyL: '지급 인·일 수', dist: true, need: [{ k: 'ledger5', l: '지급대장(별지 5호)' }], needReason: 'FEE-LEDGER', flags: [{ k: 'dup', l: '같은 날 숙박비도 지급(작업 시작·종료일 제외)', reason: 'FEE-DUP' }] },
+      { k: 'LODGE', l: '숙박비(참여자)', item: 'A5-04', ref: 'p.8', unitL: '1인 1박 지급액', qtyL: '지급 인·박 수', days: '연속 참여일수', need: [{ k: 'ledger7', l: '지급대장(별지 7호)' }], needReason: 'FEE-LEDGER', flags: [{ k: 'local', l: '관내 구직자에게 지급', reason: 'FEE-LODGE' }] },
+      { k: 'SNACK', l: '간식비(참여자)', item: 'A5-04', ref: 'p.8', unitL: '1인 1일 지급액', qtyL: '지급 인·일 수', flags: [{ k: 'dup', l: '같은 날 같은 사람에게 중복 지급', reason: 'FEE-SNACK' }] },
+      { k: 'LEAD', l: '영농작업반장 수당', item: 'A5-05', ref: 'p.9', unitL: '1일 지급액', qtyL: '활동일수', need: [{ k: 'ledger6', l: '활동 기록·지급대장(별지 6호)' }], needReason: 'LEAD-LOG', flags: [{ k: 'dup', l: '같은 날 공공형 작업반장 수당도 수령', reason: 'LEAD-DUP' }] },
+      { k: 'ETC', l: '기타(보험료·모니터링·안전용품 등)', item: 'A5-02', ref: 'p.9', unitL: '단가', qtyL: '수량', flags: [{ k: 'purp', l: '사업목적과 관련성 확인 필요', reason: 'OP-PURP', verify: true }] }
+    ],
+    B: [
+      { k: 'PAY', l: '인건비(전담인력)', item: 'B4-01', ref: 'p.25', unitL: '월 지급액', qtyL: '개월', flags: [{ k: 'nh', l: '농협 직원 인건비를 전담인력 인건비로 집행', reason: 'PAY-NH' }] },
+      { k: 'OP', l: '운영비(사무·회의·홍보·임차 등)', item: 'B4-02', ref: 'p.25, 27', unitL: '단가(물품은 개당)', qtyL: '수량', flags: [{ k: 'cap', l: '토지·건물 구입 등 자본 지출', reason: 'OP-CAP' }, { k: 'dur', l: '1년 이상 계속 쓰는 물품', reason: 'OP-DUR', durable: true }, { k: 'rent', l: '시설·장비 임차', need: [{ k: 'quote', l: '비교견적' }], reason: 'OP-RENT' }, { k: 'meet', l: '간담회·회의비', need: [{ k: 'minutes', l: '회의록' }, { k: 'sign', l: '참여자 서명' }, { k: 'photo', l: '회의 사진' }], reason: 'OP-MEET' }, { k: 'purp', l: '사업목적과 관련성 확인 필요', reason: 'OP-PURP', verify: true }] },
+      { k: 'MOVE', l: '운송비(차량 임차·유류비)', item: 'B4-03', ref: 'p.25', unitL: '단가', qtyL: '수량', flags: [{ k: 'farmcar', l: '농가가 제공한 교통편에 지원', reason: 'MG-FARMCAR' }] },
+      { k: 'STAY', l: '관리·체류지원비(숙식비 일부·기자재 임차 등)', item: 'B4-03', ref: 'p.26', unitL: '단가', qtyL: '수량', flags: [{ k: 'equip', l: '공동숙소 기자재 임차', need: [{ k: 'lack', l: '기자재 부족 확인' }, { k: 'inperiod', l: '운영기간 내 임차' }], reason: 'MG-EQUIP' }] },
+      { k: 'LEAD', l: '영농작업반장 수당', item: 'B4-04', ref: 'p.26', unitL: '1일 지급액', qtyL: '활동일수', flags: [{ k: 'dup', l: '같은 날 농촌형 작업반장 수당도 수령', reason: 'LEAD-DUP' }] },
+      { k: 'ETC', l: '기타(보험료·모니터링·안전용품 등)', item: 'B4-02', ref: 'p.26', unitL: '단가', qtyL: '수량', flags: [{ k: 'purp', l: '사업목적과 관련성 확인 필요', reason: 'OP-PURP', verify: true }] }
+    ],
+    proofItem: { A: ['A5-07', 'KEEP-MISS'], B: ['B4-02', 'OP-PROOF'] }
+  },
+
   /* 자동 검증 규칙 설명 (판정 로직은 engine.js, 기준값은 위 std) */
   rules: {
     STAFF:   { l: '전담인력·지원인력 요건', std: ['staffMin', 'supportMin'], kind: 'violation', act: '전담인력·지원인력 배치 현황 확인 및 보완 요청' },
-    TEAM:    { l: '영농작업반 최소 인원', std: ['teamMin'], kind: 'violation', act: '작업반 편성 현황 확인 및 인원 보완 요청' },
-    POSTS:   { l: '플랫폼 구인공고 게시 횟수', std: ['postsMin'], kind: 'violation', act: '월별 공고 게시 이력 확인 및 게시 계획 보완 요청' },
+    TEAM:    { l: '영농작업반 최소 인원', std: ['teamMin'], kind: 'violation', reason: 'TEAM-MIN', act: '작업반 편성 현황 확인 및 인원 보완 요청' },
+    POSTS:   { l: '플랫폼 구인공고 게시 횟수', std: ['postsMin'], kind: 'violation', reason: 'POST-FEW', act: '월별 공고 게시 이력 확인 및 게시 계획 보완 요청' },
     SAMPLE:  { l: '플랫폼 기록과 중개실적 일치', std: [], ref: 'p.6', kind: 'violation', act: '불일치 건 원인 확인 및 플랫폼 기록 정정 요청' },
-    RATIO:   { l: '센터운영비 편성비율', std: ['centerRatio', 'centerRatioSido'], kind: 'violation', act: '편성 내역과 변경 승인 여부 확인' },
-    MATCH:   { l: '국비·지방비 매칭', std: [], ref: 'p.2', kind: 'verify', act: '지방비 확보 현황 확인(지방비 추가 수립 가능)' },
+    RATIO:   { l: '센터운영비 편성비율', std: ['centerRatio', 'centerRatioSido'], kind: 'violation', reason: 'BUD-RATIO', act: '편성 내역과 변경 승인 여부 확인' },
+    MATCH:   { l: '국비·지방비 매칭', std: [], ref: 'p.2', kind: 'verify', reason: 'BUD-MATCH', act: '지방비 확보 현황 확인(지방비 추가 수립 가능)' },
     EDU:     { l: '신규 구직자 교육비 단가·일수', std: ['eduUnit', 'eduDays'], kind: 'violation', act: '초과 지급 건 확인 및 환수 여부 검토' },
     TRANS:   { l: '교통비 상한', std: ['transNear', 'transFar'], kind: 'violation', act: '초과 지급 건 확인 및 환수 여부 검토' },
     LODGE:   { l: '숙박비 상한', std: ['lodge'], kind: 'violation', act: '초과 지급 건 확인 및 환수 여부 검토' },
@@ -134,6 +164,8 @@ CI.CONFIG = {
     PUBRATE: { l: '공공형 집행률', std: ['pubRate30', 'pubRate50'], kind: 'verify', act: '집행계획·부진 사유 확인(최종 판단 시점은 차년도 사업신청 시)' },
     WAGE:    { l: '최저임금', std: ['wage'], kind: 'violation', act: '임금 차액 지급 여부 확인 및 관계기관 통보 검토' },
     ECON:    { l: '경제사업장 노동 비율', std: ['econ'], kind: 'violation', act: '노동자별 근무기록 확인 및 배치 조정 요청' },
+    BUDOVER: { l: '세부항목 편성액 초과 집행', std: [], ref: 'p.9, 26', kind: 'verify', reason: 'BUD-CHG', act: '예산 변경 사전승인 문서 확인(목 간: 시·도, 목 내 세부항목 간: 시·군)' },
+    LEDGER:  { l: '지출 표본 점검(시행지침 집행기준 대조)', std: ['eduUnit', 'eduDays', 'eduDayCap', 'transNear', 'transFar', 'lodge', 'lodgeDays', 'snack', 'lead', 'durable'], kind: 'violation', act: '해당 지출 증빙 확인 및 초과·부적정 집행액 환수 여부 검토' },
     LEADPER: { l: '작업반장 배치 비율', std: ['leadPer'], kind: 'verify', act: '작업반장 추가 배치 검토 요청(권장 사항)' },
     FEE:     { l: '숙식비 징수 상한', std: ['feeAll', 'feeRoom'], kind: 'violation', act: '초과 징수분 확인 및 반환 요청' },
     ROOM:    { l: '침실 1인당 면적', std: ['room'], kind: 'violation', act: '숙소 배정 인원 조정 요청' },
@@ -308,14 +340,14 @@ CI.CONFIG = {
             ], fu: '이수 확인 자료 제출' }
         ] },
         { id: 'A5', name: '예산 집행 및 회계', items: [
-          { id: 'A5-01', t: '센터운영비 인건비', form: 'fund', docs: ['D-ENARA', 'D-CONTRACT'], ref: 'p.7',
+          { id: 'A5-01', t: '센터운영비 인건비', form: 'fund', docs: ['D-ENARA', 'D-CONTRACT'], ref: 'p.7', rules: ['LEDGER'], ledger: true,
             q: '센터 전담인력 인건비와 인건비성 경비 집행이 적정한지 확인',
             c: '센터 전담인력 인건비 및 인건비성 경비(연가보상비, 초과·기타 수당) 집행. 농협이 운영하는 경우 농협 직원 인건비는 전담인력 인건비로 집행 불가',
             reasons: [
               { c: 'PAY-NH', l: '농협 직원 인건비를 전담인력 인건비로 집행', r: '부적정 집행액 확인 및 환수 여부 검토' },
               { c: 'PAY-DOC', l: '급여 지급 증빙 미비', r: '급여 지급 증빙 보완' }
             ], fu: '집행 내역 정정 결과 제출' },
-          { id: 'A5-02', t: '운영비 집행(자본지출·내구성물품·증빙)', form: 'fund', docs: ['D-PROOF'], ref: 'p.7~8, 10',
+          { id: 'A5-02', t: '운영비 집행(자본지출·내구성물품·증빙)', form: 'fund', docs: ['D-PROOF'], ref: 'p.7~8, 10', rules: ['LEDGER'], ledger: true,
             q: '운영비가 경상경비 범위에서 집행되고 증빙을 갖췄는지 확인',
             c: '토지·건물 등 자본지출 불가, 중요자산(1년 이상 사용·50만원 이상) 구입 불가, 시설·장비 임차는 비교견적·사업기간 내, 간담회는 회의록·참여자 서명·사진 증빙, 출장비는 공무원 여비 기준',
             reasons: [
@@ -323,22 +355,21 @@ CI.CONFIG = {
               { c: 'OP-DUR', l: '중요자산(내구성물품) 구입', r: '구입 내역 확인 및 집행 정정' },
               { c: 'OP-RENT', l: '임차 비교견적 미비', r: '임차 비교견적 등 계약 근거 보완' },
               { c: 'OP-MEET', l: '간담회 증빙 미비', r: '간담회 회의록·참여자 서명·사진 보완' },
-              { c: 'OP-TRIP', l: '출장비 여비 기준 미준수', r: '출장비 지급 내역 재검토 및 정정' }
+              { c: 'OP-TRIP', l: '출장비 여비 기준 미준수', r: '출장비 지급 내역 재검토 및 정정' },
+              { c: 'OP-PURP', l: '사업목적 외 집행 의심', r: '집행 목적 소명 및 부적정 집행액 환수 여부 검토' }
             ], fu: '증빙 보완 및 정정 결과 제출' },
-          { id: 'A5-03', t: '신규 구직자 교육비', form: 'fund', docs: ['D-PAY'], ref: 'p.8', rules: ['EDU'],
+          { id: 'A5-03', t: '신규 구직자 교육비', form: 'fund', docs: ['D-PAY'], ref: 'p.8', rules: ['LEDGER'], ledger: true,
             q: '농가가 도시·신규 구직자를 채용할 때 지급한 교육비 단가·일수·대상이 적정한지 지급대장 표본으로 확인',
             c: '구직자 1인 기준 20천원(인당 최대 3일, 일 최대 지급 상한 100천원). 센터 농작업 참여 기록이 없는 도시·신규 구직자에 한함',
-            checks: [{ k: 'eduUnit', l: '1인 1일 지급액', u: '원' }, { k: 'eduDays', l: '인당 지급일수', u: '일' }],
             reasons: [
               { c: 'EDUP-UNIT', l: '지급 단가 초과', r: '초과 지급액 확인 및 환수 여부 검토' },
               { c: 'EDUP-DAYS', l: '지급일수 초과', r: '초과 지급일수 확인 및 환수 여부 검토' },
               { c: 'EDUP-TGT', l: '지급 대상 부적정(기존 참여자)', r: '지급 대상 확인 절차 마련' },
               { c: 'EDUP-LEDGER', l: '지급대장(별지 4호) 미비', r: '현장교육비 지급대장 정리' }
             ], fu: '정정·환수 결과 제출' },
-          { id: 'A5-04', t: '농작업 참여비(교통비·숙박비·간식비)', form: 'fund', docs: ['D-PAY'], ref: 'p.8', rules: ['TRANS', 'LODGE', 'SNACK'],
+          { id: 'A5-04', t: '농작업 참여비(교통비·숙박비·간식비)', form: 'fund', docs: ['D-PAY'], ref: 'p.8', rules: ['LEDGER'], ledger: true,
             q: '참여자 교통비·숙박비·간식비 지급 기준 준수 여부를 지급대장 표본으로 확인',
             c: '교통비: 왕복 30㎞ 미만 1일 10천원, 30㎞ 이상 20천원(농가 직접 수송 시 농가에 20천원). 숙박비: 관외 구직자 3일 이상 연속 참여 시 1박 30천원, 숙박비·교통비 중복 불가(작업 시작·종료일 제외). 간식비: 1일 5천원, 중복 불가',
-            checks: [{ k: 'dist', l: '교통비 표본 거리 구간', type: 'seg', o: ['30㎞ 미만', '30㎞ 이상', '농가 수송'] }, { k: 'trans', l: '교통비 1일', u: '원' }, { k: 'lodge', l: '숙박비 1박', u: '원' }, { k: 'snack', l: '간식비 1일', u: '원' }],
             reasons: [
               { c: 'FEE-TRANS', l: '교통비 상한 초과', r: '교통비 초과 지급액 확인 및 환수 여부 검토' },
               { c: 'FEE-LODGE', l: '숙박비 지급 조건 미충족·상한 초과', r: '숙박비 지급 대상·금액 재확인 및 정정' },
@@ -346,16 +377,15 @@ CI.CONFIG = {
               { c: 'FEE-SNACK', l: '간식비 상한 초과·중복 지급', r: '간식비 지급 내역 재확인 및 정정' },
               { c: 'FEE-LEDGER', l: '지급대장(별지 5·7호) 미비', r: '교통비·숙박비 지급대장 정리' }
             ], fu: '정정·환수 결과 제출' },
-          { id: 'A5-05', t: '영농작업반장 수당', form: 'fund', docs: ['D-PAY', 'D-TEAM'], ref: 'p.9', rules: ['LEAD'],
+          { id: 'A5-05', t: '영농작업반장 수당', form: 'fund', docs: ['D-PAY', 'D-TEAM'], ref: 'p.9', rules: ['LEDGER'], ledger: true,
             q: '작업반장 수당이 활동일 기준·상한 이내로 지급되었는지 확인',
             c: '활동일 기준 1일 최대 10천원. 같은 활동일에 공공형 계절노동 작업반장 수당과 중복 지급 불가',
-            checks: [{ k: 'lead', l: '작업반장 수당 1일', u: '원' }],
             reasons: [
               { c: 'LEAD-OVER', l: '수당 상한 초과', r: '초과 지급액 확인 및 환수 여부 검토' },
               { c: 'LEAD-DUP', l: '공공형 수당과 중복 지급', r: '중복 지급 건 확인 및 환수 여부 검토' },
               { c: 'LEAD-LOG', l: '활동 기록 미비(별지 6호)', r: '작업반장 활동 기록·지급대장 정리' }
             ], fu: '정정·환수 결과 제출' },
-          { id: 'A5-06', t: '편성비율 및 예산 변경 승인', form: 'fund', docs: ['D-ENARA', 'D-CHANGE'], ref: 'p.9~10', rules: ['RATIO', 'MATCH'],
+          { id: 'A5-06', t: '편성비율 및 예산 변경 승인', form: 'fund', docs: ['D-ENARA', 'D-CHANGE'], ref: 'p.9~10', rules: ['RATIO', 'MATCH', 'BUDOVER'],
             q: '센터운영비·인력운영비 편성비율과 예산 변경 사전승인 여부 확인',
             c: '센터운영비 40%·인력운영비 60% 편성(시도형 센터운영비 60%까지). 목 간 변경은 시·도, 목 내 세부항목 간 변경은 시·군 사전승인. 국비 50%·지방비 50%(지방비 추가 수립 가능)',
             reasons: [
@@ -363,10 +393,11 @@ CI.CONFIG = {
               { c: 'BUD-CHG', l: '사전승인 없는 예산 변경', r: '예산 변경 사전승인 절차 이행' },
               { c: 'BUD-MATCH', l: '지방비 매칭 미흡', r: '지방비 확보 계획 제출' }
             ], fu: '변경 승인 문서 제출' },
-          { id: 'A5-07', t: '증빙자료 보관', form: 'fund', docs: ['D-PROOF'], ref: 'p.16',
+          { id: 'A5-07', t: '증빙자료 보관', form: 'fund', docs: ['D-PROOF'], ref: 'p.3, 16', rules: ['LEDGER'], ledger: true,
             q: '사업비 사용내역을 사용목적별로 기록·유지하는지 확인',
             c: '사업비 사용내역을 사용목적별로 5년간 기록·유지하고, 점검기관 요구 시 장부·증빙 제출',
             reasons: [
+              { c: 'KEEP-MISS', l: '지출 증빙 누락(지출결의서·영수증·e나라도움 집행 등록)', r: '누락 증빙 보완 및 e나라도움 집행 등록 확인' },
               { c: 'KEEP-ORDER', l: '증빙 미정리', r: '사용목적별 증빙 정리' },
               { c: 'KEEP-LATE', l: '증빙 제출 지연', r: '증빙 즉시 제출 체계 마련' }
             ], fu: '정리된 증빙 확인' }
@@ -515,23 +546,25 @@ CI.CONFIG = {
             ], fu: '차기 점검 시 확인' }
         ] },
         { id: 'B4', name: '예산 집행 및 회계', items: [
-          { id: 'B4-01', t: '센터운영비 인건비', form: 'fund', docs: ['D-ENARA'], ref: 'p.25',
+          { id: 'B4-01', t: '센터운영비 인건비', form: 'fund', docs: ['D-ENARA'], ref: 'p.25', rules: ['LEDGER'], ledger: true,
             q: '전담인력 인건비 집행이 적정한지 확인',
             c: '센터 전담인력 인건비 및 인건비성 경비 집행. 농협 직원 인건비는 전담인력 인건비로 집행 불가',
             reasons: [
               { c: 'PAY-NH', l: '농협 직원 인건비를 전담인력 인건비로 집행', r: '부적정 집행액 확인 및 환수 여부 검토' },
               { c: 'PAY-DOC', l: '급여 지급 증빙 미비', r: '급여 지급 증빙 보완' }
             ], fu: '정정 결과 제출' },
-          { id: 'B4-02', t: '운영비 집행(자본지출·내구성물품·증빙)', form: 'fund', docs: ['D-PROOF'], ref: 'p.25, 27',
+          { id: 'B4-02', t: '운영비 집행(자본지출·내구성물품·증빙)', form: 'fund', docs: ['D-PROOF'], ref: 'p.3, 25, 27', rules: ['LEDGER'], ledger: true,
             q: '운영비가 경상경비 범위에서 집행되고 증빙을 갖췄는지 확인',
             c: '토지·건물 등 자본지출 불가, 중요자산(1년 이상·50만원 이상) 구입 불가, 임차는 비교견적·사업기간 내, 간담회 증빙(회의록·서명·사진)',
             reasons: [
               { c: 'OP-CAP', l: '토지·건물 등 자본지출', r: '부적정 집행액 확인 및 환수 여부 검토' },
               { c: 'OP-DUR', l: '중요자산(내구성물품) 구입', r: '구입 내역 확인 및 집행 정정' },
               { c: 'OP-RENT', l: '임차 비교견적 미비', r: '임차 계약 근거 보완' },
-              { c: 'OP-MEET', l: '간담회 증빙 미비', r: '간담회 증빙 보완' }
+              { c: 'OP-MEET', l: '간담회 증빙 미비', r: '간담회 증빙 보완' },
+              { c: 'OP-PROOF', l: '지출 증빙 누락(지출결의서·영수증·e나라도움 집행 등록)', r: '누락 증빙 보완 및 e나라도움 집행 등록 확인' },
+              { c: 'OP-PURP', l: '사업목적 외 집행 의심', r: '집행 목적 소명 및 부적정 집행액 환수 여부 검토' }
             ], fu: '증빙 보완 결과 제출' },
-          { id: 'B4-03', t: '관리·체류지원비(운송·체류 관리)', form: 'fund', docs: ['D-PROOF'], ref: 'p.25~26',
+          { id: 'B4-03', t: '관리·체류지원비(운송·체류 관리)', form: 'fund', docs: ['D-PROOF'], ref: 'p.25~26', rules: ['LEDGER'], ledger: true,
             q: '운송비와 관리·체류 비용 집행이 기준에 맞는지 확인',
             c: '운송: 차량 임차료, 운영주체·지방정부 차량 유류비(농가 제공 교통편 지원 제한). 관리·체류: 사증발급인정서 대행비, 통역·숙소 관리인력 인건비, 숙식비 일부(공동숙소 기자재는 부족 시 운영기간 동안)',
             reasons: [
@@ -539,15 +572,14 @@ CI.CONFIG = {
               { c: 'MG-EQUIP', l: '공동숙소 기자재 임차 요건 미충족', r: '임차 요건 확인 및 정정' },
               { c: 'MG-DOC', l: '집행 증빙 미비', r: '집행 증빙 보완' }
             ], fu: '정정 결과 제출' },
-          { id: 'B4-04', t: '영농작업반장 수당', form: 'fund', docs: ['D-PROOF'], ref: 'p.26', rules: ['LEAD'],
+          { id: 'B4-04', t: '영농작업반장 수당', form: 'fund', docs: ['D-PROOF'], ref: 'p.26', rules: ['LEDGER'], ledger: true,
             q: '작업반장 수당이 활동일 기준·상한 이내로 지급되었는지 확인',
             c: '활동일 기준 1일 최대 10천원. 같은 활동일에 농촌인력중개센터 작업반장 수당과 중복 지급 불가',
-            checks: [{ k: 'lead', l: '작업반장 수당 1일', u: '원' }],
             reasons: [
               { c: 'LEAD-OVER', l: '수당 상한 초과', r: '초과 지급액 확인 및 환수 여부 검토' },
               { c: 'LEAD-DUP', l: '농촌형 수당과 중복 지급', r: '중복 지급 건 확인 및 환수 여부 검토' }
             ], fu: '정정 결과 제출' },
-          { id: 'B4-05', t: '편성비율 및 예산 변경 승인', form: 'fund', docs: ['D-ENARA', 'D-CHANGE'], ref: 'p.26~27', rules: ['RATIO', 'MATCH'],
+          { id: 'B4-05', t: '편성비율 및 예산 변경 승인', form: 'fund', docs: ['D-ENARA', 'D-CHANGE'], ref: 'p.26~27', rules: ['RATIO', 'MATCH', 'BUDOVER'],
             q: '센터운영비·인력운영비 편성비율과 예산 변경 사전승인 여부 확인',
             c: '센터운영비 40%·인력운영비 60% 편성. 목 간 변경 시·도, 목 내 세부항목 간 변경 시·군 사전승인. 국비 50%·지방비 50%',
             reasons: [

@@ -4,11 +4,12 @@
  * - 점검 기록은 캐시하지 않으며(IndexedDB 별도 보관) 외부 주소로 요청을 보내지 않습니다.
  * - 앱 파일을 수정해 배포할 때는 CACHE 값을 올려야 기존 기기에 새 버전이 반영됩니다.
  */
-const CACHE = 'ci-v1.0.3';
+const CACHE = 'ci-v1.1.0';
 const FILES = [
   './', './index.html', './manifest.webmanifest',
   './css/app.css', './css/print.css',
-  './js/config/criteria.js', './js/engine.js', './js/storage.js', './js/xlsx.js', './js/report.js', './js/samples.js', './js/app.js',
+  './js/config/criteria.js', './js/engine.js', './js/storage.js', './js/xlsx.js', './js/docread.js', './js/vendor/pdfjs/pdf.min.js', './js/vendor/pdfjs/pdf.worker.min.js',
+  './js/vendor/pdfjs/cmaps/Adobe-Korea1-0.bcmap', './js/vendor/pdfjs/cmaps/Adobe-Korea1-1.bcmap', './js/vendor/pdfjs/cmaps/Adobe-Korea1-2.bcmap', './js/vendor/pdfjs/cmaps/Adobe-Korea1-UCS2.bcmap', './js/vendor/pdfjs/cmaps/KSC-EUC-H.bcmap', './js/vendor/pdfjs/cmaps/KSC-EUC-V.bcmap', './js/vendor/pdfjs/cmaps/KSC-H.bcmap', './js/vendor/pdfjs/cmaps/KSC-Johab-H.bcmap', './js/vendor/pdfjs/cmaps/KSC-Johab-V.bcmap', './js/vendor/pdfjs/cmaps/KSC-V.bcmap', './js/vendor/pdfjs/cmaps/KSCms-UHC-H.bcmap', './js/vendor/pdfjs/cmaps/KSCms-UHC-HW-H.bcmap', './js/vendor/pdfjs/cmaps/KSCms-UHC-HW-V.bcmap', './js/vendor/pdfjs/cmaps/KSCms-UHC-V.bcmap', './js/vendor/pdfjs/cmaps/KSCpc-EUC-H.bcmap', './js/vendor/pdfjs/cmaps/KSCpc-EUC-V.bcmap', './js/vendor/pdfjs/cmaps/UniKS-UCS2-H.bcmap', './js/vendor/pdfjs/cmaps/UniKS-UCS2-V.bcmap', './js/vendor/pdfjs/cmaps/UniKS-UTF16-H.bcmap', './js/vendor/pdfjs/cmaps/UniKS-UTF16-V.bcmap', './js/vendor/pdfjs/cmaps/UniKS-UTF32-H.bcmap', './js/vendor/pdfjs/cmaps/UniKS-UTF32-V.bcmap', './js/vendor/pdfjs/cmaps/UniKS-UTF8-H.bcmap', './js/vendor/pdfjs/cmaps/UniKS-UTF8-V.bcmap', './js/report.js', './js/samples.js', './js/app.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'
 ];
 self.addEventListener('install', e => {

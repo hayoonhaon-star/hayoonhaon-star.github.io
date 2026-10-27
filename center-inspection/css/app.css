@@ -225,3 +225,16 @@ textarea{resize:vertical;line-height:1.5}
 .demogrid a{display:block;background:#fff;border:1px solid #D5DEE9;border-radius:10px;padding:10px;text-decoration:none;color:#1F3A5F}
 .demogrid a span{display:block;font-size:12px;color:#666;margin-top:3px}
 .codeprev{margin:10px 0 4px;padding:10px 12px;border-radius:10px;background:#F3F6FA;font-size:14px}.codeprev b{font-size:18px;color:#1F3A5F}
+.gin{margin-top:10px;padding:10px 12px;border-radius:10px;background:#F7F9FC;border:1px solid #DCE4EE;font-size:14px}
+.gin .gd dt{margin-top:6px}
+.ledger{border-color:#1F3A5F}
+.lgsum{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0;font-size:14px}
+.lgsum .neg b{color:#B42318}.lgsum .unv b{color:#8A5A00}
+.lgrow{border:1px solid #DCE4EE;border-radius:10px;padding:10px;margin:8px 0;background:#fff}
+.lgrow.bad{border-color:#E8A39C;background:#FFF8F7}.lgrow.ver{border-color:#E9CF8E}
+.lgh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.lgh select{flex:1;min-width:0}
+.lgck{margin-top:8px}.lgck .ck{margin:2px 0}
+.lgsub{margin-left:26px}
+.lgres{margin-top:8px;font-size:14px}.lgres>div{margin:3px 0}
+.lgres .vk{margin-right:6px}
+td.chg{color:#175CD3;font-weight:600}

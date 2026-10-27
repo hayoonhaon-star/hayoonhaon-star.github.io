@@ -2,7 +2,7 @@
  "app": "center-inspection",
  "schema": 1,
  "configVersion": "2026H2-pilot-1.0",
- "exportedAt": "2026-10-27T13:39:25.083Z",
+ "exportedAt": "2026-10-27T14:06:10.511Z",
  "count": 3,
  "records": [
   {
@@ -149,20 +149,11 @@
      "reasons": [
       "FEE-TRANS"
      ],
-     "checks": {
-      "dist": "30㎞ 미만",
-      "trans": 15000,
-      "lodge": 30000,
-      "snack": 5000
-     },
-     "note": "지급대장 표본 5건 중 2건 1일 15천원 지급(30㎞ 미만)",
+     "note": "- 표본 1(교통비(참여자)): 교통비(30㎞ 미만) 1일 15,000원 — 기준 10,000원 이하, 초과 60,000원(5,000원×12)",
      "rec": "- 교통비 초과 지급액 확인 및 환수 여부 검토"
     },
     "A5-05": {
-     "status": "C",
-     "checks": {
-      "lead": 10000
-     }
+     "status": "C"
     },
     "A5-06": {
      "status": "C"
@@ -206,12 +197,59 @@
    "opinion": "○ 점검 결과 전체 29개 항목 중 적정 23건, 미흡 3건, 확인필요 1건, 해당없음 2건임.\n○ 주요 미흡 사항: 담당자 교육 이수, 영농작업반 구성·운영, 농작업 참여비 — 시정 조치 요청.",
    "prior": [],
    "sample": true,
-   "createdAt": "2026-10-27T13:39:25.080Z",
-   "updatedAt": "2026-10-27T13:39:25.080Z",
+   "createdAt": "2026-10-27T14:06:10.510Z",
+   "updatedAt": "2026-10-27T14:06:10.510Z",
    "configVersion": "2026H2-pilot-1.0",
    "region": "충남",
    "visit": "91",
-   "completedAt": "2026-10-27T13:39:25.080Z"
+   "completedAt": "2026-10-27T14:06:10.510Z",
+   "ledger": [
+    {
+     "k": "TRANS",
+     "dist": "30㎞ 미만",
+     "unit": 15000,
+     "qty": 12,
+     "proofs": {
+      "enara": true,
+      "voucher": true,
+      "ledger5": true
+     },
+     "flags": {}
+    },
+    {
+     "k": "LODGE",
+     "unit": 30000,
+     "qty": 6,
+     "days": 5,
+     "proofs": {
+      "enara": true,
+      "voucher": true,
+      "ledger7": true
+     },
+     "flags": {}
+    },
+    {
+     "k": "LEAD",
+     "unit": 10000,
+     "qty": 20,
+     "proofs": {
+      "enara": true,
+      "voucher": true,
+      "ledger6": true
+     },
+     "flags": {}
+    },
+    {
+     "k": "OP",
+     "unit": 320000,
+     "qty": 1,
+     "proofs": {
+      "enara": true,
+      "voucher": true
+     },
+     "flags": {}
+    }
+   ]
   },
   {
    "id": "SMP-2026H2-JN-92",
@@ -281,11 +319,47 @@
    "opinion": "",
    "prior": [],
    "sample": true,
-   "createdAt": "2026-10-27T13:39:25.080Z",
-   "updatedAt": "2026-10-27T13:39:25.080Z",
+   "createdAt": "2026-10-27T14:06:10.510Z",
+   "updatedAt": "2026-10-27T14:06:10.510Z",
    "configVersion": "2026H2-pilot-1.0",
    "region": "전남",
-   "visit": "92"
+   "visit": "92",
+   "ledger": [
+    {
+     "k": "SNACK",
+     "unit": 7000,
+     "qty": 30,
+     "proofs": {
+      "enara": true,
+      "voucher": true
+     },
+     "flags": {}
+    },
+    {
+     "k": "OP",
+     "unit": 650000,
+     "qty": 1,
+     "proofs": {
+      "enara": true
+     },
+     "flags": {
+      "dur": true
+     }
+    },
+    {
+     "k": "OP",
+     "unit": 180000,
+     "qty": 1,
+     "proofs": {
+      "enara": true,
+      "voucher": true,
+      "minutes": true
+     },
+     "flags": {
+      "meet": true
+     }
+    }
+   ]
   },
   {
    "id": "SMP-2026H2-GB-93",
@@ -442,12 +516,12 @@
    "opinion": "",
    "prior": [],
    "sample": true,
-   "createdAt": "2026-10-27T13:39:25.080Z",
-   "updatedAt": "2026-10-27T13:39:25.080Z",
+   "createdAt": "2026-10-27T14:06:10.510Z",
+   "updatedAt": "2026-10-27T14:06:10.510Z",
    "configVersion": "2026H2-pilot-1.0",
    "region": "경북",
    "visit": "93",
-   "completedAt": "2026-10-27T13:39:25.080Z"
+   "completedAt": "2026-10-27T14:06:10.510Z"
   }
  ]
 }

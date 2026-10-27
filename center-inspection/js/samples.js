@@ -22,15 +22,26 @@ CI.samples = function () {
       'A2-01': C, 'A2-02': { status: 'N', reasons: ['TEAM-MIN'], note: '6개 반 15명 편성, 2명 편성 반 3개', rec: '- 영농작업반 편성 인원 보완(작업반장 포함 3명 이상)' }, 'A2-03': C, 'A2-04': { status: 'NA' },
       'A3-01': { status: 'C', checks: { posts: 3 } }, 'A3-02': { status: 'C', checks: { smpN: 5, smpOk: 5 } }, 'A3-03': C, 'A3-04': C, 'A3-05': C, 'A3-06': C,
       'A4-01': { status: 'U', note: '교육 결과보고서 사후 제출 예정' }, 'A4-02': C, 'A4-03': C, 'A4-04': { status: 'NA' },
-      'A5-01': C, 'A5-02': C, 'A5-03': C, 'A5-04': { status: 'N', reasons: ['FEE-TRANS'], checks: { dist: '30㎞ 미만', trans: 15000, lodge: 30000, snack: 5000 }, note: '지급대장 표본 5건 중 2건 1일 15천원 지급(30㎞ 미만)', rec: '- 교통비 초과 지급액 확인 및 환수 여부 검토' }, 'A5-05': { status: 'C', checks: { lead: 10000 } }, 'A5-06': C, 'A5-07': C,
+      'A5-01': C, 'A5-02': C, 'A5-03': C, 'A5-04': { status: 'N', reasons: ['FEE-TRANS'], note: '- 표본 1(교통비(참여자)): 교통비(30㎞ 미만) 1일 15,000원 — 기준 10,000원 이하, 초과 60,000원(5,000원×12)', rec: '- 교통비 초과 지급액 확인 및 환수 여부 검토' }, 'A5-05': C, 'A5-06': C, 'A5-07': C,
       'A6-01': C, 'A6-02': C, 'A6-03': C
     },
     actions: { 'A1-04': { case: 'auto', status: '조치 완료', date: `${y}-11-28` }, 'A2-02': { case: 'auto', status: '조치 중' }, 'A5-04': { case: 'auto', status: '조치 전' } },
     form: { plan: '보통', fund: '보통', match: '양호', staff: '보통', will: '양호' },
+    ledger: [
+      { k: 'TRANS', dist: '30㎞ 미만', unit: 15000, qty: 12, proofs: { enara: true, voucher: true, ledger5: true }, flags: {} },
+      { k: 'LODGE', unit: 30000, qty: 6, days: 5, proofs: { enara: true, voucher: true, ledger7: true }, flags: {} },
+      { k: 'LEAD', unit: 10000, qty: 20, proofs: { enara: true, voucher: true, ledger6: true }, flags: {} },
+      { k: 'OP', unit: 320000, qty: 1, proofs: { enara: true, voucher: true }, flags: {} }
+    ],
     opinion: '○ 점검 결과 전체 29개 항목 중 적정 23건, 미흡 3건, 확인필요 1건, 해당없음 2건임.\n○ 주요 미흡 사항: 담당자 교육 이수, 영농작업반 구성·운영, 농작업 참여비 — 시정 조치 요청.'
   });
   const a2 = base(CI.engine.makeId('전남', 92, `${y}-11-17`, 1, true), 'A', { region: '전남', visit: '92', centerId: '전남-92', pre: Object.assign({}, preA, { teams: 4, team_people: 20, why: '' }),
-    answers: { 'A1-01': C, 'A1-02': C, 'A1-03': { status: 'N', reasons: ['FAC-TEL'] } } });
+    answers: { 'A1-01': C, 'A1-02': C, 'A1-03': { status: 'N', reasons: ['FAC-TEL'] } },
+    ledger: [
+      { k: 'SNACK', unit: 7000, qty: 30, proofs: { enara: true, voucher: true }, flags: {} },
+      { k: 'OP', unit: 650000, qty: 1, proofs: { enara: true }, flags: { dur: true } },
+      { k: 'OP', unit: 180000, qty: 1, proofs: { enara: true, voucher: true, minutes: true }, flags: { meet: true } }
+    ] });
   const b1 = base(CI.engine.makeId('경북', 93, `${y}-11-17`, 1, true), 'B', { region: '경북', visit: '93', centerId: '경북-93', status: 'done', completedAt: now,
     pre: { staff: 1, hire: '내부직원', bud_total: 100, bud_nat: 50, bud_loc: 50, base: '26.10.31.', farms: 58, alloc: 60, intro: 56, escape: 3, ended: 10, current: 43, match: 6120,
       p_c1: 30000, e_c1: 25000, p_c2: 6000, e_c2: 4000, p_c3: 2000, e_c3: 1200, p_c4: 2000, e_c4: 800, p_h1: 5000, e_h1: 3000, p_h3: 10000, e_h3: 6000, p_h4: 45000, e_h4: 30000, teams: 4, team_people: 47, interp: '있음', interp_n: 2 },
