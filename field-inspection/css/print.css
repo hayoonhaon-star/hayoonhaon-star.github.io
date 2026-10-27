@@ -1,0 +1,39 @@
+/* A4 보고서 — 화면 미리보기와 인쇄(PDF 저장) 공용 */
+.rp{font-family:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#111;font-size:10.5pt;line-height:1.55;max-width:182mm;margin:0 auto;position:relative}
+.rp+.rp{margin-top:16mm}
+.rp h1{font-size:15pt;text-align:center;margin:0 0 5mm;letter-spacing:-.01em}
+.rp h2{font-size:11.5pt;margin:6mm 0 2mm;padding-bottom:1mm;border-bottom:1.5px solid #1F3A5F;color:#1F3A5F}
+.rp h2 small{font-size:9pt;color:#555;font-weight:500}
+.rp h3{font-size:10.5pt;margin:5mm 0 1.5mm}
+.rp table{border-collapse:collapse;width:100%;font-size:9.5pt;font-variant-numeric:tabular-nums}
+.rp th,.rp td{border:.6pt solid #777;padding:1.4mm 2mm;text-align:center;vertical-align:middle}
+.rp th{background:#E8EEF6;font-weight:700}
+.rp .l{text-align:left} .rp .sm{font-size:8.5pt}
+.rp .meta th{width:16%} .rp .meta td{text-align:left}
+.rp .meta th small{font-weight:500;font-size:7.5pt;color:#444}
+.rp .blank{height:11mm}
+.rp .sum{margin-bottom:2mm}
+.rp td.neg{color:#B42318;font-weight:700} .rp td.unv{color:#8A5A00;font-weight:700}
+.rp .fl{margin:0;padding-left:6mm;display:grid;gap:1mm}
+.rp .fl .src{color:#666;font-size:8.5pt;margin-left:2mm}
+.rp .none{margin:0;color:#555}
+.rp .pre{white-space:pre-wrap;margin:0}
+.rp .items td:nth-child(2){font-size:9pt}
+.rp .sign{margin-top:8mm}
+.rp .sign th{width:14%} .rp .sign td{text-align:left;height:10mm} .rp .sign td.seal{width:12%;text-align:right;color:#444}
+.rp .foot{font-size:8pt;color:#444;margin:4mm 0 0}
+.rp .draftmark{position:absolute;right:0;top:-2mm;font-size:9pt;font-weight:700;color:#B42318;border:1pt solid #B42318;padding:.5mm 2mm}
+
+@page{size:A4;margin:14mm 14mm 16mm}
+@media print{
+  html,body{background:#fff!important}
+  header.top,.noprint,#toast,#sheet,.bottombar{display:none!important}
+  main.wrap{display:block;padding:0;max-width:none}
+  .paper{border:0;padding:0;overflow:visible}
+  .rp{max-width:none}
+  .rp+.rp{margin-top:0;break-before:page}
+  .rp h2{break-after:avoid}
+  .rp tr,.rp li{break-inside:avoid}
+  .rp .sign{break-inside:avoid}
+  body:not([data-view="p"]) main.wrap > *{display:none}
+}
