@@ -1,7 +1,7 @@
 /*
  * A4 보고서 생성 (report.js)
  * - 화면 안의 보고서 영역을 브라우저 인쇄 기능으로 출력하거나 PDF로 저장합니다(업로드 없음).
- * - 보고서에는 관리번호만 표시하고, 센터명·담당자·연락처·주소·점검자 성명은 빈칸으로 둡니다.
+ * - 보고서에는 점검 코드(시도-방문번호)만 표시하고, 센터명·담당자·연락처·주소·점검자 성명은 빈칸으로 둡니다.
  * 종류: sum(점검 결과 보고서) / fix(시정조치 요청서) / form(현장점검표: 점검계획 붙임 2·3)
  */
 window.CI = window.CI || {};
@@ -16,9 +16,8 @@ CI.report = (function () {
     const T = E().type(insp.type);
     return `${insp.status !== 'done' ? '<div class="draftmark">작성 중(미완료)</div>' : ''}<h1>${esc(title)}</h1>
       <table class="meta">
-        <tr><th>점검번호</th><td>${esc(insp.id)}</td><th>점검 유형</th><td>${esc(T.name)}${insp.sub ? ' · ' + esc(insp.sub) : ''}</td></tr>
-        <tr><th>센터 관리번호</th><td><b>${esc(insp.centerId)}</b></td><th>점검일</th><td>${esc(fmtDate(insp.date))}</td></tr>
-        <tr><th>점검자 관리번호</th><td>${esc(insp.inspectorId || '')}</td><th>적용 기준</th><td class="sm">${esc(C().source.title)}</td></tr>
+        <tr><th>점검 코드</th><td><b>${esc(E().code(insp))}</b> <span class="sm">${esc(E().period(insp))}</span></td><th>점검 유형</th><td>${esc(T.name)}${insp.sub ? ' · ' + esc(insp.sub) : ''}</td></tr>
+        <tr><th>점검일</th><td>${esc(fmtDate(insp.date))}</td><th>적용 기준</th><td class="sm">${esc(C().source.title)}</td></tr>
         <tr><th>센터명<br><small>(내부 수기 기재)</small></th><td colspan="3" class="blank"></td></tr>
       </table>`;
   }
@@ -56,10 +55,10 @@ CI.report = (function () {
   function fix(insp) {
     const r = E().evaluate(insp);
     const rows = r.deficiencies.map(d => { const ac = (insp.actions || {})[d.item.id] || {};
-      return `<tr><td>${esc(ac.case || '-')}</td><td class="l"><b>${esc(d.item.id)}</b> ${esc(d.item.t)}<br><span class="sm">${esc(C().source.short)} ${esc(d.item.ref)}</span></td><td class="l">${esc(d.labels.join(', '))}<br><span class="sm">${esc(d.a.note || '')}</span></td><td class="l">${pre(d.a.rec || '')}<span class="sm">후속: ${esc(d.item.fu || '')}</span></td><td>${esc(ac.status || '조치 전')}${ac.date ? '<br>' + esc(fmtDate(ac.date)) : ''}</td></tr>`; }).join('');
+      return `<tr><td class="l"><b>${esc(d.item.id)}</b> ${esc(d.item.t)}<br><span class="sm">${esc(C().source.short)} ${esc(d.item.ref)}</span></td><td class="l">${esc(d.labels.join(', '))}<br><span class="sm">${esc(d.a.note || '')}</span></td><td class="l">${pre(d.a.rec || '')}<span class="sm">후속: ${esc(d.item.fu || '')}</span></td><td>${esc(ac.status || '조치 전')}${ac.date ? '<br>' + esc(fmtDate(ac.date)) : ''}</td></tr>`; }).join('');
     return `<section class="rp">${head(insp, '시정조치 요청서')}
       <p>운영실태 점검 결과 아래 사항에 대해 시정조치를 요청하며, 조치 결과를 증빙과 함께 제출하여 주시기 바람.</p>
-      ${r.deficiencies.length ? `<table class="items"><tr><th style="width:15%">사례번호</th><th style="width:20%">점검 항목</th><th>미흡 사유·확인 내용</th><th>시정 권고·후속 조치</th><th style="width:11%">조치 상태</th></tr>${rows}</table>` : '<p class="none">시정조치 요청 사항 없음</p>'}
+      ${r.deficiencies.length ? `<table class="items"><tr><th style="width:24%">점검 항목</th><th>미흡 사유·확인 내용</th><th>시정 권고·후속 조치</th><th style="width:11%">조치 상태</th></tr>${rows}</table>` : '<p class="none">시정조치 요청 사항 없음</p>'}
       <table class="meta" style="margin-top:6mm"><tr><th>조치 기한</th><td class="blank"></td><th>제출처</th><td class="blank"></td></tr></table>
       ${sign()}
     </section>`;
@@ -74,7 +73,7 @@ CI.report = (function () {
     const g = insp.form || {};
     return `<section class="rp fm">${insp.status !== 'done' ? '<div class="draftmark">작성 중(미완료)</div>' : ''}
       <h1>농촌인력중개센터(${pub ? '공공형' : '농촌형'}) 현장점검표</h1>
-      <table><tr><th rowspan="5" style="width:9%">센터<br>현황</th><th style="width:16%">센터명</th><td colspan="3" class="l">관리번호 ${esc(insp.centerId)}</td></tr>
+      <table><tr><th rowspan="5" style="width:9%">센터<br>현황</th><th style="width:16%">센터명</th><td colspan="3" class="l">점검 코드 ${esc(E().code(insp))}</td></tr>
         <tr><th>담당자</th><td class="blank"></td><th style="width:14%">연락처</th><td class="blank"></td></tr>
         <tr><th>주 소</th><td colspan="3" class="blank"></td></tr>
         <tr><th>전담인력 수</th><td>${nf(p.staff)}명</td><th>채용형태</th><td>${esc(p.hire || '')} / 계약기간 ${esc(p.period || '')}</td></tr>

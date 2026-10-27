@@ -179,5 +179,16 @@ CI.engine = (function () {
     return lines.join('\n');
   }
 
-  return { type, items, item, reasons, resultLabel, stdText, autoRec, deficiencyGaps, itemDone, budget, BROWS, ruleFindings, validate, evaluate, reasonLabels, canComplete, formSuggest, opinionDraft, num, won };
+  /* 점검 코드: 시도 + 방문번호(점검계획 일정표 순번). 연도·반기·차수는 내부 번호에만 씀 */
+  const REGIONS = [['SU', '서울'], ['BS', '부산'], ['DG', '대구'], ['IC', '인천'], ['GJ', '광주'], ['DJ', '대전'], ['US', '울산'], ['SJ', '세종'], ['GG', '경기'], ['GW', '강원'], ['CB', '충북'], ['CN', '충남'], ['JB', '전북'], ['JN', '전남'], ['GB', '경북'], ['GN', '경남'], ['JJ', '제주']];
+  const regionKey = name => (REGIONS.find(r => r[1] === name) || [])[0];
+  const half = d => (+String(d || '').slice(5, 7) || 1) <= 6 ? 1 : 2;
+  const pad2 = v => String(v).padStart(2, '0');
+  function makeId(region, visit, date, round, sample) {
+    return `${sample ? 'SMP-' : ''}${String(date).slice(0, 4)}H${half(date)}-${regionKey(region)}-${pad2(visit)}${round > 1 ? '-' + round : ''}`;
+  }
+  const code = i => i.region ? `${i.region}-${pad2(i.visit)}${i.round > 1 ? ` (${i.round}차)` : ''}` : (i.centerId || '');
+  const period = i => `${String(i.date || '').slice(0, 4)} ${half(i.date) === 1 ? '상반기' : '하반기'}`;
+
+  return { REGIONS, regionKey, half, makeId, code, period, type, items, item, reasons, resultLabel, stdText, autoRec, deficiencyGaps, itemDone, budget, BROWS, ruleFindings, validate, evaluate, reasonLabels, canComplete, formSuggest, opinionDraft, num, won };
 })();

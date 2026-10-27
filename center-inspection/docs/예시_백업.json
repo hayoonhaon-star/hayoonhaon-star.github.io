@@ -2,18 +2,19 @@
  "app": "center-inspection",
  "schema": 1,
  "configVersion": "2026H2-pilot-1.0",
- "exportedAt": "2026-10-27T13:23:43.138Z",
+ "exportedAt": "2026-10-27T13:39:25.083Z",
  "count": 3,
  "records": [
   {
-   "id": "SMP-2026-901",
+   "id": "SMP-2026H2-CN-91",
    "schema": 1,
    "type": "A",
    "sub": "시군형",
    "op": "농협",
-   "centerId": "CENTER-901",
-   "inspectorId": "INS-901",
+   "centerId": "충남-91",
+   "inspectorId": "",
    "date": "2026-11-17",
+   "round": 1,
    "status": "done",
    "pre": {
     "staff": 1,
@@ -181,16 +182,16 @@
    },
    "actions": {
     "A1-04": {
-     "case": "CASE-2026-901-01",
+     "case": "auto",
      "status": "조치 완료",
      "date": "2026-11-28"
     },
     "A2-02": {
-     "case": "CASE-2026-901-02",
+     "case": "auto",
      "status": "조치 중"
     },
     "A5-04": {
-     "case": "CASE-2026-901-03",
+     "case": "auto",
      "status": "조치 전"
     }
    },
@@ -205,20 +206,23 @@
    "opinion": "○ 점검 결과 전체 29개 항목 중 적정 23건, 미흡 3건, 확인필요 1건, 해당없음 2건임.\n○ 주요 미흡 사항: 담당자 교육 이수, 영농작업반 구성·운영, 농작업 참여비 — 시정 조치 요청.",
    "prior": [],
    "sample": true,
-   "createdAt": "2026-10-27T13:23:43.135Z",
-   "updatedAt": "2026-10-27T13:23:43.135Z",
+   "createdAt": "2026-10-27T13:39:25.080Z",
+   "updatedAt": "2026-10-27T13:39:25.080Z",
    "configVersion": "2026H2-pilot-1.0",
-   "completedAt": "2026-10-27T13:23:43.135Z"
+   "region": "충남",
+   "visit": "91",
+   "completedAt": "2026-10-27T13:39:25.080Z"
   },
   {
-   "id": "SMP-2026-902",
+   "id": "SMP-2026H2-JN-92",
    "schema": 1,
    "type": "A",
    "sub": "시군형",
    "op": "농협",
-   "centerId": "CENTER-902",
-   "inspectorId": "INS-901",
+   "centerId": "전남-92",
+   "inspectorId": "",
    "date": "2026-11-17",
+   "round": 1,
    "status": "draft",
    "pre": {
     "staff": 1,
@@ -277,19 +281,22 @@
    "opinion": "",
    "prior": [],
    "sample": true,
-   "createdAt": "2026-10-27T13:23:43.135Z",
-   "updatedAt": "2026-10-27T13:23:43.135Z",
-   "configVersion": "2026H2-pilot-1.0"
+   "createdAt": "2026-10-27T13:39:25.080Z",
+   "updatedAt": "2026-10-27T13:39:25.080Z",
+   "configVersion": "2026H2-pilot-1.0",
+   "region": "전남",
+   "visit": "92"
   },
   {
-   "id": "SMP-2026-903",
+   "id": "SMP-2026H2-GB-93",
    "schema": 1,
    "type": "B",
    "sub": "",
    "op": "농협",
-   "centerId": "CENTER-903",
-   "inspectorId": "INS-901",
+   "centerId": "경북-93",
+   "inspectorId": "",
    "date": "2026-11-17",
+   "round": 1,
    "status": "done",
    "pre": {
     "staff": 1,
@@ -419,7 +426,7 @@
    },
    "actions": {
     "B3-06": {
-     "case": "CASE-2026-903-01",
+     "case": "auto",
      "status": "조치 중"
     }
    },
@@ -435,10 +442,12 @@
    "opinion": "",
    "prior": [],
    "sample": true,
-   "createdAt": "2026-10-27T13:23:43.135Z",
-   "updatedAt": "2026-10-27T13:23:43.135Z",
+   "createdAt": "2026-10-27T13:39:25.080Z",
+   "updatedAt": "2026-10-27T13:39:25.080Z",
    "configVersion": "2026H2-pilot-1.0",
-   "completedAt": "2026-10-27T13:23:43.135Z"
+   "region": "경북",
+   "visit": "93",
+   "completedAt": "2026-10-27T13:39:25.080Z"
   }
  ]
 }

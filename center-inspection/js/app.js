@@ -39,13 +39,11 @@
 
   function ensureCases(insp) {
     insp.actions = insp.actions || {};
-    const seqs = Object.values(insp.actions).map(a => +(String(a.case || '').split('-').pop()) || 0);
-    let next = Math.max(0, ...seqs) + 1;
     E.items(insp.type).forEach(it => {
       const a = (insp.answers || {})[it.id];
       if (a && a.status === 'N' && !E.deficiencyGaps(a).length) {
         const ac = insp.actions[it.id] = insp.actions[it.id] || { status: '조치 전' };
-        if (!ac.case) ac.case = `CASE-${insp.id.replace(/^(INS|SMP)-/, '')}-${String(next++).padStart(2, '0')}`;
+        if (!ac.case) ac.case = `${insp.id}-${it.id}`;
       }
     });
   }
@@ -94,7 +92,7 @@
     const pr = progress(insp);
     const tabs = [['pre', '사전점검'], ['i', '현장점검'], ['fix', '시정조치'], ['r', '결과·보고서']];
     return `<div class="sub">
-      <div class="subrow"><b>${esc(insp.centerId)} <small class="muted">${esc(typeName(insp.type))}${insp.sub ? ' · ' + esc(insp.sub) : ''} · ${esc(fmtDate(insp.date))} · ${esc(insp.id)}</small></b><span class="sm muted" id="saveState">${insp.status === 'done' ? '완료된 점검' : '자동 저장'}</span></div>
+      <div class="subrow"><b>${esc(E.code(insp))} <small class="muted">${esc(typeName(insp.type))}${insp.sub ? ' · ' + esc(insp.sub) : ''} · ${esc(fmtDate(insp.date))}</small></b><span class="sm muted" id="saveState">${insp.status === 'done' ? '완료된 점검' : '자동 저장'}</span></div>
       <div class="prog"><div class="bar"><i id="pbar" style="width:${Math.round(pr.done / pr.total * 100)}%"></i></div><span id="ptext">${pr.done}/${pr.total}</span></div>
       <div class="seg tabs4">${tabs.map(([k, l]) => `<a href="#/${k}/${insp.id}" role="button" aria-pressed="${active === k}">${l}</a>`).join('')}</div></div>`;
   }
@@ -133,14 +131,14 @@
   }
   function demoBox() {
     const smp = list.filter(i => i.sample);
-    if (!smp.length) return `<section class="demo"><b>처음 써 보시나요?</b><p>가상 관리번호로 만든 예시 점검 3건(완료 2건, 작성 중 1건)을 불러와 전체 흐름을 바로 볼 수 있습니다. 실제 기록과 섞이지 않으며 언제든 삭제할 수 있습니다.</p><button class="btn primary" data-act="demo">시연 시작</button></section>`;
-    const id = n => (smp.find(i => i.id.endsWith('-' + n)) || {}).id;
-    const a1 = id(901), a2 = id(902), b1 = id(903);
+    if (!smp.length) return `<section class="demo"><b>처음 써 보시나요?</b><p>가상 번호(충남-91 등)로 만든 예시 점검 3건(완료 2건, 작성 중 1건)을 불러와 전체 흐름을 바로 볼 수 있습니다. 실제 기록과 섞이지 않으며 언제든 삭제할 수 있습니다.</p><button class="btn primary" data-act="demo">시연 시작</button></section>`;
+    const id = n => (smp.find(i => i.visit === String(n)) || {}).id;
+    const a1 = id(91), a2 = id(92), b1 = id(93);
     const links = [
-      a2 && [`#/i/${a2}`, '현장점검 입력', '작성 중인 농촌형 점검(CENTER-902)'],
-      a1 && [`#/r/${a1}`, '자동 검증·결과', '완료된 농촌형 점검(CENTER-901)'],
+      a2 && [`#/i/${a2}`, '현장점검 입력', '작성 중인 농촌형 점검(전남-92)'],
+      a1 && [`#/r/${a1}`, '자동 검증·결과', '완료된 농촌형 점검(충남-91)'],
       a1 && [`#/p/${a1}/sum`, '결과 보고서', 'A4 출력·PDF 저장 화면'],
-      b1 && [`#/p/${b1}/form`, '현장점검표', '공공형 붙임 3 양식(CENTER-903)'],
+      b1 && [`#/p/${b1}/form`, '현장점검표', '공공형 붙임 3 양식(경북-93)'],
       ['#/fix', '시정조치', '미흡 사례 조치 상태'],
       ['#/dash', '대시보드', '예시 포함 집계']].filter(Boolean);
     return `<section class="demo on"><div class="demohd"><b>시연 중 · 예시 ${smp.length}건</b><button class="btn sm" data-act="demoEnd">시연 종료(예시 삭제)</button></div>
@@ -155,10 +153,10 @@
   function card(i) {
     const pr = progress(i), r = E.evaluate(i);
     return `<div class="card">
-      <div class="ct"><b>${esc(i.centerId)}</b><span class="tag">${esc(typeName(i.type))}</span><span class="tag ${i.status === 'done' ? 'ok' : ''}">${statusName(i.status)}</span>${i.sample ? '<span class="tag">예시</span>' : ''}${r.N ? `<span class="tag neg">미흡 ${r.N}</span>` : ''}</div>
-      <div class="cm">${esc(i.id)} · ${esc(fmtDate(i.date))} · 점검자 ${esc(i.inspectorId || '-')}</div>
+      <div class="ct"><b>${esc(E.code(i))}</b><span class="tag">${esc(typeName(i.type))}</span><span class="tag ${i.status === 'done' ? 'ok' : ''}">${statusName(i.status)}</span>${i.sample ? '<span class="tag">예시</span>' : ''}${r.N ? `<span class="tag neg">미흡 ${r.N}</span>` : ''}</div>
+      <div class="cm">${esc(E.period(i))} · ${esc(fmtDate(i.date))} 점검</div>
       <div class="prog"><div class="bar"><i style="width:${Math.round(pr.done / pr.total * 100)}%"></i></div><span>${pr.done}/${pr.total}</span></div>
-      <div class="row"><a class="btn sm primary" href="#/${i.status === 'done' ? 'r' : 'i'}/${i.id}">${i.status === 'done' ? '결과 보기' : '이어서 작성'}</a><a class="btn sm" href="#/pre/${i.id}">사전점검</a><button class="btn sm" data-act="dup" data-id="${i.id}">복제(후속 점검)</button><button class="btn sm danger" data-act="askDel" data-id="${i.id}">삭제</button></div></div>`;
+      <div class="row"><a class="btn sm primary" href="#/${i.status === 'done' ? 'r' : 'i'}/${i.id}">${i.status === 'done' ? '결과 보기' : '이어서 작성'}</a><a class="btn sm" href="#/pre/${i.id}">사전점검</a><button class="btn sm" data-act="dup" data-id="${i.id}">후속 점검</button><button class="btn sm danger" data-act="askDel" data-id="${i.id}">삭제</button></div></div>`;
   }
   async function viewManage() {
     cur = null; newState = null; await reload();
@@ -166,25 +164,20 @@
       <a class="btn primary block" href="#/new">+ 새 점검</a>
       ${list.length ? `<div class="list">${list.map(card).join('')}</div>` : '<div class="empty">저장된 점검이 없습니다. [+ 새 점검]으로 시작하세요.</div>'}`);
   }
-  async function nextId(year) {
-    await reload(); const pre = `INS-${year}-`;
-    const n = Math.max(0, ...list.filter(i => String(i.id).startsWith(pre)).map(i => +String(i.id).slice(pre.length) || 0)) + 1;
-    return pre + String(n).padStart(3, '0');
-  }
   function viewNew(fromId) {
-    if (!newState) newState = { type: 'A', sub: '시군형', op: '지자체', centerId: '', inspectorId: settings.inspectorId || '', date: today(), from: fromId || '' };
+    if (!newState) newState = { type: 'A', sub: '시군형', op: '지자체', region: '', visit: '', inspectorId: settings.inspectorId || '', date: today(), from: fromId || '' };
     const s = newState; const T = E.type(s.type);
-    const bad = s.centerId && !/^[A-Z0-9][A-Z0-9-]{2,30}$/.test(s.centerId);
-    render(`<h2 class="pt">새 점검 ${s.from ? '<small>(후속 점검 복제)</small>' : ''}</h2>
-      <section class="panel"><div class="lbl">점검 유형</div><div class="seg big">${['A', 'B'].map(t => `<button data-act="nType" data-v="${t}" aria-pressed="${s.type === t}">${esc(E.type(t).name)}</button>`).join('')}</div>
+    const preview = s.region && s.visit ? `${s.region}-${String(s.visit).padStart(2, '0')}` : '';
+    render(`<h2 class="pt">새 점검 ${s.from ? '<small>(후속 점검)</small>' : ''}</h2>
+      <section class="panel"><div class="lbl">점검 유형</div><div class="seg big">${['A', 'B'].map(t => `<button data-act="nType" data-v="${t}" aria-pressed="${s.type === t}" ${s.from ? 'disabled' : ''}>${esc(E.type(t).name)}</button>`).join('')}</div>
         ${T.subs.length ? `<div class="lbl">세부 유형</div><div class="seg">${T.subs.map(x => `<button data-act="nSub" data-v="${x}" aria-pressed="${s.sub === x}">${x}</button>`).join('')}</div>` : ''}
         <div class="lbl">운영기관 구분</div><div class="seg">${['지자체', '농협', '기타'].map(x => `<button data-act="nOp" data-v="${x}" aria-pressed="${s.op === x}">${x}</button>`).join('')}</div></section>
       <section class="panel"><div class="fgrid">
-        <label class="fi" for="n-center"><span>센터 관리번호</span><input id="n-center" data-new="centerId" value="${esc(s.centerId)}" placeholder="CENTER-001" autocapitalize="characters" maxlength="30"></label>
-        <label class="fi" for="n-insp"><span>점검자 관리번호</span><input id="n-insp" data-new="inspectorId" value="${esc(s.inspectorId)}" placeholder="INS-001" autocapitalize="characters" maxlength="20"></label>
+        <label class="fi" for="n-region"><span>지역(시도)</span><select id="n-region" data-new="region" ${s.from ? 'disabled' : ''}><option value="">선택</option>${E.REGIONS.map(([k, n]) => `<option ${s.region === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label class="fi" for="n-visit"><span>방문번호 <small>일정표 순번</small></span><input type="text" id="n-visit" data-new="visit" value="${esc(s.visit)}" inputmode="numeric" placeholder="1" maxlength="2" ${s.from ? 'disabled' : ''}></label>
         <label class="fi" for="n-date"><span>점검일</span><input type="date" id="n-date" data-new="date" value="${esc(s.date)}"></label></div>
-        <div class="hint">센터명·지역명·사람 이름은 입력하지 않습니다. 관리번호는 영문 대문자·숫자·하이픈만 씁니다. 관리번호와 실제 센터 대응표는 원 내부에서 별도 관리합니다.</div>
-        <div class="alert crit" id="n-bad" ${bad ? '' : 'hidden'}>관리번호 형식이 아닙니다(예: CENTER-001).</div></section>
+        <div class="codeprev" id="n-prev">${preview ? `점검 코드 <b>${esc(preview)}</b> · ${esc(E.period(s))}` : '지역과 방문번호를 넣으면 점검 코드가 만들어집니다(예: 충남-01)'}</div>
+        <div class="hint">방문번호는 점검계획 일정표의 시도별 순번을 씁니다. 실원끼리 같은 번호를 쓰지 않도록 일정표에서 미리 정합니다. 센터명·사람 이름은 입력하지 않습니다.</div></section>
       <button class="btn primary block" data-act="nCreate">점검 만들기</button>`);
   }
   async function viewPick(target) {
@@ -192,7 +185,7 @@
     const name = { pre: '사전점검', i: '현장점검', r: '결과·보고서' }[target] || '점검';
     const xs = target === 'r' ? list : list.filter(i => i.status !== 'done' || target !== 'i');
     render(`<h2 class="pt">${name} <small>점검을 선택하세요</small></h2>
-      ${xs.length ? `<div class="list">${xs.map(i => `<a class="card" href="#/${target}/${i.id}"><div class="ct"><b>${esc(i.centerId)}</b><span class="tag">${esc(typeName(i.type))}</span><span class="tag ${i.status === 'done' ? 'ok' : ''}">${statusName(i.status)}</span>${i.sample ? '<span class="tag">예시</span>' : ''}</div><div class="cm">${esc(i.id)} · ${esc(fmtDate(i.date))}</div></a>`).join('')}</div>` : '<div class="empty">해당하는 점검이 없습니다.</div>'}
+      ${xs.length ? `<div class="list">${xs.map(i => `<a class="card" href="#/${target}/${i.id}"><div class="ct"><b>${esc(E.code(i))}</b><span class="tag">${esc(typeName(i.type))}</span><span class="tag ${i.status === 'done' ? 'ok' : ''}">${statusName(i.status)}</span>${i.sample ? '<span class="tag">예시</span>' : ''}</div><div class="cm">${esc(E.period(i))} · ${esc(fmtDate(i.date))} 점검</div></a>`).join('')}</div>` : '<div class="empty">해당하는 점검이 없습니다.</div>'}
       <a class="btn primary block" href="#/new">+ 새 점검</a>`);
   }
 
@@ -324,8 +317,8 @@
       <div class="seg">${['', ...CFG.actionStatus].map(s => `<button data-act="fixF" data-v="${s}" aria-pressed="${fixF === s}">${s || '전체'}</button>`).join('')}</div>
       ${!id ? `<label class="ck"><input type="checkbox" data-act2="fixSample" ${dashF.sample ? 'checked' : ''}><span>예시 기록 포함</span></label>` : ''}
       ${shown.length ? shown.map(({ insp, d, ac }) => `<article class="item is-n">
-        <div class="ct"><span class="qid">${esc(ac.case || '사례번호 미부여')}</span><b>${esc(d.item.id)} ${esc(d.item.t)}</b>${d.item.crit ? ' <span class="crit">중대</span>' : ''}</div>
-        <div class="cm">${esc(insp.centerId)} · ${esc(insp.id)} · ${esc(fmtDate(insp.date))}${insp.sample ? ' · 예시' : ''}</div>
+        <div class="ct"><span class="qid">${esc(E.code(insp))}</span><b>${esc(d.item.id)} ${esc(d.item.t)}</b>${d.item.crit ? ' <span class="crit">중대</span>' : ''}</div>
+        <div class="cm">${esc(E.period(insp))} · ${esc(fmtDate(insp.date))} 점검${insp.sample ? ' · 예시' : ''}${ac.case ? '' : ' · 미흡 상세 작성 후 조치 관리'}</div>
         <div><b class="sm">미흡 사유</b> ${esc(d.labels.join(', ') || '-')}${d.gaps.length ? ` <span class="neg sm">(작성 필요: ${esc(d.gaps.join(', '))})</span>` : ''}</div>
         <div class="sm"><b>현장 확인</b> ${esc(d.a.note || '-')}</div>
         <div class="gen"><div><span class="gl r">권고</span><span class="pre-inline">${esc(d.a.rec || '-')}</span></div><div><span class="gl v">후속</span>${esc(d.item.fu || '')}</div></div>
@@ -382,18 +375,18 @@
     cur = null; await reload(); demoAuto();
     const yearOf = i => String(i.date || '').slice(0, 4);
     const base = list.filter(i => dashF.sample || !i.sample);
-    const years = [...new Set(base.map(yearOf))].filter(Boolean).sort().reverse(), centers = [...new Set(base.map(i => i.centerId))].sort();
-    const xs = base.filter(i => (!dashF.year || yearOf(i) === dashF.year) && (!dashF.type || i.type === dashF.type) && (!dashF.center || i.centerId === dashF.center) && (!dashF.status || i.status === dashF.status));
+    const years = [...new Set(base.map(yearOf))].filter(Boolean).sort().reverse(), centers = [...new Set(base.map(i => E.code(i).replace(/ \(.*$/, '')))].sort();
+    const xs = base.filter(i => (!dashF.year || yearOf(i) === dashF.year) && (!dashF.type || i.type === dashF.type) && (!dashF.center || E.code(i).replace(/ \(.*$/, '') === dashF.center) && (!dashF.status || i.status === dashF.status));
     const evs = xs.map(i => ({ i, r: E.evaluate(i) }));
     const defs = []; evs.forEach(({ i, r }) => r.deficiencies.forEach(d => defs.push({ i, d, ac: (i.actions || {})[d.item.id] || { status: '조치 전' } })));
     const defsF = defs.filter(x => !dashF.act || (x.ac.status || '조치 전') === dashF.act);
     const byCat = {}; defsF.forEach(x => { const k = `${typeName(x.i.type)} · ${x.d.item.catName}`; byCat[k] = (byCat[k] || 0) + 1; });
     const catRows = Object.entries(byCat).sort((a, b) => b[1] - a[1]); const maxC = catRows.length ? catRows[0][1] : 1;
     const acts = CFG.actionStatus.map(s => [s, defsF.filter(x => (x.ac.status || '조치 전') === s).length]);
-    const hist = {}; xs.forEach(i => { (hist[i.centerId] = hist[i.centerId] || []).push(i); });
+    const hist = {}; xs.forEach(i => { const k = E.code(i).replace(/ \(.*$/, ''); (hist[k] = hist[k] || []).push(i); });
     const sel = (k, opts, label) => `<label class="fi"><span>${label}</span><select data-dash="${k}"><option value="">전체</option>${opts.map(([v, l]) => `<option value="${esc(v)}" ${dashF[k] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
     render(`<h2 class="pt">대시보드 <small>이 기기에 저장·복원된 실제 기록 기준</small></h2>
-      <section class="panel"><div class="fgrid">${sel('year', years.map(y => [y, y + '년']), '점검 연도')}${sel('type', [['A', '농촌형'], ['B', '공공형']], '점검 유형')}${sel('center', centers.map(c => [c, c]), '센터 관리번호')}${sel('status', [['draft', '작성 중'], ['done', '완료']], '점검 상태')}${sel('act', CFG.actionStatus.map(s => [s, s]), '조치 상태')}</div>
+      <section class="panel"><div class="fgrid">${sel('year', years.map(y => [y, y + '년']), '점검 연도')}${sel('type', [['A', '농촌형'], ['B', '공공형']], '점검 유형')}${sel('center', centers.map(c => [c, c]), '점검 코드')}${sel('status', [['draft', '작성 중'], ['done', '완료']], '점검 상태')}${sel('act', CFG.actionStatus.map(s => [s, s]), '조치 상태')}</div>
         <label class="ck"><input type="checkbox" data-act2="dashSample" ${dashF.sample ? 'checked' : ''}><span>예시 기록 포함</span></label>
         <div class="hint">다른 실원의 기록은 [설정·백업]에서 백업 파일을 불러오면 함께 집계됩니다.</div></section>
       ${xs.length ? `
@@ -422,8 +415,6 @@
     Object.entries(insp.answers || {}).forEach(([k, a]) => { add(`${k} 현장 확인`, a.note); add(`${k} 시정 권고`, a.rec); add(`${k} 기타 사유`, a.etc); });
     Object.entries(insp.actions || {}).forEach(([k, a]) => add(`${k} 조치 메모`, a.memo));
     add('종합 의견', insp.opinion); ['trend', 'wtrend', 'why', 'period', 'base'].forEach(k => add(`사전점검 ${k}`, (insp.pre || {})[k]));
-    if (/[가-힣]/.test(insp.centerId || '')) out.push({ where: '센터 관리번호', l: '한글 포함(센터명 의심)' });
-    if (/[가-힣]/.test(insp.inspectorId || '')) out.push({ where: '점검자 관리번호', l: '한글 포함(성명 의심)' });
     return out;
   }
   let pendingExport = null;
@@ -444,30 +435,31 @@
     downloadJson(name, payload);
   }
   function validRecord(r) {
-    return r && typeof r.id === 'string' && /^[A-Z]{3}-\d{4}-\d{3}$/.test(r.id) && (r.type === 'A' || r.type === 'B') && typeof r.centerId === 'string'
+    return r && typeof r.id === 'string' && (/^(SMP-)?\d{4}H[12]-[A-Z]{2}-\d{2}(-\d+)?$/.test(r.id) || /^[A-Z]{3}-\d{4}-\d{3}$/.test(r.id)) && (r.type === 'A' || r.type === 'B') && typeof r.centerId === 'string'
       && typeof r.answers === 'object' && ['draft', 'done'].includes(r.status) && typeof r.updatedAt === 'string';
   }
   async function importFile(file) {
     let data; try { data = JSON.parse(await file.text()); } catch (e) { toast('JSON 파일을 읽지 못했습니다'); return; }
     if (!data || data.app !== 'center-inspection' || data.schema !== CFG.schema || !Array.isArray(data.records)) { toast('이 앱의 백업 파일이 아니거나 형식 버전이 다릅니다'); return; }
-    await reload(); let add = 0, upd = 0, same = 0, older = 0, bad = 0;
+    await reload(); let add = 0, upd = 0, same = 0, older = 0, bad = 0; const clash = [];
     for (const r of data.records) {
       if (!validRecord(r)) { bad++; continue; }
       const ex = list.find(x => x.id === r.id);
       if (!ex) { await store.put(r); add++; }
+      else if (ex.createdAt && r.createdAt && ex.createdAt !== r.createdAt) { clash.push(E.code(r) + ' ' + E.period(r)); }
       else if (ex.updatedAt === r.updatedAt) same++;
       else if (String(r.updatedAt) > String(ex.updatedAt)) { await store.put(r); upd++; }
       else older++;
     }
-    toast(`복원 완료: 추가 ${add} · 최신본 갱신 ${upd} · 중복 건너뜀 ${same + older}${bad ? ` · 형식 오류 ${bad}` : ''}`);
-    return viewSettings();
+    toast(`복원 완료: 추가 ${add} · 최신본 갱신 ${upd} · 중복 건너뜀 ${same + older}${bad ? ` · 형식 오류 ${bad}` : ''}${clash.length ? ` · 번호 충돌 ${clash.length}` : ''}`);
+    await viewSettings();
+    if (clash.length) $('#sheet').innerHTML = `<div class="sheetbg" data-act="closeSheet"></div><div class="sheetbox" role="alertdialog" aria-modal="true" aria-label="번호 충돌"><div class="shh"><b>같은 점검 코드, 다른 점검</b><button class="x" data-act="closeSheet">닫기</button></div>
+      <div class="shb"><div class="alert warn">아래 점검은 이 기기에 같은 코드로 다른 점검이 이미 있어 불러오지 않았습니다. 점검계획 일정표의 방문번호가 겹쳤는지 확인하십시오.</div><ul class="ul">${clash.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div></div>`;
   }
   async function viewSettings() {
     cur = null; await reload(); const info = await CI.storage.persistInfo();
     const mb = v => v == null ? '-' : (v / 1048576).toFixed(1) + 'MB';
     render(`<h2 class="pt">설정·백업</h2>
-      <section class="panel"><div class="lbl">기본 점검자 관리번호 <small>새 점검에 자동 입력</small></div>
-        <input data-set="inspectorId" value="${esc(settings.inspectorId)}" placeholder="INS-001" autocapitalize="characters" maxlength="20" aria-label="기본 점검자 관리번호"></section>
       <section class="panel"><div class="lbl">백업 내보내기 <small>원 내부 공유폴더에 보관</small></div>
         <div class="row"><button class="btn primary" data-act="exportAll">전체 백업(.json)</button><button class="btn" data-act="exportDone">완료 점검만</button></div>
         <div class="hint">내보내기 전에 자유 기재란을 검사해 개인정보로 보이는 형식(전화번호·등록번호·이메일 등)을 알려줍니다. 기본 패턴 검사이므로 개인정보 보호를 완전히 보장하지 않습니다.</div></section>
@@ -477,12 +469,12 @@
       <section class="panel"><div class="lbl">저장 상태</div>
         <ul class="ul"><li>저장 방식: ${store.kind === 'indexeddb' ? '기기 내부 IndexedDB' : store.kind === 'localstorage' ? 'localStorage(대체)' : '저장 불가'}</li><li>저장공간 보존: ${info.persisted ? '허용됨' : '허용되지 않음(브라우저가 정리할 수 있음)'}</li><li>사용량 ${mb(info.usage)} / 가용 ${mb(info.quota)}</li><li>저장된 점검 ${list.length}건(예시 ${list.filter(i => i.sample).length}건)</li><li>기준 버전 ${esc(CFG.version)}</li></ul>
         <div class="alert">브라우저 데이터 삭제, 앱 삭제, 기기 초기화 시 기록이 사라집니다. <b>백업 절차</b>: ① 점검 완료 → ② [전체 백업] → ③ 파일을 원 내부 공유폴더로 옮김 → ④ 기기 '다운로드'에 남은 파일 삭제.</div></section>
-      <section class="panel"><div class="lbl">시연용 예시 데이터</div><div class="hint">가상 관리번호(CENTER-9xx) 예시 3건. 대시보드에서는 기본 제외됩니다.</div>
+      <section class="panel"><div class="lbl">시연용 예시 데이터</div><div class="hint">가상 번호(충남-91·전남-92·경북-93) 예시 3건. 대시보드에서는 기본 제외됩니다.</div>
         <div class="row"><button class="btn" data-act="sample">예시 불러오기</button><button class="btn" data-act="delSample">예시만 삭제</button></div></section>
       <section class="panel"><div class="lbl">보안 안내</div><ul class="ul">
         <li>이 앱은 GitHub Pages에 공개된 주소에서 열립니다. 앱 화면과 코드는 누구나 볼 수 있지만, 점검 기록은 각 기기 안에만 있고 어디로도 전송되지 않습니다.</li>
         <li>화면에 비밀번호를 두어도 공개 주소에서는 실제 접근 통제가 되지 않습니다. 기기 잠금(암호·생체인증)을 반드시 설정하십시오.</li>
-        <li>관리번호와 실제 센터·점검자 대응표는 앱과 분리해 원 내부에서 관리합니다.</li>
+        <li>점검 코드(시도-방문번호)와 실제 센터의 대응은 점검계획 일정표로 원 내부에서 관리합니다.</li>
         <li>자세한 내용: docs/SECURITY.md</li></ul></section>
       <section class="panel"><div class="lbl">기록 삭제</div><div id="wipe"><button class="btn danger" data-act="askWipe">이 기기의 점검 기록 모두 삭제</button></div></section>`);
   }
@@ -512,17 +504,22 @@
     if (act === 'nSub') { newState.sub = b.dataset.v; return viewNew(newState.from); }
     if (act === 'nOp') { newState.op = b.dataset.v; return viewNew(newState.from); }
     if (act === 'nCreate') {
-      const s = newState; s.centerId = (s.centerId || '').trim().toUpperCase(); s.inspectorId = (s.inspectorId || '').trim().toUpperCase();
-      if (!/^[A-Z0-9][A-Z0-9-]{2,30}$/.test(s.centerId)) { toast('센터 관리번호를 형식에 맞게 입력하세요(예: CENTER-001)'); return; }
-      if (s.inspectorId && !/^[A-Z0-9][A-Z0-9-]{1,20}$/.test(s.inspectorId)) { toast('점검자 관리번호는 영문·숫자·하이픈만 씁니다(예: INS-001)'); return; }
-      const year = (s.date || today()).slice(0, 4); const id = await nextId(year); const now = new Date().toISOString();
-      const rec = { id, schema: CFG.schema, type: s.type, sub: s.sub || '', op: s.op, centerId: s.centerId, inspectorId: s.inspectorId, date: s.date || today(), status: 'draft',
+      const s = newState; const v = +String(s.visit || '').replace(/\D/g, '');
+      if (!s.region) { toast('지역(시도)을 고르세요'); return; }
+      if (!v || v > 99) { toast('방문번호를 1~99 숫자로 넣으세요'); return; }
+      await reload(); const date = s.date || today(); let round = 1, id = E.makeId(s.region, v, date, 1);
+      if (list.some(i => i.id === id)) {
+        if (!s.from) { toast(`${s.region}-${String(v).padStart(2, '0')}(${E.period({ date })}) 점검이 이미 있습니다. 일정표 번호를 확인하거나, 재방문이면 점검관리에서 [후속 점검]을 누르세요`); return; }
+        while (list.some(i => i.id === id)) id = E.makeId(s.region, v, date, ++round);
+      }
+      const now = new Date().toISOString();
+      const rec = { id, schema: CFG.schema, type: s.type, sub: s.sub || '', op: s.op, region: s.region, visit: String(v).padStart(2, '0'), round, centerId: `${s.region}-${String(v).padStart(2, '0')}`, inspectorId: settings.inspectorId || '', date, status: 'draft',
         pre: {}, docs: {}, answers: {}, actions: {}, form: {}, formMemo: {}, opinion: '', prior: [], createdAt: now, updatedAt: now, configVersion: CFG.version };
       if (s.from) { const src = await store.get(s.from); if (src && src.type === s.type) { rec.pre = JSON.parse(JSON.stringify(src.pre || {})); ensureCases(src);
         rec.prior = E.evaluate(src).deficiencies.map(d => { const ac = (src.actions || {})[d.item.id] || {}; return { id: d.item.id, t: d.item.t, case: ac.case || '', status: ac.status || '조치 전', from: src.id }; }); } }
       await store.put(rec); cur = rec; newState = null; location.replace('#/pre/' + rec.id); return;
     }
-    if (act === 'dup') { newState = null; const src = list.find(i => i.id === b.dataset.id); newState = { type: src.type, sub: src.sub, op: src.op, centerId: src.centerId, inspectorId: settings.inspectorId || src.inspectorId, date: today(), from: src.id }; go('/new/' + src.id); return; }
+    if (act === 'dup') { newState = null; const src = list.find(i => i.id === b.dataset.id); if (!src.region) { toast('이전 방식 번호의 점검은 후속 점검을 만들 수 없습니다. [+ 새 점검]을 쓰세요'); return; } newState = { type: src.type, sub: src.sub, op: src.op, region: src.region, visit: src.visit, date: today(), from: src.id }; go('/new/' + src.id); return; }
     if (act === 'doc') { cur.docs = cur.docs || {}; cur.docs[b.dataset.doc] = cur.docs[b.dataset.doc] === b.dataset.v ? '' : b.dataset.v; queueSave(); return viewPreKeep(); }
     if (act === 'preSeg') { cur.pre = cur.pre || {}; cur.pre[b.dataset.k] = cur.pre[b.dataset.k] === b.dataset.v ? '' : b.dataset.v; queueSave(); return viewPreKeep(); }
     if (act === 'st') { const a = ans(b.dataset.item); a.status = a.status === b.dataset.v ? '' : b.dataset.v;
@@ -551,7 +548,7 @@
     if (act === 'print') { try { window.print(); } catch (err) { toast('이 브라우저에서는 인쇄를 지원하지 않습니다'); } return; }
     if (act === 'exportAll') { await reload(); return exportRecs(list.filter(i => !i.sample), `center-inspection_backup_${today()}.json`); }
     if (act === 'exportDone') { await reload(); return exportRecs(list.filter(i => !i.sample && i.status === 'done'), `center-inspection_done_${today()}.json`); }
-    if (act === 'exportOne') return exportRecs([cur], `${cur.id}_${cur.centerId}.json`);
+    if (act === 'exportOne') return exportRecs([cur], `center-inspection_${cur.id}.json`);
     if (act === 'forceExport') { $('#sheet').innerHTML = ''; if (pendingExport) downloadJson(pendingExport.name, pendingExport.payload); pendingExport = null; return; }
     if (act === 'demo') { await startDemo(); return viewHome(); }
     if (act === 'demoEnd') { await reload(); for (const r of list.filter(i => i.sample)) await store.remove(r.id); dashF.sample = false; toast('예시를 삭제했습니다'); return viewHome(); }
@@ -562,7 +559,7 @@
     if (act === 'doWipe') { await store.clear(); toast('기기의 점검 기록을 삭제했습니다'); return viewSettings(); }
     if (act === 'askDel') { const r = list.find(i => i.id === b.dataset.id);
       $('#sheet').innerHTML = `<div class="sheetbg" data-act="closeSheet"></div><div class="sheetbox" role="alertdialog" aria-modal="true" aria-label="기록 삭제 확인"><div class="shh"><b>점검 기록 삭제</b><button class="x" data-act="closeSheet">닫기</button></div>
-        <div class="shb"><div class="alert crit"><b>${esc(r.id)} (${esc(r.centerId)})을 이 기기에서 삭제합니다. 되돌릴 수 없습니다.</b><br>필요하면 먼저 백업 파일을 내보내십시오.</div>
+        <div class="shb"><div class="alert crit"><b>${esc(E.code(r))} (${esc(E.period(r))}) 점검을 이 기기에서 삭제합니다. 되돌릴 수 없습니다.</b><br>필요하면 먼저 백업 파일을 내보내십시오.</div>
         <div class="row" style="margin-top:12px"><button class="btn" data-act="closeSheet">취소</button><span class="grow"></span><button class="btn danger" data-act="doDel" data-id="${r.id}">삭제</button></div></div></div>`; return; }
     if (act === 'doDel') { await store.remove(b.dataset.id); $('#sheet').innerHTML = ''; toast('삭제했습니다'); return viewManage(); }
   });
@@ -586,9 +583,9 @@
   document.addEventListener('input', async e => {
     const t = e.target;
     const piiEl = t.parentElement && t.parentElement.querySelector('.pii');
-    if (piiEl && (t.tagName === 'TEXTAREA' || t.type === 'text')) { const h = piiHits(t.value); piiEl.hidden = !h.length; piiEl.textContent = h.length ? `개인정보로 보이는 형식(${h.join(', ')})이 있습니다. 삭제하거나 관리번호로 바꾸십시오.` : ''; }
-    if (t.dataset.new) { newState[t.dataset.new] = t.dataset.new === 'date' ? t.value : t.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''); if (t.dataset.new !== 'date' && t.value !== newState[t.dataset.new]) { const p = t.selectionStart; t.value = newState[t.dataset.new]; try { t.setSelectionRange(p, p); } catch (x) {} }
-      const bad = $('#n-bad'); if (bad && t.dataset.new === 'centerId') bad.hidden = !newState.centerId || /^[A-Z0-9][A-Z0-9-]{2,30}$/.test(newState.centerId); return; }
+    if (piiEl && (t.tagName === 'TEXTAREA' || t.type === 'text')) { const h = piiHits(t.value); piiEl.hidden = !h.length; piiEl.textContent = h.length ? `개인정보로 보이는 형식(${h.join(', ')})이 있습니다. 삭제하십시오.` : ''; }
+    if (t.dataset.new) { let v = t.value; if (t.dataset.new === 'visit') { v = v.replace(/\D/g, '').slice(0, 2); if (v !== t.value) t.value = v; } newState[t.dataset.new] = v;
+      const pv = $('#n-prev'); if (pv) { const s = newState; pv.innerHTML = s.region && s.visit ? `점검 코드 <b>${esc(s.region)}-${esc(String(s.visit).padStart(2, '0'))}</b> · ${esc(E.period(s))}` : '지역과 방문번호를 넣으면 점검 코드가 만들어집니다(예: 충남-01)'; } return; }
     if (t.dataset.set) { settings[t.dataset.set] = t.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''); t.value = settings[t.dataset.set]; store.setMeta('settings', settings); return; }
     if (!cur) {
       if (t.dataset.acmemo) { const r = await store.get(t.dataset.insp); r.actions[t.dataset.acmemo].memo = t.value; r.updatedAt = new Date().toISOString(); await store.put(r); }
