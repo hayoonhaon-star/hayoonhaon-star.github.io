@@ -34,7 +34,7 @@
   function render(html) { $('#view').innerHTML = html; }
   function netState() { const el = $('#net'); const on = navigator.onLine; el.className = 'net ' + (on ? 'on' : 'off'); el.textContent = on ? '온라인' : '오프라인 사용 중'; }
   window.addEventListener('online', netState); window.addEventListener('offline', netState);
-  const APP_VER = '1.1.2 (10. 27.)';
+  const APP_VER = '1.1.3 (10. 27.)';
   const typeName = t => (E.type(t) || {}).short || t;
   const statusName = s => s === 'done' ? '완료' : '작성 중';
 
@@ -43,7 +43,7 @@
     E.items(insp.type).forEach(it => {
       const a = (insp.answers || {})[it.id];
       if (a && a.status === 'N' && !E.deficiencyGaps(a).length) {
-        const ac = insp.actions[it.id] = insp.actions[it.id] || { status: '조치 전' };
+        const ac = insp.actions[it.id] = insp.actions[it.id] || { status: '미조치' };
         if (!ac.case) ac.case = `${insp.id}-${it.id}`;
       }
     });
@@ -106,13 +106,13 @@
     const onlySmp = list.length > 0 && list.every(i => i.sample), real = onlySmp ? list : list.filter(i => !i.sample);
     const drafts = real.filter(i => i.status !== 'done'), done = real.filter(i => i.status === 'done');
     const defs = real.reduce((t, i) => t + E.evaluate(i).N, 0);
-    const openAct = real.reduce((t, i) => t + Object.values(i.actions || {}).filter(a => a.case && a.status !== '조치 완료').length, 0);
+    const openAct = real.reduce((t, i) => t + E.evaluate(i).deficiencies.filter(d => E.actSt((i.actions || {})[d.item.id]) !== '조치 완료').length, 0);
     render(`
       <div class="alert storenote"><b>기록은 이 기기에만 저장됩니다</b>브라우저 데이터 삭제, 앱 삭제, 기기 초기화 시 기록이 사라질 수 있습니다. 점검을 마치면 [설정·백업]에서 백업 파일을 내보내 원 내부 공유폴더에 보관하십시오.</div>
       <section class="hero"><h2>농촌인력중개센터 운영실태 현장점검</h2><p>${esc(CFG.plan.title)} · 기준: ${esc(CFG.source.title)}</p><p class="sm muted">앱 버전 ${APP_VER}</p></section>
       ${storeWarn()}
       ${demoBox()}
-      <div class="tiles t5"><div class="tile"><div class="v">${real.length}</div><div class="l">전체 점검${onlySmp ? '(예시)' : ''}</div></div><div class="tile"><div class="v">${drafts.length}</div><div class="l">작성 중</div></div><div class="tile"><div class="v">${done.length}</div><div class="l">완료</div></div><div class="tile c"><div class="v">${defs}</div><div class="l">미흡 항목</div></div><div class="tile w"><div class="v">${openAct}</div><div class="l">조치 미완료</div></div></div>
+      <div class="tiles t5"><div class="tile"><div class="v">${real.length}</div><div class="l">전체 점검${onlySmp ? '(예시)' : ''}</div></div><div class="tile"><div class="v">${drafts.length}</div><div class="l">작성 중</div></div><div class="tile"><div class="v">${done.length}</div><div class="l">완료</div></div><div class="tile c"><div class="v">${defs}</div><div class="l">미흡 항목</div></div><div class="tile w"><div class="v">${openAct}</div><div class="l">미조치</div></div></div>
       <nav class="menu">
         <a class="mi primary" href="#/manage"><b>1. 점검관리</b><span>새 점검 · 이어서 작성 · 복제 · 지난 점검</span></a>
         <a class="mi" href="#/pick/pre"><b>2. 사전점검</b><span>사전자료 접수 확인 · 사전제출 엑셀 불러오기</span></a>
@@ -240,7 +240,7 @@
   async function viewInspect(id) {
     if (!(await load(id))) return;
     const T = E.type(cur.type);
-    const prior = (cur.prior || []).length ? `<section class="panel warnp"><div class="lbl">지난 점검 미흡 사항 <small>후속 점검 확인</small></div><ul class="ul">${cur.prior.map(p => `<li>${esc(p.id)} ${esc(p.t)} — ${esc(p.status || '조치 전')}${p.case ? ` <span class="src">${esc(p.case)}</span>` : ''}</li>`).join('')}</ul></section>` : '';
+    const prior = (cur.prior || []).length ? `<section class="panel warnp"><div class="lbl">지난 점검 미흡 사항 <small>후속 점검 확인</small></div><ul class="ul">${cur.prior.map(p => `<li>${esc(p.id)} ${esc(p.t)} — ${esc(E.actSt(p))}</li>`).join('')}</ul></section>` : '';
     render(`${subnav(cur, 'i')}${lockNote()}${prior}
       ${T.categories.map(cat => { const its = cat.items; const d = its.filter(i => E.itemDone((cur.answers || {})[i.id])).length;
         return `<details class="catsec" open><summary class="cath">${esc(cat.name)} <small>${d}/${its.length}</small></summary>
@@ -364,24 +364,19 @@
     await reload();
     let recs;
     if (id) { if (!(await load(id))) return; recs = [cur]; } else { cur = null; demoAuto(); recs = list.filter(i => !i.sample || dashF.sample); }
-    const rows = [];
-    recs.forEach(insp => { ensureCases(insp); E.evaluate(insp).deficiencies.forEach(d => { const ac = (insp.actions || {})[d.item.id] || { status: '조치 전' }; rows.push({ insp, d, ac }); }); });
-    const shown = rows.filter(x => !fixF || (x.ac.status || '조치 전') === fixF);
-    const cnt = s => rows.filter(x => (x.ac.status || '조치 전') === s).length;
-    render(`${id ? subnav(cur, 'fix') : '<h2 class="pt">시정조치 관리 <small>전체 점검의 미흡 사항</small></h2>'}
-      <div class="tiles">${CFG.actionStatus.map(s => `<div class="tile ${s === '조치 완료' ? '' : s === '재확인 필요' ? 'c' : 'w'}"><div class="v">${cnt(s)}</div><div class="l">${s}</div></div>`).join('')}</div>
-      <div class="seg">${['', ...CFG.actionStatus].map(s => `<button data-act="fixF" data-v="${s}" aria-pressed="${fixF === s}">${s || '전체'}</button>`).join('')}</div>
+    const groups = []; let nOpen = 0, nDone = 0;
+    recs.forEach(insp => { ensureCases(insp); const ds = E.evaluate(insp).deficiencies.map(d => ({ d, ac: (insp.actions || {})[d.item.id] || {} }));
+      ds.forEach(x => E.actSt(x.ac) === '조치 완료' ? nDone++ : nOpen++);
+      const shown = ds.filter(x => !fixF || E.actSt(x.ac) === fixF); if (shown.length) groups.push({ insp, shown }); });
+    render(`${id ? subnav(cur, 'fix') : '<h2 class="pt">시정조치 <small>미흡 사항 조치 확인</small></h2>'}
+      <div class="seg">${[['', `전체 ${nOpen + nDone}`], ['미조치', `미조치 ${nOpen}`], ['조치 완료', `조치 완료 ${nDone}`]].map(([v, l]) => `<button data-act="fixF" data-v="${v}" aria-pressed="${fixF === v}">${l}</button>`).join('')}</div>
       ${!id ? `<label class="ck"><input type="checkbox" data-act2="fixSample" ${dashF.sample ? 'checked' : ''}><span>예시 기록 포함</span></label>` : ''}
-      ${shown.length ? shown.map(({ insp, d, ac }) => `<article class="item is-n">
-        <div class="ct"><span class="qid">${esc(E.code(insp))}</span><b>${esc(d.item.id)} ${esc(d.item.t)}</b>${d.item.crit ? ' <span class="crit">중대</span>' : ''}</div>
-        <div class="cm">${esc(E.period(insp))} · ${esc(fmtDate(insp.date))} 점검${insp.sample ? ' · 예시' : ''}${ac.case ? '' : ' · 미흡 상세 작성 후 조치 관리'}</div>
-        <div><b class="sm">미흡 사유</b> ${esc(d.labels.join(', ') || '-')}${d.gaps.length ? ` <span class="neg sm">(작성 필요: ${esc(d.gaps.join(', '))})</span>` : ''}</div>
-        <div class="sm"><b>현장 확인</b> ${esc(d.a.note || '-')}</div>
-        <div class="gen"><div><span class="gl v">후속</span>${esc(d.item.fu || '')}</div></div>
-        ${ac.case ? `<div class="seg">${CFG.actionStatus.map(s => `<button data-act="acst" data-insp="${insp.id}" data-item="${d.item.id}" data-v="${s}" aria-pressed="${(ac.status || '조치 전') === s}">${s}</button>`).join('')}</div>
-        <div class="fgrid"><label class="fi"><span>조치 완료일</span><input type="date" data-acdate="${d.item.id}" data-insp="${insp.id}" value="${esc(ac.date || '')}"></label>
-          <label class="fi"><span>조치 확인 메모 <small>${PII_NOTE}</small></span><input type="text" data-acmemo="${d.item.id}" data-insp="${insp.id}" value="${esc(ac.memo || '')}" maxlength="200"><span class="pii" hidden></span></label></div>` : '<div class="hint">미흡 상세(사유·현장 확인·권고)를 모두 작성하면 사례번호가 부여되고 조치 상태를 관리할 수 있습니다.</div>'}
-      </article>`).join('') : '<div class="empty">해당하는 미흡 사항이 없습니다.</div>'}
+      ${groups.length ? groups.map(({ insp, shown }) => `<section class="panel fxg">${id ? '' : `<div class="lbl">${esc(E.code(insp))} <small>${esc(typeName(insp.type))} · ${esc(fmtDate(insp.date))} 점검${insp.sample ? ' · 예시' : ''}</small></div>`}
+        ${shown.map(({ d, ac }) => { const done = E.actSt(ac) === '조치 완료';
+          return `<div class="fxrow ${done ? 'done' : ''}"><details><summary><b>${esc(d.item.id)}</b> ${esc(d.item.t)}${d.item.crit ? ' <span class="crit">중대</span>' : ''}<span class="sm muted"> · ${esc(d.labels.join(', ') || '사유 미선택')}</span></summary>
+            <div class="sm"><b>현장 확인</b> ${esc(d.a.note || '-')}</div><div class="sm"><b>후속 조치</b> ${esc(d.item.fu || '-')}</div></details>
+            ${ac.case ? `<button class="fxbtn ${done ? 'on' : ''}" data-act="acst" data-insp="${insp.id}" data-item="${d.item.id}">${done ? `✓ 조치 완료${ac.date ? `<small>${esc(fmtDate(ac.date).slice(6))}</small>` : ''}` : '조치 완료'}</button>` : '<span class="fxbtn off">미흡 상세 작성 필요</span>'}</div>`; }).join('')}</section>`).join('')
+        : '<div class="empty">해당하는 미흡 사항이 없습니다.</div>'}
       ${id ? `<div class="bottombar"><a class="btn" href="#/i/${cur.id}">← 현장점검</a><span class="grow"></span><a class="btn primary" href="#/p/${cur.id}/fix">시정조치 요청서 PDF</a></div>` : ''}`);
   }
 
@@ -434,11 +429,11 @@
     const years = [...new Set(base.map(yearOf))].filter(Boolean).sort().reverse(), centers = [...new Set(base.map(i => E.code(i).replace(/ \(.*$/, '')))].sort();
     const xs = base.filter(i => (!dashF.year || yearOf(i) === dashF.year) && (!dashF.type || i.type === dashF.type) && (!dashF.center || E.code(i).replace(/ \(.*$/, '') === dashF.center) && (!dashF.status || i.status === dashF.status));
     const evs = xs.map(i => ({ i, r: E.evaluate(i) }));
-    const defs = []; evs.forEach(({ i, r }) => r.deficiencies.forEach(d => defs.push({ i, d, ac: (i.actions || {})[d.item.id] || { status: '조치 전' } })));
-    const defsF = defs.filter(x => !dashF.act || (x.ac.status || '조치 전') === dashF.act);
+    const defs = []; evs.forEach(({ i, r }) => r.deficiencies.forEach(d => defs.push({ i, d, ac: (i.actions || {})[d.item.id] || {} })));
+    const defsF = defs.filter(x => !dashF.act || E.actSt(x.ac) === dashF.act);
     const byCat = {}; defsF.forEach(x => { const k = `${typeName(x.i.type)} · ${x.d.item.catName}`; byCat[k] = (byCat[k] || 0) + 1; });
     const catRows = Object.entries(byCat).sort((a, b) => b[1] - a[1]); const maxC = catRows.length ? catRows[0][1] : 1;
-    const acts = CFG.actionStatus.map(s => [s, defsF.filter(x => (x.ac.status || '조치 전') === s).length]);
+    const acts = CFG.actionStatus.map(s => [s, defsF.filter(x => E.actSt(x.ac) === s).length]);
     const hist = {}; xs.forEach(i => { const k = E.code(i).replace(/ \(.*$/, ''); (hist[k] = hist[k] || []).push(i); });
     const sel = (k, opts, label) => `<label class="fi"><span>${label}</span><select data-dash="${k}"><option value="">전체</option>${opts.map(([v, l]) => `<option value="${esc(v)}" ${dashF[k] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
     render(`<h2 class="pt">대시보드 <small>이 기기에 저장·복원된 실제 기록 기준</small></h2>
@@ -446,11 +441,11 @@
         <label class="ck"><input type="checkbox" data-act2="dashSample" ${dashF.sample ? 'checked' : ''}><span>예시 기록 포함</span></label>
         <div class="hint">다른 실원의 기록은 [설정·백업]에서 백업 파일을 불러오면 함께 집계됩니다.</div></section>
       ${xs.length ? `
-      <div class="tiles t5"><div class="tile"><div class="v">${xs.length}</div><div class="l">전체 점검</div></div><div class="tile"><div class="v">${xs.filter(i => i.status === 'done').length}</div><div class="l">완료</div></div><div class="tile"><div class="v">${xs.filter(i => i.status !== 'done').length}</div><div class="l">작성 중</div></div><div class="tile c"><div class="v">${defsF.length}</div><div class="l">미흡 항목</div></div><div class="tile w"><div class="v">${defsF.filter(x => x.ac.status !== '조치 완료').length}</div><div class="l">조치 미완료</div></div></div>
+      <div class="tiles t5"><div class="tile"><div class="v">${xs.length}</div><div class="l">전체 점검</div></div><div class="tile"><div class="v">${xs.filter(i => i.status === 'done').length}</div><div class="l">완료</div></div><div class="tile"><div class="v">${xs.filter(i => i.status !== 'done').length}</div><div class="l">작성 중</div></div><div class="tile c"><div class="v">${defsF.length}</div><div class="l">미흡 항목</div></div><div class="tile w"><div class="v">${defsF.filter(x => x.ac.status !== '조치 완료').length}</div><div class="l">미조치</div></div></div>
       <section class="panel"><div class="lbl">분야별 미흡 항목</div>${catRows.length ? catRows.map(([k, n]) => `<div class="hb"><span>${esc(k)}</span><i style="width:${n / maxC * 100}%"></i><b>${n}</b></div>`).join('') : '<div class="hint">미흡 항목 없음</div>'}</section>
       <section class="panel"><div class="lbl">시정조치 현황</div><div class="tiles">${acts.map(([s, n]) => `<div class="tile"><div class="v">${n}</div><div class="l">${s}</div></div>`).join('')}</div></section>
       <section class="panel"><div class="lbl">센터별 점검 이력</div><div class="tw"><table class="tb"><tr><th class="l">센터</th><th>점검일</th><th>유형</th><th>상태</th><th>적정</th><th>미흡</th><th>확인필요</th><th>조치 완료</th></tr>
-        ${Object.entries(hist).sort().map(([c, is]) => is.sort((a, b) => String(a.date).localeCompare(String(b.date))).map((i, k) => { const r = E.evaluate(i); const done = Object.values(i.actions || {}).filter(a => a.case && a.status === '조치 완료').length;
+        ${Object.entries(hist).sort().map(([c, is]) => is.sort((a, b) => String(a.date).localeCompare(String(b.date))).map((i, k) => { const r = E.evaluate(i); const done = Object.values(i.actions || {}).filter(a => a.case && E.actSt(a) === '조치 완료').length;
           return `<tr><td class="l">${k ? '' : esc(c)}</td><td><a href="#/r/${i.id}">${esc(fmtDate(i.date))}</a></td><td>${esc(typeName(i.type))}</td><td>${statusName(i.status)}</td><td>${r.C}</td><td class="${r.N ? 'neg' : ''}">${r.N}</td><td>${r.U}</td><td>${done}/${r.N}</td></tr>`; }).join('')).join('')}</table></div></section>`
       : '<div class="empty">조건에 맞는 점검 기록이 없습니다. 대시보드는 실제 저장된 기록만 집계합니다.</div>'}`);
   }
@@ -588,7 +583,7 @@
       const rec = { id, schema: CFG.schema, type: s.type, sub: s.sub || '', op: s.op, region: s.region, visit: String(v).padStart(2, '0'), round, centerId: `${s.region}-${String(v).padStart(2, '0')}`, inspectorId: settings.inspectorId || '', date, status: 'draft',
         pre: {}, docs: {}, answers: {}, actions: {}, form: {}, formMemo: {}, opinion: '', prior: [], createdAt: now, updatedAt: now, configVersion: CFG.version };
       if (s.from) { const src = await store.get(s.from); if (src && src.type === s.type) { rec.pre = JSON.parse(JSON.stringify(src.pre || {})); ensureCases(src);
-        rec.prior = E.evaluate(src).deficiencies.map(d => { const ac = (src.actions || {})[d.item.id] || {}; return { id: d.item.id, t: d.item.t, case: ac.case || '', status: ac.status || '조치 전', from: src.id }; }); } }
+        rec.prior = E.evaluate(src).deficiencies.map(d => { const ac = (src.actions || {})[d.item.id] || {}; return { id: d.item.id, t: d.item.t, case: ac.case || '', status: E.actSt(ac), from: src.id }; }); } }
       await store.put(rec); cur = rec; newState = null; location.replace('#/pre/' + rec.id); return;
     }
     if (act === 'dup') { newState = null; const src = list.find(i => i.id === b.dataset.id); if (!src.region) { toast('이전 방식 번호의 점검은 후속 점검을 만들 수 없습니다. [+ 새 점검]을 쓰세요'); return; } newState = { type: src.type, sub: src.sub, op: src.op, region: src.region, visit: src.visit, date: today(), from: src.id }; go('/new/' + src.id); return; }
@@ -620,9 +615,9 @@
     if (act === 'acst' || act === 'fixF') {
       if (act === 'fixF') { fixF = b.dataset.v; return viewFix(cur && location.hash.includes('/fix/') ? cur.id : ''); }
       const r = await store.get(b.dataset.insp); r.actions = r.actions || {}; const ac = r.actions[b.dataset.item] = r.actions[b.dataset.item] || {};
-      ac.status = b.dataset.v; if (ac.status === '조치 완료' && !ac.date) ac.date = today(); r.updatedAt = new Date().toISOString(); await store.put(r);
-      if (cur && cur.id === r.id) cur = r; b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === ac.status)));
-      const d = b.closest('article').querySelector('[data-acdate]'); if (d && ac.date) d.value = ac.date; toast(`조치 상태: ${ac.status}`); return;
+      if (E.actSt(ac) === '조치 완료') { ac.status = '미조치'; delete ac.date; } else { ac.status = '조치 완료'; ac.date = today(); }
+      r.updatedAt = new Date().toISOString(); await store.put(r); if (cur && cur.id === r.id) cur = r;
+      const y = window.scrollY; await viewFix(location.hash.includes('/fix/') ? r.id : ''); window.scrollTo(0, y); toast(ac.status); return;
     }
     if (act === 'print') { try { window.print(); } catch (err) { toast('이 브라우저에서는 인쇄를 지원하지 않습니다'); } return; }
     if (act === 'exportAll') { await reload(); return exportRecs(list.filter(i => !i.sample), `center-inspection_backup_${today()}.json`); }
@@ -656,7 +651,6 @@
     if (t.dataset.dash !== undefined) { dashF[t.dataset.dash] = t.value; return viewDash(); }
     if (t.dataset.act2 === 'dashSample') { dashF.sample = t.checked; return viewDash(); }
     if (t.dataset.act2 === 'fixSample') { dashF.sample = t.checked; return viewFix(''); }
-    if (t.dataset.acdate) { const r = await store.get(t.dataset.insp); r.actions[t.dataset.acdate].date = t.value; r.updatedAt = new Date().toISOString(); await store.put(r); if (cur && cur.id === r.id) cur = r; return; }
     if (t.dataset.chk) { redrawItem(t.dataset.item); return; }
     if (t.dataset.pre) { return viewPreKeep(); }
     if (t.dataset.ans === 'etc' || t.dataset.ans === 'note') { redrawItem(t.dataset.item); return; }
@@ -669,10 +663,8 @@
       const pv = $('#n-prev'); if (pv) { const s = newState; pv.innerHTML = s.region && s.visit ? `점검 코드 <b>${esc(s.region)}-${esc(String(s.visit).padStart(2, '0'))}</b> · ${esc(E.period(s))}` : '지역과 방문번호를 넣으면 점검 코드가 만들어집니다(예: 충남-01)'; } return; }
     if (t.dataset.set) { settings[t.dataset.set] = t.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''); t.value = settings[t.dataset.set]; store.setMeta('settings', settings); return; }
     if (!cur) {
-      if (t.dataset.acmemo) { const r = await store.get(t.dataset.insp); r.actions[t.dataset.acmemo].memo = t.value; r.updatedAt = new Date().toISOString(); await store.put(r); }
       return;
     }
-    if (t.dataset.acmemo) { const r = cur.id === t.dataset.insp ? cur : await store.get(t.dataset.insp); r.actions[t.dataset.acmemo].memo = t.value; r.updatedAt = new Date().toISOString(); await store.put(JSON.parse(JSON.stringify(r))); return; }
     if (t.dataset.pre) { cur.pre = cur.pre || {}; const k = t.dataset.pre; if (t.dataset.ptype === 'text') cur.pre[k] = t.value; else { const v = t.value.replace(/[^\d.]/g, ''); if (v !== t.value) t.value = v; cur.pre[k] = v === '' ? '' : Number(v); }
       queueSave(); const b = E.budget(cur.pre); const s = $('#budsum'); if (s && b.all[0]) s.textContent = `집행률 ${b.rate}% · 센터운영비 편성 ${b.ratio}%`; return; }
     if (t.dataset.chk) { const a = ans(t.dataset.item); a.checks = a.checks || {}; const v = t.value.replace(/[^\d.]/g, ''); if (v !== t.value) t.value = v; a.checks[t.dataset.chk] = v === '' ? '' : Number(v); queueSave(); return; }

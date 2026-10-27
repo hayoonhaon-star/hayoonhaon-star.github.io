@@ -238,3 +238,12 @@ textarea{resize:vertical;line-height:1.5}
 .lgres{margin-top:8px;font-size:14px}.lgres>div{margin:3px 0}
 .lgres .vk{margin-right:6px}
 td.chg{color:#175CD3;font-weight:600}
+
+.fxg{padding:10px 12px}
+.fxrow{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-top:1px solid #E6ECF3}
+.fxg .fxrow:first-of-type{border-top:0}
+.fxrow details{flex:1;min-width:0}.fxrow summary{cursor:pointer;line-height:1.45}.fxrow details>div{margin-top:4px}
+.fxrow.done summary{color:#667085}
+.fxbtn{flex:none;min-width:92px;min-height:40px;border-radius:10px;border:1px solid #1F3A5F;background:#fff;color:#1F3A5F;font-weight:700;font-size:13px;padding:4px 8px}
+.fxbtn.on{background:#067647;border-color:#067647;color:#fff}.fxbtn small{display:block;font-weight:500;font-size:11px}
+.fxbtn.off{border-color:#D0D5DD;color:#98A2B3;font-weight:500;display:flex;align-items:center;justify-content:center;text-align:center}

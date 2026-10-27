@@ -29,7 +29,7 @@ CI.report = (function () {
     const catRows = r.byCat.map(c => `<tr><td class="l">${esc(c.name)}</td><td>${c.total}</td><td>${c.C}</td><td class="${c.N ? 'neg' : ''}">${c.N}</td><td class="${c.U ? 'unv' : ''}">${c.U}</td><td>${c.NA}</td></tr>`).join('');
     const defs = r.deficiencies.length ? `<table class="items"><tr><th style="width:15%">항목</th><th>미흡 사유</th><th>현장 확인 내용</th></tr>${r.deficiencies.map(d => `<tr><td>${esc(d.item.id)}<br><span class="sm">${esc(d.item.t)}</span>${d.item.crit ? '<br><b class="sm" style="color:#B42318">[중대]</b>' : ''}</td><td class="l">${esc(d.labels.join(', '))}${(d.a.reasons || []).includes('ETC') && d.a.etc ? `<br><span class="sm">기타: ${esc(d.a.etc)}</span>` : ''}</td><td class="l">${esc(d.a.note || '')}</td></tr>`).join('')}</table>` : '<p class="none">미흡 사항 없음</p>';
     const vers = r.verifies.length || viol.length ? `<ol class="fl">${r.verifies.map(x => `<li>${esc(x.item.id)} ${esc(x.item.t)}${x.a.note ? ' — ' + esc(x.a.note) : ''}<span class="src">[현장 확인필요]</span></li>`).join('')}${viol.map(x => `<li>${esc(x.item.id)} ${esc(x.text)}<span class="src">[${esc(x.ref)} · ${x.kind === 'inconsistent' ? '판정 불일치' : '기준 위반(수치 확인)'}]</span></li>`).join('')}</ol>` : '<p class="none">해당 없음</p>';
-    const follow = r.deficiencies.length ? `<table><tr><th style="width:15%">항목</th><th>후속 조치</th><th style="width:14%">조치 상태</th></tr>${r.deficiencies.map(d => { const ac = (insp.actions || {})[d.item.id] || {}; return `<tr><td>${esc(d.item.id)}</td><td class="l">${esc(d.item.fu || '')}${ac.case ? `<br><span class="sm">사례번호 ${esc(ac.case)}</span>` : ''}</td><td>${esc(ac.status || '조치 전')}</td></tr>`; }).join('')}</table>` : '<p class="none">해당 없음</p>';
+    const follow = r.deficiencies.length ? `<table><tr><th style="width:15%">항목</th><th>후속 조치</th><th style="width:14%">조치 상태</th></tr>${r.deficiencies.map(d => { const ac = (insp.actions || {})[d.item.id] || {}; return `<tr><td>${esc(d.item.id)}</td><td class="l">${esc(d.item.fu || '')}</td><td>${esc(E().actSt(ac))}</td></tr>`; }).join('')}</table>` : '<p class="none">해당 없음</p>';
     return `<section class="rp">${head(insp, '농촌인력중개센터 운영실태 점검 결과 보고서')}
       <h2>1. 점검 개요</h2>
       <table class="meta"><tr><th>점검 근거</th><td class="l" colspan="3">${esc(C().plan.title)}</td></tr>
@@ -46,7 +46,7 @@ CI.report = (function () {
       <h2>5. 종합 의견</h2>${insp.opinion ? pre(insp.opinion) : '<p class="none">(미작성)</p>'}
       <h2>6. 후속 관리</h2>${follow}
       ${sign()}
-      <p class="foot">※ 기준: ${esc(C().source.title)}. 미흡 사유·권고 문안은 운영 참고 분류이며 법령 위반·행정처분 판단이 아님. [행정 확인 필요] 항목은 시행지침에 세부 기준이 없어 점검자 판단으로 기록함.</p>
+      <p class="foot">※ 기준: ${esc(C().source.title)}. 미흡 사유는 운영 참고 분류이며 법령 위반·행정처분 판단이 아님. [행정 확인 필요] 항목은 시행지침에 세부 기준이 없어 점검자 판단으로 기록함.</p>
     </section>`;
   }
 
@@ -66,7 +66,7 @@ CI.report = (function () {
   function fix(insp) {
     const r = E().evaluate(insp);
     const rows = r.deficiencies.map(d => { const ac = (insp.actions || {})[d.item.id] || {};
-      return `<tr><td class="l"><b>${esc(d.item.id)}</b> ${esc(d.item.t)}<br><span class="sm">${esc(C().source.short)} ${esc(d.item.ref)}</span></td><td class="l">${esc(d.labels.join(', '))}<br><span class="sm">${esc(d.a.note || '')}</span></td><td class="l">${esc(d.item.fu || '')}</td><td>${esc(ac.status || '조치 전')}${ac.date ? '<br>' + esc(fmtDate(ac.date)) : ''}</td></tr>`; }).join('');
+      return `<tr><td class="l"><b>${esc(d.item.id)}</b> ${esc(d.item.t)}<br><span class="sm">${esc(C().source.short)} ${esc(d.item.ref)}</span></td><td class="l">${esc(d.labels.join(', '))}<br><span class="sm">${esc(d.a.note || '')}</span></td><td class="l">${esc(d.item.fu || '')}</td><td>${esc(E().actSt(ac))}${E().actSt(ac) === '조치 완료' && ac.date ? '<br>' + esc(fmtDate(ac.date)) : ''}</td></tr>`; }).join('');
     return `<section class="rp">${head(insp, '시정조치 요청서')}
       <p>운영실태 점검 결과 아래 사항에 대해 시정조치를 요청하며, 조치 결과를 증빙과 함께 제출하여 주시기 바람.</p>
       ${r.deficiencies.length ? `<table class="items"><tr><th style="width:24%">점검 항목</th><th>미흡 사유·확인 내용</th><th style="width:22%">후속 조치</th><th style="width:11%">조치 상태</th></tr>${rows}</table>` : '<p class="none">시정조치 요청 사항 없음</p>'}

@@ -250,5 +250,6 @@ CI.engine = (function () {
   const code = i => i.region ? `${i.region}-${pad2(i.visit)}${i.round > 1 ? ` (${i.round}차)` : ''}` : (i.centerId || '');
   const period = i => `${String(i.date || '').slice(0, 4)} ${half(i.date) === 1 ? '상반기' : '하반기'}`;
 
-  return { REGIONS, regionKey, half, makeId, code, period, type, items, item, reasons, resultLabel, stdText, autoRec, deficiencyGaps, itemDone, budget, BROWS, ruleFindings, ledgerDefs, ledgerRow, ledgerFindings, ledgerSummary, allFindings, autoReasons, autoNote, validate, evaluate, reasonLabels, canComplete, formSuggest, opinionDraft, num, won };
+  const actSt = ac => ac && ac.status === '조치 완료' ? '조치 완료' : '미조치';
+  return { actSt, REGIONS, regionKey, half, makeId, code, period, type, items, item, reasons, resultLabel, stdText, autoRec, deficiencyGaps, itemDone, budget, BROWS, ruleFindings, ledgerDefs, ledgerRow, ledgerFindings, ledgerSummary, allFindings, autoReasons, autoNote, validate, evaluate, reasonLabels, canComplete, formSuggest, opinionDraft, num, won };
 })();

@@ -4,7 +4,7 @@
  * - 점검 기록은 캐시하지 않으며(IndexedDB 별도 보관) 외부 주소로 요청을 보내지 않습니다.
  * - 앱 파일을 수정해 배포할 때는 CACHE 값을 올려야 기존 기기에 새 버전이 반영됩니다.
  */
-const CACHE = 'ci-v1.1.2';
+const CACHE = 'ci-v1.1.3';
 const FILES = [
   './', './index.html', './manifest.webmanifest',
   './css/app.css', './css/print.css',

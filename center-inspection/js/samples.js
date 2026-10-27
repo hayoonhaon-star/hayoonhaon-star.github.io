@@ -25,7 +25,7 @@ CI.samples = function () {
       'A5-01': C, 'A5-02': C, 'A5-03': C, 'A5-04': { status: 'N', reasons: ['FEE-TRANS'], note: '- 표본 1(교통비(참여자)): 교통비(30㎞ 미만) 1일 15,000원 — 기준 10,000원 이하, 초과 60,000원(5,000원×12)', rec: '- 교통비 초과 지급액 확인 및 환수 여부 검토' }, 'A5-05': C, 'A5-06': C, 'A5-07': C,
       'A6-01': C, 'A6-02': C, 'A6-03': C
     },
-    actions: { 'A1-04': { case: 'auto', status: '조치 완료', date: `${y}-11-28` }, 'A2-02': { case: 'auto', status: '조치 중' }, 'A5-04': { case: 'auto', status: '조치 전' } },
+    actions: { 'A1-04': { case: 'auto', status: '조치 완료', date: `${y}-11-28` }, 'A2-02': { case: 'auto', status: '미조치' }, 'A5-04': { case: 'auto', status: '미조치' } },
     form: { plan: '보통', fund: '보통', match: '양호', staff: '보통', will: '양호' },
     ledger: [
       { k: 'TRANS', dist: '30㎞ 미만', unit: 15000, qty: 12, proofs: { enara: true, voucher: true, ledger5: true }, flags: {} },
@@ -51,7 +51,7 @@ CI.samples = function () {
       'B4-01': C, 'B4-02': C, 'B4-03': C, 'B4-04': C, 'B4-05': C, 'B5-01': C, 'B5-02': C, 'B5-03': { status: 'NA' },
       'B6-01': { status: 'C', checks: { room: 3.2 }, dorm: {} }, 'B6-02': { status: 'C', checks: { feeMode: '숙식 모두', ord: 2156880, fee: 400000 } }
     },
-    actions: { 'B3-06': { case: 'auto', status: '조치 중' } },
+    actions: { 'B3-06': { case: 'auto', status: '미조치' } },
     form: { plan: '양호', fund: '양호', worker: '보통', staff: '양호', dorm: '양호', will: '양호' }
   });
   return [a1, a2, b1];
