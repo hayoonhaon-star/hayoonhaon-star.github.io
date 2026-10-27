@@ -82,6 +82,7 @@
       if (p === 'dash') return viewDash();
       if (p === 'guide') return viewGuide(a || 'A');
       if (p === 'settings') return viewSettings();
+      if (p === 'demo') { await startDemo(); history.replaceState(null, '', '#/'); return viewHome(); }
       if (p !== 'new') newState = null;
       return viewHome();
     } catch (err) { console.error(err); render(`<div class="alert crit">화면을 여는 중 오류가 발생했습니다. 처음 화면으로 돌아가 다시 시도하세요.</div>`); }
@@ -103,14 +104,15 @@
   /* ---------------- 처음 화면 ---------------- */
   async function viewHome() {
     cur = null; await reload();
-    const real = list.filter(i => !i.sample);
+    const onlySmp = list.length > 0 && list.every(i => i.sample), real = onlySmp ? list : list.filter(i => !i.sample);
     const drafts = real.filter(i => i.status !== 'done'), done = real.filter(i => i.status === 'done');
     const defs = real.reduce((t, i) => t + E.evaluate(i).N, 0);
     const openAct = real.reduce((t, i) => t + Object.values(i.actions || {}).filter(a => a.case && a.status !== '조치 완료').length, 0);
     render(`
       <section class="hero"><h2>농촌인력중개센터 운영실태 현장점검</h2><p>${esc(CFG.plan.title)} · 기준: ${esc(CFG.source.title)}</p></section>
       ${storeWarn()}
-      <div class="tiles t5"><div class="tile"><div class="v">${real.length}</div><div class="l">전체 점검</div></div><div class="tile"><div class="v">${drafts.length}</div><div class="l">작성 중</div></div><div class="tile"><div class="v">${done.length}</div><div class="l">완료</div></div><div class="tile c"><div class="v">${defs}</div><div class="l">미흡 항목</div></div><div class="tile w"><div class="v">${openAct}</div><div class="l">조치 미완료</div></div></div>
+      ${demoBox()}
+      <div class="tiles t5"><div class="tile"><div class="v">${real.length}</div><div class="l">전체 점검${onlySmp ? '(예시)' : ''}</div></div><div class="tile"><div class="v">${drafts.length}</div><div class="l">작성 중</div></div><div class="tile"><div class="v">${done.length}</div><div class="l">완료</div></div><div class="tile c"><div class="v">${defs}</div><div class="l">미흡 항목</div></div><div class="tile w"><div class="v">${openAct}</div><div class="l">조치 미완료</div></div></div>
       <nav class="menu">
         <a class="mi primary" href="#/manage"><b>1. 점검관리</b><span>새 점검 · 이어서 작성 · 복제 · 지난 점검</span></a>
         <a class="mi" href="#/pick/pre"><b>2. 사전점검</b><span>사전자료 접수 확인 · 사전제출 엑셀 불러오기</span></a>
@@ -122,6 +124,27 @@
         <a class="mi" href="#/settings"><b>설정·백업</b><span>백업 내보내기·복원 · 예시 · 보안 안내</span></a>
       </nav>
       <div class="alert storenote"><b>기록은 이 기기에만 저장됩니다</b>브라우저 데이터 삭제, 앱 삭제, 기기 초기화 시 기록이 사라질 수 있습니다. 점검을 마치면 [설정·백업]에서 백업 파일을 내보내 원 내부 공유폴더에 보관하십시오.</div>`);
+  }
+  let demoSet = false;
+  function demoAuto() { if (!demoSet && list.length && list.every(i => i.sample)) { dashF.sample = true; demoSet = true; } }
+  async function startDemo() {
+    for (const r of CI.samples()) await store.put(r);
+    dashF.sample = true; await reload(); toast('시연용 예시 3건을 불러왔습니다');
+  }
+  function demoBox() {
+    const smp = list.filter(i => i.sample);
+    if (!smp.length) return `<section class="demo"><b>처음 써 보시나요?</b><p>가상 관리번호로 만든 예시 점검 3건(완료 2건, 작성 중 1건)을 불러와 전체 흐름을 바로 볼 수 있습니다. 실제 기록과 섞이지 않으며 언제든 삭제할 수 있습니다.</p><button class="btn primary" data-act="demo">시연 시작</button></section>`;
+    const id = n => (smp.find(i => i.id.endsWith('-' + n)) || {}).id;
+    const a1 = id(901), a2 = id(902), b1 = id(903);
+    const links = [
+      a2 && [`#/i/${a2}`, '현장점검 입력', '작성 중인 농촌형 점검(CENTER-902)'],
+      a1 && [`#/r/${a1}`, '자동 검증·결과', '완료된 농촌형 점검(CENTER-901)'],
+      a1 && [`#/p/${a1}/sum`, '결과 보고서', 'A4 출력·PDF 저장 화면'],
+      b1 && [`#/p/${b1}/form`, '현장점검표', '공공형 붙임 3 양식(CENTER-903)'],
+      ['#/fix', '시정조치', '미흡 사례 조치 상태'],
+      ['#/dash', '대시보드', '예시 포함 집계']].filter(Boolean);
+    return `<section class="demo on"><div class="demohd"><b>시연 중 · 예시 ${smp.length}건</b><button class="btn sm" data-act="demoEnd">시연 종료(예시 삭제)</button></div>
+      <div class="demogrid">${links.map(([h, t, d]) => `<a href="${h}"><b>${t}</b><span>${d}</span></a>`).join('')}</div></section>`;
   }
   function storeWarn() {
     if (store.kind === 'indexeddb') return '';
@@ -291,7 +314,7 @@
   async function viewFix(id) {
     await reload();
     let recs;
-    if (id) { if (!(await load(id))) return; recs = [cur]; } else { cur = null; recs = list.filter(i => !i.sample || dashF.sample); }
+    if (id) { if (!(await load(id))) return; recs = [cur]; } else { cur = null; demoAuto(); recs = list.filter(i => !i.sample || dashF.sample); }
     const rows = [];
     recs.forEach(insp => { ensureCases(insp); E.evaluate(insp).deficiencies.forEach(d => { const ac = (insp.actions || {})[d.item.id] || { status: '조치 전' }; rows.push({ insp, d, ac }); }); });
     const shown = rows.filter(x => !fixF || (x.ac.status || '조치 전') === fixF);
@@ -356,7 +379,7 @@
 
   /* ---------------- 6. 대시보드 ---------------- */
   async function viewDash() {
-    cur = null; await reload();
+    cur = null; await reload(); demoAuto();
     const yearOf = i => String(i.date || '').slice(0, 4);
     const base = list.filter(i => dashF.sample || !i.sample);
     const years = [...new Set(base.map(yearOf))].filter(Boolean).sort().reverse(), centers = [...new Set(base.map(i => i.centerId))].sort();
@@ -530,7 +553,9 @@
     if (act === 'exportDone') { await reload(); return exportRecs(list.filter(i => !i.sample && i.status === 'done'), `center-inspection_done_${today()}.json`); }
     if (act === 'exportOne') return exportRecs([cur], `${cur.id}_${cur.centerId}.json`);
     if (act === 'forceExport') { $('#sheet').innerHTML = ''; if (pendingExport) downloadJson(pendingExport.name, pendingExport.payload); pendingExport = null; return; }
-    if (act === 'sample') { for (const r of CI.samples()) await store.put(r); toast('예시 3건을 추가했습니다'); return viewSettings(); }
+    if (act === 'demo') { await startDemo(); return viewHome(); }
+    if (act === 'demoEnd') { await reload(); for (const r of list.filter(i => i.sample)) await store.remove(r.id); dashF.sample = false; toast('예시를 삭제했습니다'); return viewHome(); }
+    if (act === 'sample') { dashF.sample = true; for (const r of CI.samples()) await store.put(r); toast('예시 3건을 추가했습니다'); return viewSettings(); }
     if (act === 'delSample') { await reload(); for (const r of list.filter(i => i.sample)) await store.remove(r.id); toast('예시를 삭제했습니다'); return viewSettings(); }
     if (act === 'askWipe') { $('#wipe').innerHTML = `<div class="alert crit">저장된 점검 ${list.length}건이 모두 삭제되며 되돌릴 수 없습니다. 먼저 백업 파일을 내보내십시오.<div class="row"><button class="btn" data-act="noWipe">취소</button><button class="btn danger" data-act="doWipe">모두 삭제</button></div></div>`; return; }
     if (act === 'noWipe') return viewSettings();
