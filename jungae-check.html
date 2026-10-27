@@ -201,21 +201,31 @@ label.btn{cursor:pointer;text-align:center}
 @media (max-width:380px){.fields{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,1fr)}}
 @media (prefers-reduced-motion:no-preference){.btn,.chip,.jb,.li{transition:background-color .12s,border-color .12s}}
 .std-tag{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:0 6px}
+.chg{display:block;font-size:11px;color:var(--q);margin-top:3px}
 .brow{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
-.brow:first-of-type{border-top:0}
 .brow-h{display:flex;justify-content:space-between;align-items:center}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:1}
-.gb{min-height:54px;border-radius:12px;border:2px solid var(--line);background:var(--surface);font-weight:600;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.15}
-.gb small{font-size:10px;font-weight:700;color:var(--accent);border:1px dashed var(--accent);border-radius:5px;padding:0 4px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.gb{min-height:54px;border-radius:12px;border:2px solid var(--line);background:var(--surface);font-weight:600;font-size:13px}
 .gb[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.gb[aria-pressed="true"] small{color:var(--accent-ink);border-color:var(--accent-ink)}
 .dorm-row{display:flex;flex-direction:column;gap:6px;padding:8px 0;border-top:1px dashed var(--line);font-size:14px}
-.dorm-row .fld label{display:none}
-.rep .pre{white-space:pre-wrap}
-.rep table{margin-bottom:8px}
+.dorm-row .fld>label{display:none}
 .w.ok-msg{background:var(--ok-soft);color:var(--ok)} .w.ok-msg .tag{background:var(--ok);color:var(--surface)}
 .dock .btn.sm{flex:0 0 96px}
+label.btn{cursor:pointer;text-align:center}
+.gchip{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:5px;margin:1px 2px 1px 0;background:var(--sunk);color:var(--muted)}
+.gchip.ok,.sw.ok,.stack-bar i.ok{background:var(--ok-soft);color:var(--ok)} .gchip.acc,.sw.acc,.stack-bar i.acc{background:var(--q-soft);color:var(--q)}
+.gchip.warn,.sw.warn,.stack-bar i.warn{background:var(--warn-soft);color:var(--warn)} .gchip.crit,.sw.crit,.stack-bar i.crit{background:var(--crit-soft);color:var(--crit)}
+.stack-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--sunk)}
+.stack-bar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)} .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.hbar{display:grid;grid-template-columns:1fr 90px 44px;gap:8px;align-items:center;font-size:13px}
+.hbar i{display:block;height:10px;border-radius:5px;background:var(--warn)} .hbar b{text-align:right;font-variant-numeric:tabular-nums}
+.paper{background:#fff;color:#000;border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto}
+.paper .form{min-width:560px}
+.rep td small{display:block;color:var(--muted);font-size:11px}
+@media print{.no-print,.bar,.dock{display:none!important}.wrap{padding:0!important;max-width:none}.paper{border:0;padding:0}body{background:#fff}}
 </style>
+<style id="formcss"></style>
 </head>
 <body>
 <div id="app"></div>
@@ -225,65 +235,54 @@ label.btn{cursor:pointer;text-align:center}
 'use strict';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num = v => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
-const fmt = n => n == null ? '-' : Number(n).toLocaleString('ko-KR');
+const fmt = n => n == null ? '' : Number(n).toLocaleString('ko-KR');
 const r1 = x => Math.round(x * 10) / 10;
 const pct = (a,b) => (a!=null && b) ? r1(a/b*100) : null;
 
 /* ── 기준치 (’26년 농촌인력중개센터 시행지침, 2026. 9.) ── */
-const STD = {
-  ratioCenter: 40, ratioCenterSido: 60,          // 센터운영비 편성 상한(%) p.9
-  eduUnit: 20000, eduDays: 3, eduDaySum: 100000, // 신규 구직자 교육비 p.8
-  transNear: 10000, transFar: 20000, transFarm: 20000, // 교통비 p.8
-  lodge: 30000, lodgeDays: 3,                    // 숙박비 p.8
-  snack: 5000, lead: 10000,                      // 간식비 p.8, 작업반장 p.9·26
-  durable: 500000,                               // 내구성물품 p.10
-  posts: 2, teamMin: 3,                          // 플랫폼 공고 월 2회, 작업반 3명 p.6
-  pubRateCut: 30, pubRateCut2: 50,               // 공공형 집행률 p.14
-  wage: 10320, econ: 30, feeAll: 20, feeRoom: 15, room: 2.5, leadPer: 10 // 공공형 p.22~24
-};
+const STD = { ratioCenter:40, ratioCenterSido:60, eduUnit:20000, eduDays:3, transNear:10000, transFar:20000, lodge:30000, snack:5000, lead:10000,
+  posts:2, teamMin:3, pubRateCut:30, pubRateCut2:50, wage:10320, econ:30, feeAll:20, feeRoom:15, room:2.5, leadPer:10 };
 const STD_ROWS = [
-  ['센터 전담인력 1명 이상 + 지원인력 1명 이상','p.20'],
-  ['센터운영비 편성 40% 이하(시도형 60%)','p.9'],
-  ['교통비 1일 30km 미만 10천원·이상 20천원','p.8'],
-  ['숙박비 1박 30천원(관외·3일 연속)','p.8'],
-  ['간식비 1일 5천원, 작업반장 수당 1일 10천원','p.8~9'],
-  ['신규 구직자 교육비 1인 1일 20천원·최대 3일·일 100천원','p.8'],
-  ['내구성물품(50만원 이상)·토지·건물 구입 불가','p.10'],
-  ['플랫폼 구인공고 월 2회 이상, 영농작업반 3명 이상','p.6'],
-  ['(공공형) 최저시급 10,320원, 숙식비 통상임금 20%(숙소만 15%)','p.22~23'],
-  ['(공공형) 경제사업장 노동 30% 이하, 침실 1인당 2.5㎡ 이상','p.22~23'],
-  ['(공공형) 집행률 30% 미만 선정 제외 사유, 50% 미만 최대 20% 감액','p.14']
-];
-const BROWS = [
-  ['c1','센터운영비','인건비'],['c2','센터운영비','사업운영비'],['c3','센터운영비','홍보비'],['c4','센터운영비','기타'],
-  ['h1','인력운영비','교육비'],['h2','인력운영비','농작업 참여비'],['h3','인력운영비','영농작업반장수당'],['h4','인력운영비','기타']
-];
+  ['센터 전담인력 1명 이상 + 지원인력 1명 이상','p.20'],['센터운영비 편성 40% 이하(시도형 60%)','p.9'],
+  ['국비 50%·지방비 50% 매칭','p.2'],['교통비 1일 30km 미만 10천원·이상 20천원','p.8'],['숙박비 1박 30천원(관외·3일 연속)','p.8'],
+  ['간식비 1일 5천원, 작업반장 수당 1일 10천원','p.8~9'],['신규 구직자 교육비 1인 1일 20천원·최대 3일','p.8'],
+  ['내구성물품(50만원 이상)·토지·건물 구입 불가','p.10'],['플랫폼 구인공고 월 2회 이상, 영농작업반 3명 이상','p.6'],
+  ['(공공형) 최저시급 10,320원, 숙식비 통상임금 20%(숙소만 15%)','p.22~23'],['(공공형) 경제사업장 노동 30% 이하, 침실 1인당 2.5㎡ 이상','p.22~23'],
+  ['(공공형) 집행률 30% 미만 선정 제외 사유, 50% 미만 최대 20% 감액','p.14']];
+const BROWS = [['c1','센터운영비','인건비'],['c2','센터운영비','사업운영비'],['c3','센터운영비','홍보비'],['c4','센터운영비','기타'],
+  ['h1','인력운영비','교육비'],['h2','인력운영비','농작업 참여비'],['h3','인력운영비','영농작업반장수당'],['h4','인력운영비','기타']];
 const CATS = {
-  rural: [['plan','사업계획서 준수 여부','실적관리자료 등 확인'],['fund','지원 자금 사용의 적절성','집행 증빙자료 등 확인'],['match','중개실적 관리현황','사업계획서 등 확인'],['staff','전담인력 복무현황','근로계약서, 출장비서류 등 확인'],['will','센터장의 사업추진 의지','']],
-  public:[['plan','사업계획서 준수 여부','실적관리자료 등 확인'],['fund','지원 자금 사용의 적절성','집행 증빙자료 등 확인'],['worker','계절노동자 관리현황','계약서, 임금명세서 교부 등'],['staff','전담인력 복무현황','출장비 서류 등 확인'],['dorm','공동 숙식시설 관리현황','참고 점검표 활용'],['will','센터장의 사업추진 의지','']]
+  rural: [['plan','사업계획서 준수 여부','예) 실적관리자료 등 확인'],['fund','지원 자금 사용의 적절성','예) 집행 증빙자료 등 확인'],['match','중개실적 관리현황','예) 사업계획서 등 확인'],['staff','전담인력 복무현황','예) 근로계약서, 출장비서류 등 확인'],['will','센터장의 사업추진 의지','']],
+  public:[['plan','사업계획서 준수 여부','예) 실적관리자료 등 확인'],['fund','지원 자금 사용의 적절성','예) 집행 증빙자료 등 확인'],['worker','계절노동자 관리현황','예) 계약서, 임금명세서 교부 등'],['staff','전담인력 복무현황','예) 출장비 서류 등 확인'],['dorm','공동 숙식시설 관리현황','참고 점검표 활용'],['will','센터장의 사업추진 의지','']]
 };
 const GRADES = ['양호','보통','미흡','매우 미흡'];
-const DORM = ['부적합 주거시설 여부(비닐하우스·컨테이너·창고 개조 등)','주거 시설물 종류','냉·난방 설비 유무','온수 샤워시설 유무','숙소 내부 잠금장치 설치 유무','침구류 및 식기류 비치','화재용 소화기 및 화재감지기 설치','숙식비 금액 과다 징수 여부','작업장과의 거리 적정성','관리자 유무(지방정부 단체숙소 제공 시)','기타 편의 물품 또는 시설'];
+const DORM = ['부적합 주거시설 여부(비닐하우스, 컨테이너, 창고 개조 등)','주거 시설물 종류(아파트, 단독주택, 다세대 주택, 마을회관 등)','냉·난방 설비 유무','온수 샤워시설 유무','숙소 내부에 잠금장치 설치 유무','침구류 및 식기류 비치','화재용 소화기 및 화재감지기 설치','숙식비 금액 과다 징수 여부','작업장과의 거리 적정성','관리자 유무(지방정부 단체숙소 제공 시)','기타 편의 물품 또는 시설'];
 
-/* ── 점검사항별 현장 입력(질문 + 입력칸) ── */
+/* ── 현황 입력칸 (사전제출 양식과 같은 코드) ── */
+const INFO = {
+  center: c => [{k:'staff',l:'전담인력 수',type:'num',u:'명',std:'≥ 1명'},...(c.type==='rural'?[{k:'support',l:'운영 지원인력',type:'num',u:'명',std:'≥ 1명'}]:[]),
+    {k:'hire',l:'채용형태',type:'seg',o:['계약직','내부직원']},{k:'period',l:'계약기간',type:'text',ph:'26.1.~12.'},
+    {k:'bud_total',l:'예산',type:'num',u:'백만원'},{k:'bud_nat',l:'국비',type:'num',u:'백만원'},{k:'bud_loc',l:'지방비',type:'num',u:'백만원',std:'≥ 국비'}],
+  progress: c => [{k:'base',l:'기준일',type:'text',ph:'26.10.31.'},{k:'farms',l:'지원농가 수',type:'num',u:'개'},
+    ...(c.type==='public'?[{k:'alloc',l:'배정인원',type:'num',u:'명'},{k:'intro',l:'도입인원',type:'num',u:'명'},{k:'escape',l:'이탈인원',type:'num',u:'명'},{k:'ended',l:'근무종료',type:'num',u:'명'},{k:'current',l:'근무현원',type:'num',u:'명'}]:[]),
+    {k:'match',l:'중개실적(연인원)',type:'num',u:'명'},{k:'trend',l:'인력수급 동향',type:'text'},{k:'wtrend',l:'인건비 동향',type:'text'}],
+  ops: c => [...(c.type==='rural'?[{k:'pool_total',l:'인력풀 총',type:'num',u:'명'},{k:'pool_in',l:'관내',type:'num',u:'명'},{k:'pool_out',l:'관외',type:'num',u:'명'}]:[]),
+    {k:'teams',l:'영농작업반',type:'num',u:'개 반'},{k:'team_people',l:'작업반 인원',type:'num',u:'명',std:c.type==='rural'?'반당 ≥ 3명':''},
+    ...(c.type==='public'?[{k:'interp',l:'통역지원자',type:'seg',o:['있음','없음']},{k:'interp_n',l:'통역지원자 인원',type:'num',u:'명'}]:[])]
+};
+/* ── 점검사항별 현장 확인 ── */
 const CAT_INPUTS = {
-  plan: { q:'사업계획서대로 인력을 갖추고 운영하고 있나요?', f:[
-    {k:'staff',l:'전담인력',type:'num',u:'명',std:()=>'기준 ≥ 1명'},
-    {k:'support',l:'운영 지원인력',type:'num',u:'명',std:()=>'기준 ≥ 1명',rural:1},
-    {k:'teams',l:'영농작업반',type:'num',u:'개 반'},
-    {k:'team_people',l:'작업반 전체 인원',type:'num',u:'명',std:c=>c&&c.type==='public'?'':'반당 ≥ 3명',rural:1},
-    {k:'current',l:'계절노동자 근무현원',type:'num',u:'명',std:()=>'반장 1명당 5~10명',pub:1},
-    {k:'posts',l:'플랫폼 구인공고 월 최소',type:'num',u:'회',std:()=>'기준 ≥ 2회',pub:1},
-    {k:'plan_ok',l:'사업계획서 대비 운영 실적',type:'seg',o:['계획대로','일부 미달','크게 미달']} ]},
-  fund: { q:'지급대장에서 몇 건 골라 단가를 확인할게요.', f:[
-    {k:'u_trans_dist',l:'교통비 표본: 거리 구간',type:'seg',o:['30km 미만','30km 이상','농가 수송'],rural:1},
-    {k:'u_trans',l:'교통비 1일 지급액',type:'num',u:'원',std:()=>'기준 10,000 / 20,000원',rural:1},
-    {k:'u_lodge',l:'숙박비 1박 지급액',type:'num',u:'원',std:()=>'기준 ≤ 30,000원',rural:1},
+  plan: { q:'사업계획서대로 운영하고 있는지 실적관리자료로 확인할게요.', f:[
+    {k:'plan_ok',l:'사업계획서 대비 운영 실적',type:'seg',o:['계획대로','일부 미달','크게 미달']},
+    {k:'posts',l:'플랫폼 구인공고 월 최소',type:'num',u:'회',std:'≥ 2회',pub:1} ]},
+  fund: { q:'지급대장에서 몇 건 골라 단가와 증빙을 확인할게요.', f:[
+    {k:'u_trans_dist',l:'교통비 표본 거리',type:'seg',o:['30km 미만','30km 이상','농가 수송'],rural:1},
+    {k:'u_trans',l:'교통비 1일',type:'num',u:'원',std:'10천/20천원',rural:1},
+    {k:'u_lodge',l:'숙박비 1박',type:'num',u:'원',std:'≤ 30,000',rural:1},
+    {k:'u_snack',l:'간식비 1일',type:'num',u:'원',std:'≤ 5,000',rural:1},
+    {k:'u_lead',l:'작업반장 수당 1일',type:'num',u:'원',std:'≤ 10,000'},
+    {k:'u_edu',l:'신규 구직자 교육비 1일',type:'num',u:'원',std:'≤ 20,000',rural:1},
     {k:'u_lodge_out',l:'숙박비 지급 대상',type:'seg',o:['관외·3일 이상 연속','조건 미충족 건 있음'],rural:1},
-    {k:'u_snack',l:'간식비 1일 지급액',type:'num',u:'원',std:()=>'기준 ≤ 5,000원',rural:1},
-    {k:'u_lead',l:'작업반장 수당 1일 지급액',type:'num',u:'원',std:()=>'기준 ≤ 10,000원'},
-    {k:'u_edu',l:'신규 구직자 교육비 1인 1일',type:'num',u:'원',std:()=>'기준 ≤ 20,000원',rural:1},
-    {k:'u_edu_days',l:'교육비 인당 지급일수',type:'num',u:'일',std:()=>'기준 ≤ 3일',rural:1},
     {k:'f_nh',l:'농협 직원 인건비를 전담인력 인건비로 집행',type:'chk'},
     {k:'f_durable',l:'50만원 이상 물품(내구성물품) 구입',type:'chk'},
     {k:'f_capital',l:'토지·건물 등 자본지출',type:'chk'},
@@ -291,389 +290,432 @@ const CAT_INPUTS = {
     {k:'f_dup',l:'같은 날 숙박비·교통비 중복 지급',type:'chk',rural:1},
     {k:'f_meet',l:'간담회 증빙(회의록·서명·사진) 누락',type:'chk'},
     {k:'f_farmcar',l:'농가 제공 교통편에 운송비 지원',type:'chk',pub:1} ]},
-  match: { q:'플랫폼 기록이랑 실제 중개 실적을 몇 건 맞춰볼게요.', f:[
-    {k:'posts',l:'플랫폼 구인공고 월 최소 게시',type:'num',u:'회',std:()=>'기준 ≥ 2회'},
-    {k:'smp_n',l:'대조한 표본 수',type:'num',u:'건'},
-    {k:'smp_ok',l:'플랫폼 기록과 일치한 건수',type:'num',u:'건'},
-    {k:'plat_in',l:'중개결과(매칭·작업일수) 플랫폼 입력',type:'seg',o:['입력','일부 누락','미입력']},
+  match: { q:'플랫폼 기록과 실제 중개 실적을 몇 건 맞춰볼게요.', f:[
+    {k:'posts',l:'플랫폼 구인공고 월 최소',type:'num',u:'회',std:'≥ 2회'},
+    {k:'smp_n',l:'대조한 표본',type:'num',u:'건'},{k:'smp_ok',l:'일치한 건',type:'num',u:'건'},
+    {k:'plat_in',l:'중개결과 플랫폼 입력',type:'seg',o:['입력','일부 누락','미입력']},
     {k:'consent',l:'참여 신청서·개인정보 동의서',type:'seg',o:['징구','일부 누락']} ]},
   staff: { q:'전담인력 근로계약서, 교육 이수증, 출장비 서류 볼게요.', f:[
     {k:'contract',l:'근로계약서',type:'seg',o:['확인','미확인']},
-    {k:'edu',l:'안전·인권·노무 교육 이수',type:'seg',o:['이수','일부 미이수','미이수']},
-    {k:'travel',l:'출장비 공무원 여비 기준 집행',type:'seg',o:['준수','일부 부적정']} ]},
+    {k:'edu',l:'안전·인권·노무 교육',type:'seg',o:['이수','일부 미이수','미이수']},
+    {k:'travel',l:'출장비 여비 기준',type:'seg',o:['준수','일부 부적정']} ]},
   worker: { q:'임금대장, 근로계약서, 식별지표 조사 자료 볼게요.', f:[
-    {k:'wage',l:'임금대장 표본 시급',type:'num',u:'원',std:()=>'기준 ≥ 10,320원'},
-    {k:'slip',l:'임금명세서 교부',type:'seg',o:['교부','미교부']},
-    {k:'econ',l:'경제사업장 노동 비율(최대)',type:'num',u:'%',std:()=>'기준 ≤ 30%'},
-    {k:'tip',l:'인신매매 식별지표 조사 제출',type:'seg',o:['제출','2개월 이내 미제출','2개월 경과 미제출']},
+    {k:'wage',l:'임금대장 표본 시급',type:'num',u:'원',std:'≥ 10,320'},
+    {k:'econ',l:'경제사업장 노동 비율',type:'num',u:'%',std:'≤ 30%'},
+    {k:'slip',l:'임금명세서',type:'seg',o:['교부','미교부']},
+    {k:'tip',l:'인신매매 식별지표 조사',type:'seg',o:['제출','2개월 이내 미제출','2개월 경과 미제출']},
     {k:'passport',l:'여권·통장 보관',type:'seg',o:['본인 보관','타인 보관 의심']},
     {k:'insure',l:'산재·건강보험',type:'seg',o:['가입','일부 미가입']} ]},
-  dorm: { q:'숙소를 직접 둘러보겠습니다.', f:[
-    {k:'fee_mode',l:'숙식비 제공 형태',type:'seg',o:['숙식 모두','숙소만']},
-    {k:'ord',l:'월 통상임금',type:'num',u:'원'},
-    {k:'fee',l:'월 숙식비 공제액',type:'num',u:'원',std:(c,v)=>v.fee_mode==='숙소만'?'기준 ≤ 통상임금 15%':'기준 ≤ 통상임금 20%'},
-    {k:'room',l:'침실 1인당 면적',type:'num',u:'㎡',std:()=>'기준 ≥ 2.5㎡'} ], dorm:1},
+  dorm: { q:'숙소를 직접 둘러보겠습니다.', dorm:1, f:[
+    {k:'ord',l:'월 통상임금',type:'num',u:'원'},{k:'fee',l:'월 숙식비 공제',type:'num',u:'원',std:'≤ 20%(숙소만 15%)'},
+    {k:'room',l:'침실 1인당 면적',type:'num',u:'㎡',std:'≥ 2.5㎡'},
+    {k:'fee_mode',l:'숙식비 제공 형태',type:'seg',o:['숙식 모두','숙소만']} ]},
   will: { q:'올해 운영하면서 가장 신경 쓴 부분은 무엇인가요?', f:[] }
 };
 
 /* ── 자동 점검 ── */
 function checks(c){
-  const v = S[c.id].v, out = [];
-  const add = (cat, lv, text, ref) => out.push({cat, lv, text, ref});
-  const pub = c.type==='public';
-  // 인력 요건
-  const st = num(v.staff), sp = num(v.support);
-  if(st!=null && st<1) add('plan','warn','전담인력이 없습니다(1명 이상 필요).','p.20');
-  if(!pub && sp!=null && sp<1) add('plan','warn','운영 지원인력이 없습니다(1명 이상 필요).','p.20');
-  // 예산
-  const bp=num(v.b_plan), be=num(v.b_exe), bc=num(v.b_center);
-  const lim = c.sub==='시도형'?STD.ratioCenterSido:STD.ratioCenter;
-  if(bp && bc!=null && bc/bp*100 > lim+0.05) add('plan','warn',`센터운영비 편성비율 ${r1(bc/bp*100)}% — 기준 ${lim}% 초과`,'p.9');
-  if(v.b_ev==='일부 미확인') add('fund','check','집행 증빙 일부 미확인','p.16');
-  if(pub && bp && be!=null){ const rate=be/bp*100; if(rate<STD.pubRateCut) add('fund','warn',`집행률 ${r1(rate)}% — 30% 미만(차년도 선정 제외 사유)`,'p.14'); else if(rate<STD.pubRateCut2) add('fund','warn',`집행률 ${r1(rate)}% — 50% 미만(차년도 최대 20% 감액 가능)`,'p.14'); }
-  // 단가
+  const v=S[c.id].v, out=[], pub=c.type==='public';
+  const add=(cat,lv,text,ref,step)=>out.push({cat,lv,text,ref,step});
+  const st=num(v.staff), sp=num(v.support);
+  if(st!=null && st<1) add('plan','warn','전담인력 없음(1명 이상 필요)','p.20','center');
+  if(!pub && sp!=null && sp<1) add('plan','warn','운영 지원인력 없음(1명 이상 필요)','p.20','center');
+  const bn=num(v.bud_nat), bl=num(v.bud_loc), bt=num(v.bud_total);
+  if(bn!=null && bl!=null && bl<bn) add('fund','warn',`지방비 ${fmt(bl)}백만원이 국비 ${fmt(bn)}백만원보다 적음`,'p.2','center');
+  if(bt!=null && bn!=null && bl!=null && Math.abs(bt-(bn+bl))>0.5) add('fund','check','예산이 국비+지방비 합계와 다름','','center');
+  const P=k=>num(v['p_'+k]), E=k=>num(v['e_'+k]);
+  const sumP=BROWS.reduce((t,[k])=>t+(P(k)||0),0), sumE=BROWS.reduce((t,[k])=>t+(E(k)||0),0);
+  const cenP=['c1','c2','c3','c4'].reduce((t,k)=>t+(P(k)||0),0);
+  const lim=c.sub==='시도형'?STD.ratioCenterSido:STD.ratioCenter;
+  if(sumP>0 && cenP/sumP*100>lim+0.05) add('plan','warn',`센터운영비 편성 ${r1(cenP/sumP*100)}% — 기준 ${lim}% 초과`,'p.9','budget');
+  if(bt && sumP>0 && Math.abs(bt*1000-sumP)>bt*10) add('fund','check',`세부항목 합계 ${fmt(sumP)}천원이 예산 ${fmt(bt*1000)}천원과 다름`,'','budget');
+  const noEv=BROWS.filter(([k])=>(E(k)||0)>0 && !v['ev_'+k]).map(([,g,n])=>n==='기타'?`기타(${g==='센터운영비'?'센터':'인력'})`:n);
+  if(noEv.length) add('fund','check',`증빙 미확인: ${noEv.join(', ')}`,'p.16','budget');
+  if(pub && ((P('h2')||0)>0||(E('h2')||0)>0)) add('fund','check','공공형 지침에 없는 농작업 참여비 집행','p.25','budget');
+  if(pub && sumP>0 && sumE>0){ const r=sumE/sumP*100; if(r<STD.pubRateCut) add('fund','warn',`집행률 ${r1(r)}% — 30% 미만(선정 제외 사유)`,'p.14','budget'); else if(r<STD.pubRateCut2) add('fund','warn',`집행률 ${r1(r)}% — 50% 미만(최대 20% 감액)`,'p.14','budget'); }
+  const tm=num(v.teams), tp=num(v.team_people);
+  if(!pub && tm && tp!=null && tp/tm<STD.teamMin) add('plan','warn',`영농작업반 평균 ${r1(tp/tm)}명 — 최소 3명 미달`,'p.6','ops');
+  if(pub && tm && num(v.current) && num(v.current)/tm>STD.leadPer) add('worker','check',`작업반장 1명당 ${r1(num(v.current)/tm)}명 — 5~10명당 1명 권장`,'p.24','ops');
+  if(pub && v.interp==='없음') add('worker','check','통역지원자 없음','p.25','ops');
+  // 점검사항
+  if(v.plan_ok==='일부 미달') add('plan','check','사업계획 대비 실적 일부 미달','','plan');
+  if(v.plan_ok==='크게 미달') add('plan','warn','사업계획 대비 실적 크게 미달','','plan');
   if(!pub){
-    const lim2 = v.u_trans_dist==='30km 미만'?STD.transNear:v.u_trans_dist?STD.transFar:null;
-    if(lim2 && num(v.u_trans)>lim2) add('fund','warn',`교통비 ${fmt(num(v.u_trans))}원 — 기준 ${fmt(lim2)}원 초과`,'p.8');
-    if(num(v.u_lodge)>STD.lodge) add('fund','warn',`숙박비 ${fmt(num(v.u_lodge))}원 — 기준 30,000원 초과`,'p.8');
-    if(v.u_lodge_out==='조건 미충족 건 있음') add('fund','warn','숙박비 지급 조건(관외·3일 이상 연속) 미충족 건','p.8');
-    if(num(v.u_snack)>STD.snack) add('fund','warn',`간식비 ${fmt(num(v.u_snack))}원 — 기준 5,000원 초과`,'p.8');
-    if(num(v.u_edu)>STD.eduUnit) add('fund','warn',`교육비 1인 1일 ${fmt(num(v.u_edu))}원 — 기준 20,000원 초과`,'p.8');
-    if(num(v.u_edu_days)>STD.eduDays) add('fund','warn',`교육비 지급 ${num(v.u_edu_days)}일 — 기준 3일 초과`,'p.8');
-    if(v.f_dup) add('fund','warn','숙박비·교통비 같은 날 중복 지급','p.8');
-  } else if(v.f_farmcar) add('fund','warn','농가 제공 교통편은 운송비 지원 제한','p.25');
-  if(num(v.u_lead)>STD.lead) add('fund','warn',`작업반장 수당 ${fmt(num(v.u_lead))}원 — 기준 10,000원 초과`,'p.9');
-  if(v.f_nh) add('fund','warn','농협 직원 인건비는 전담인력 인건비로 집행 불가','p.7');
-  if(v.f_durable) add('fund','warn','내구성물품(50만원 이상) 구입은 지원 불가','p.10');
-  if(v.f_capital) add('fund','crit','토지·건물 등 자본지출은 지원 불가','p.10');
-  if(v.f_change) add('fund','warn','사전승인 없는 예산 변경','p.9');
-  if(v.f_meet) add('fund','check','간담회 증빙(회의록·서명·사진) 보완 필요','p.10');
-  // 사업계획
-  if(v.plan_ok==='일부 미달') add('plan','check','사업계획 대비 운영 실적 일부 미달','');
-  if(v.plan_ok==='크게 미달') add('plan','warn','사업계획 대비 운영 실적 크게 미달','');
-  const tm = num(v.teams), tp = num(v.team_people);
-  if(!pub && tm && tp!=null && tp/tm < STD.teamMin) add('plan','warn',`영농작업반 평균 ${r1(tp/tm)}명 — 최소 3명 미달`,'p.6');
-  if(pub && tm && num(v.current) && num(v.current)/tm > STD.leadPer) add('worker','check',`작업반장 1명당 계절노동자 ${r1(num(v.current)/tm)}명 — 5~10명당 1명 권장`,'p.24');
-  // 중개실적
-  if(num(v.posts)!=null && num(v.posts)<STD.posts) add(pub?'plan':'match','warn',`플랫폼 구인공고 월 ${num(v.posts)}회 — 기준 2회 미달`,'p.6');
-  const sn = num(v.smp_n), so = num(v.smp_ok);
-  if(sn && so!=null && so<sn) add(pub?'plan':'match','warn',`표본 ${sn}건 중 ${sn-so}건 플랫폼 기록 불일치`,'p.6');
-  if(v.plat_in==='일부 누락') add(pub?'plan':'match','check','중개결과 플랫폼 입력 일부 누락','p.6');
-  if(v.plat_in==='미입력') add(pub?'plan':'match','warn','중개결과 플랫폼 미입력(입력 필수)','p.6');
-  if(v.consent==='일부 누락') add(pub?'plan':'match','check','참여 신청서·개인정보 동의서 일부 누락','p.44~47');
-  // 복무
-  if(v.contract==='미확인') add('staff','warn','전담인력 근로계약서 미확인','');
-  if(v.edu==='일부 미이수') add('staff','check','담당자 교육 일부 미이수','p.7');
-  if(v.edu==='미이수') add('staff','warn','담당자 교육 미이수','p.7');
-  if(v.travel==='일부 부적정') add('staff','warn','출장비 공무원 여비 기준 미준수','별표 5');
-  // 공공형
+    const l2=v.u_trans_dist==='30km 미만'?STD.transNear:v.u_trans_dist?STD.transFar:null;
+    if(l2 && num(v.u_trans)>l2) add('fund','warn',`교통비 ${fmt(num(v.u_trans))}원 — 기준 ${fmt(l2)}원 초과`,'p.8','fund');
+    if(num(v.u_lodge)>STD.lodge) add('fund','warn',`숙박비 ${fmt(num(v.u_lodge))}원 — 기준 30,000원 초과`,'p.8','fund');
+    if(v.u_lodge_out==='조건 미충족 건 있음') add('fund','warn','숙박비 지급 조건(관외·3일 연속) 미충족','p.8','fund');
+    if(num(v.u_snack)>STD.snack) add('fund','warn',`간식비 ${fmt(num(v.u_snack))}원 — 기준 5,000원 초과`,'p.8','fund');
+    if(num(v.u_edu)>STD.eduUnit) add('fund','warn',`교육비 ${fmt(num(v.u_edu))}원 — 기준 20,000원 초과`,'p.8','fund');
+    if(v.f_dup) add('fund','warn','숙박비·교통비 같은 날 중복 지급','p.8','fund');
+  } else if(v.f_farmcar) add('fund','warn','농가 제공 교통편 운송비 지원(제한 대상)','p.25','fund');
+  if(num(v.u_lead)>STD.lead) add('fund','warn',`작업반장 수당 ${fmt(num(v.u_lead))}원 — 기준 10,000원 초과`,'p.9','fund');
+  if(v.f_nh) add('fund','warn','농협 직원 인건비를 전담인력 인건비로 집행','p.7','fund');
+  if(v.f_durable) add('fund','warn','내구성물품(50만원 이상) 구입','p.10','fund');
+  if(v.f_capital) add('fund','crit','토지·건물 등 자본지출','p.10','fund');
+  if(v.f_change) add('fund','warn','사전승인 없는 예산 변경','p.9','fund');
+  if(v.f_meet) add('fund','check','간담회 증빙 보완 필요','p.10','fund');
+  const pc=pub?'plan':'match';
+  if(num(v.posts)!=null && num(v.posts)<STD.posts) add(pc,'warn',`플랫폼 구인공고 월 ${num(v.posts)}회 — 기준 2회 미달`,'p.6',pc);
+  const sn=num(v.smp_n), so=num(v.smp_ok);
+  if(sn && so!=null && so<sn) add('match','warn',`표본 ${sn}건 중 ${sn-so}건 플랫폼 기록 불일치`,'p.6','match');
+  if(v.plat_in==='일부 누락') add('match','check','중개결과 플랫폼 입력 일부 누락','p.6','match');
+  if(v.plat_in==='미입력') add('match','warn','중개결과 플랫폼 미입력(입력 필수)','p.6','match');
+  if(v.consent==='일부 누락') add('match','check','참여 신청서·개인정보 동의서 일부 누락','p.44~47','match');
+  if(v.contract==='미확인') add('staff','warn','전담인력 근로계약서 미확인','','staff');
+  if(v.edu==='일부 미이수') add('staff','check','담당자 교육 일부 미이수','p.7','staff');
+  if(v.edu==='미이수') add('staff','warn','담당자 교육 미이수','p.7','staff');
+  if(v.travel==='일부 부적정') add('staff','warn','출장비 여비 기준 미준수','별표 5','staff');
   if(pub){
-    if(num(v.wage)!=null && num(v.wage)<STD.wage) add('worker','crit',`시급 ${fmt(num(v.wage))}원 — 최저임금 10,320원 미만`,'p.22');
-    if(v.slip==='미교부') add('worker','warn','임금명세서 미교부','p.23');
-    if(num(v.econ)>STD.econ) add('worker','warn',`경제사업장 노동 ${num(v.econ)}% — 기준 30% 초과`,'p.22');
-    if(v.tip==='2개월 경과 미제출') add('worker','warn','인신매매 식별지표 조사 기한(채용 후 2개월) 경과','p.24');
-    if(v.passport==='타인 보관 의심') add('worker','crit','여권·통장 타인 보관 의심(형사처벌 대상)','p.24');
-    if(v.insure==='일부 미가입') add('worker','warn','산재·건강보험 일부 미가입','p.23');
-    const ord=num(v.ord), fee=num(v.fee);
-    if(ord && fee!=null){ const l=v.fee_mode==='숙소만'?STD.feeRoom:STD.feeAll; if(fee/ord*100>l) add('dorm','warn',`숙식비 공제 ${r1(fee/ord*100)}% — 기준 ${l}% 초과`,'p.23'); }
-    if(num(v.room)!=null && num(v.room)<STD.room) add('dorm','warn',`침실 1인당 ${num(v.room)}㎡ — 기준 2.5㎡ 미만`,'p.23');
-    DORM.forEach((t,i)=>{ if(i===1) return; if(v['d'+i]==='부적합') add('dorm', i===0?'crit':'warn', `숙소 점검: ${t} 부적합`, 'p.103'); });
-    const intro=num(v.intro), esc2=num(v.escape);
-    if(intro && esc2) add('worker','info',`이탈률 ${r1(esc2/intro*100)}% (이탈 ${esc2}명 / 도입 ${intro}명)`,'');
+    if(num(v.wage)!=null && num(v.wage)<STD.wage) add('worker','crit',`시급 ${fmt(num(v.wage))}원 — 최저임금 10,320원 미만`,'p.22','worker');
+    if(num(v.econ)>STD.econ) add('worker','warn',`경제사업장 노동 ${num(v.econ)}% — 기준 30% 초과`,'p.22','worker');
+    if(v.slip==='미교부') add('worker','warn','임금명세서 미교부','p.23','worker');
+    if(v.tip==='2개월 경과 미제출') add('worker','warn','식별지표 조사 기한(채용 후 2개월) 경과','p.24','worker');
+    if(v.passport==='타인 보관 의심') add('worker','crit','여권·통장 타인 보관 의심','p.24','worker');
+    if(v.insure==='일부 미가입') add('worker','warn','산재·건강보험 일부 미가입','p.23','worker');
+    const o=num(v.ord), f=num(v.fee);
+    if(o && f!=null){ const l=v.fee_mode==='숙소만'?STD.feeRoom:STD.feeAll; if(f/o*100>l) add('dorm','warn',`숙식비 공제 ${r1(f/o*100)}% — 기준 ${l}% 초과`,'p.23','dorm'); }
+    if(num(v.room)!=null && num(v.room)<STD.room) add('dorm','warn',`침실 1인당 ${num(v.room)}㎡ — 기준 2.5㎡ 미만`,'p.23','dorm');
+    DORM.forEach((t,i)=>{ if(i!==1 && v['d'+i]==='부적합') add('dorm',i===0?'crit':'warn',`숙소: ${t.replace(/\(.*\)/,'')} 부적합`,'p.103','dorm'); });
   }
   return out;
 }
-function suggest(list){
-  const x = list.filter(e=>e.lv!=='info');
-  if(x.some(e=>e.lv==='crit')) return '매우 미흡';
-  const w = x.filter(e=>e.lv==='warn').length, k = x.filter(e=>e.lv==='check').length;
-  if(w>=2) return '미흡';
-  if(w===1 || k>=2) return '보통';
-  return '양호';
-}
+function suggest(list){ const x=list.filter(e=>e.lv!=='info'); if(x.some(e=>e.lv==='crit')) return '매우 미흡';
+  const w=x.filter(e=>e.lv==='warn').length, k=x.filter(e=>e.lv==='check').length; if(w>=2) return '미흡'; if(w===1||k>=2) return '보통'; return '양호'; }
 function rateBand(r){ const B=[[95,15],[90,13.5],[85,12],[80,10.5],[70,9],[60,7.5],[50,6],[40,4.5],[30,3]]; const b=B.find(x=>r>=x[0]); return b?`${b[0]}% 이상 구간(${b[1]}점)`:'30% 미만 구간(1.5점)'; }
+function budgetCalc(c){ const v=S[c.id].v; const P=k=>num(v['p_'+k])||0, E=k=>num(v['e_'+k])||0;
+  const g=ks=>[ks.reduce((t,k)=>t+P(k),0), ks.reduce((t,k)=>t+E(k),0)]; const cen=g(['c1','c2','c3','c4']), hum=g(['h1','h2','h3','h4']);
+  return {cen, hum, all:[cen[0]+hum[0], cen[1]+hum[1]]}; }
 
 /* ── 상태 ── */
-const KEY = 'jc-check-v4';
-try{ localStorage.removeItem('jc-check-v2'); localStorage.removeItem('jc-inspect-v1'); }catch(e){}
-const EXAMPLES = [
- {id:'garam', name:'농촌형 예시-01', type:'rural', typeL:'농촌형', sub:'시군형', op:'농협', date:'11.17.(화)', prior:[{y:'’25',t:'사업계획서 준수 여부 미흡 — 영농작업반 인원 미달'}]},
- {id:'daon', name:'공공형 예시-01', type:'public', typeL:'공공형', sub:'', op:'농협', date:'11.19.(목)', prior:[]}
-];
-const blank = () => ({v:{}, g:{}, memo:{}, prior:{}, opinion:'', insp:{}, confirmed:false});
+const KEY='jc-check-v5';
+try{ ['jc-check-v2','jc-check-v3','jc-check-v4','jc-inspect-v1'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
+const blank=()=>({v:{}, pre:{}, g:{}, memo:{}, prior:{}, opinion:'', confirmed:false});
 function seed(){
-  const s = {__c: JSON.parse(JSON.stringify(EXAMPLES))};
-  EXAMPLES.forEach(c=>s[c.id]=blank());
-  Object.assign(s.garam.v, {b_plan:80000, b_exe:56100, b_center:32000, b_ev:'일부 미확인', staff:1, support:1, teams:6, team_people:15, u_trans_dist:'30km 미만', u_trans:15000});
-  Object.assign(s.daon.v, {b_plan:100000, b_exe:42000, b_center:38000, staff:1, teams:4, current:43});
+  const ex={id:'ex1', code:'예시-01', type:'rural', typeL:'농촌형', sub:'시군형', op:'농협', prior:[{y:'’25 상반기', t:'사업계획서 준수 여부 미흡 — 영농작업반 인원 미달'}]};
+  const ex2={id:'ex2', code:'예시-02', type:'public', typeL:'공공형', sub:'', op:'농협', prior:[]};
+  const s={__c:[ex,ex2], ex1:blank(), ex2:blank()};
+  const v1={staff:1,support:1,hire:'계약직',period:'26.1.~12.',bud_total:80,bud_nat:40,bud_loc:40,base:'26.10.31.',farms:312,match:5840,trend:'사과 적과 80% 완료',wtrend:'평균 12~15만원, 전년 대비 1~2만원 하락',
+    p_c1:24000,e_c1:20000,p_c2:5000,e_c2:3600,p_c3:2000,e_c3:1500,p_c4:1000,e_c4:300,p_h1:6000,e_h1:2100,p_h2:30000,e_h2:21500,p_h3:8000,e_h3:5200,p_h4:4000,e_h4:1900,why:'전담인력 채용 지연',
+    pool_total:420,pool_in:350,pool_out:70,teams:6,team_people:15};
+  s.ex1.v={...v1, ev_c1:true, ev_c2:true, ev_h2:true}; s.ex1.pre={...v1};
+  const v2={staff:1,hire:'내부직원',period:'26.1.~12.',bud_total:100,bud_nat:50,bud_loc:50,base:'26.10.31.',farms:58,alloc:60,intro:56,escape:3,ended:10,current:43,match:6120,
+    p_c1:30000,e_c1:25000,p_c2:6000,e_c2:4000,p_c3:2000,e_c3:1200,p_c4:2000,e_c4:800,p_h1:5000,e_h1:3000,p_h2:0,e_h2:0,p_h3:10000,e_h3:6000,p_h4:45000,e_h4:30000,teams:4,team_people:47,interp:'있음',interp_n:2};
+  s.ex2.v={...v2}; s.ex2.pre={...v2};
   return s;
 }
-let S; try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e){ S = null; }
-if(!S || !S.__c) S = seed();
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
-const centers = () => S.__c;
-let V = {name:'home'}, ASK = '', AGG = [];
-const cur = () => centers().find(c=>c.id===V.cid);
+let S; try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){ S=null; } if(!S||!S.__c) S=seed();
+const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} };
+const centers=()=>S.__c; let V={name:'home'}, ASK='', AGG=[], AGGF='전체';
+const cur=()=>centers().find(c=>c.id===V.cid);
+const label=c=>`${c.typeL} ${c.code}`;
 
 /* ── 공통 조각 ── */
-const icoBack = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>';
-const bar = (title, sub, back, tabs) => `<header class="bar"><div class="bar-in">${back?`<button class="back" data-go="${back}" aria-label="뒤로">${icoBack}</button>`:''}<h1>${esc(title)}${sub?`<div class="sub">${sub}</div>`:''}</h1></div>${tabs||''}</header>`;
-const LV = {crit:['중대','crit'],warn:['오류','warn'],check:['확인','check'],info:['참고','info']};
-const errHtml = list => list.length ? list.map(e=>`<div class="w ${LV[e.lv][1]}"><span class="tag">${LV[e.lv][0]}</span><span>${esc(e.text)}${e.ref?` <span class="mono">${esc(e.ref)}</span>`:''}</span></div>`).join('') : '';
-function fld(f, v){
-  const val = v[f.k], id = 'f-'+f.k, cls = 'fld'+(f.full?' full':'');
-  const std = f.std ? `<span class="std-tag">${esc(f.std(v))}</span>` : '';
-  if(f.type==='num') return `<div class="${cls}"><label for="${id}">${esc(f.l)}${std}</label><div class="unit"><input id="${id}" type="number" inputmode="decimal" data-k="${f.k}" value="${val??''}"><em>${esc(f.u||'')}</em></div></div>`;
-  if(f.type==='text') return `<div class="${cls}"><label for="${id}">${esc(f.l)}</label><input id="${id}" type="text" data-k="${f.k}" value="${esc(val??'')}" placeholder="${esc(f.ph||'')}"></div>`;
+const icoBack='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>';
+const bar=(t,sub,back)=>`<header class="bar no-print"><div class="bar-in">${back?`<button class="back" data-go="${back}" aria-label="뒤로">${icoBack}</button>`:''}<h1>${esc(t)}${sub?`<div class="sub">${sub}</div>`:''}</h1></div></header>`;
+const LV={crit:['중대','crit'],warn:['오류','warn'],check:['확인','check'],info:['참고','info']};
+const errHtml=l=>l.map(e=>`<div class="w ${LV[e.lv][1]}"><span class="tag">${LV[e.lv][0]}</span><span>${esc(e.text)}${e.ref?` <span class="mono">${esc(e.ref)}</span>`:''}</span></div>`).join('');
+const okHtml='<div class="w ok-msg"><span class="tag">통과</span><span>지침 기준 안에 있습니다.</span></div>';
+function fld(f,v,pre){
+  const val=v[f.k], id='f-'+f.k, std=f.std?`<span class="std-tag">${esc(f.std)}</span>`:'';
+  const changed = pre && pre[f.k]!==undefined && String(pre[f.k])!==String(val??'') ? `<span class="chg">제출값 ${esc(pre[f.k])} → 현장 수정</span>`:'';
+  if(f.type==='num') return `<div class="fld"><label for="${id}">${esc(f.l)}${std}</label><div class="unit"><input id="${id}" type="number" inputmode="decimal" data-k="${f.k}" value="${val??''}"><em>${esc(f.u||'')}</em></div>${changed}</div>`;
+  if(f.type==='text') return `<div class="fld full"><label for="${id}">${esc(f.l)}</label><input id="${id}" type="text" data-k="${f.k}" value="${esc(val??'')}" placeholder="${esc(f.ph||'')}">${changed}</div>`;
   if(f.type==='chk') return `<label class="chk full"><input id="${id}" type="checkbox" data-k="${f.k}" ${val?'checked':''}><span>${esc(f.l)}</span></label>`;
-  if(f.type==='seg') return `<div class="${cls}"><label>${esc(f.l)}${std}</label><div class="seg" role="group">${f.o.map(o=>`<button type="button" data-seg="${f.k}" data-val="${esc(o)}" aria-pressed="${val===o}">${esc(o)}</button>`).join('')}</div></div>`;
+  if(f.type==='seg') return `<div class="fld full"><label>${esc(f.l)}${std}</label><div class="seg" role="group">${f.o.map(o=>`<button type="button" data-seg="${f.k}" data-val="${esc(o)}" aria-pressed="${val===o}">${esc(o)}</button>`).join('')}</div>${changed}</div>`;
   return '';
 }
-const errCount = c => { const l=checks(c).filter(e=>e.lv!=='info'); return [l.filter(e=>e.lv==='crit').length, l.filter(e=>e.lv==='warn').length, l.filter(e=>e.lv==='check').length]; };
+const errCount=c=>{ const l=checks(c); return [l.filter(e=>e.lv==='crit').length, l.filter(e=>e.lv==='warn').length]; };
 
 /* ── 첫 화면 ── */
 function vHome(){
-  const cards = centers().map(c=>{
-    const st=S[c.id]; const [cr,w,k]=errCount(c); const done=CATS[c.type].filter(([key])=>st.g[key]).length, n=CATS[c.type].length;
-    return `<div class="card center">
-      <div class="meta"><span class="pill acc">${c.typeL}${c.sub?' · '+c.sub:''}</span>${c.date?`<span class="pill">${esc(c.date)}</span>`:''}${st.confirmed?'<span class="pill ok">확정</span>':''}${cr?`<span class="pill crit">중대 ${cr}</span>`:''}${w?`<span class="pill warn">오류 ${w}</span>`:''}${k?`<span class="pill">확인 ${k}</span>`:''}</div>
-      <h2>${esc(c.name)}</h2>
-      <div class="row-b"><span class="mono tnum">점검사항 판정 ${done} / ${n}</span></div>
-      <div class="prog"><i style="width:${Math.round(done/n*100)}%"></i></div>
-      <button class="btn ${st.confirmed?'':'pri'} block" data-open="${c.id}">${st.confirmed?'결과 보기':'점검하기'}</button></div>`;
-  }).join('');
+  const cards=centers().map(c=>{ const st=S[c.id]; const [cr,w]=errCount(c); const n=CATS[c.type].length, d=CATS[c.type].filter(([k])=>st.g[k]).length;
+    return `<div class="card center"><div class="meta"><span class="pill acc">${c.typeL}${c.sub?' · '+c.sub:''}</span>${st.confirmed?'<span class="pill ok">확정</span>':''}${cr?`<span class="pill crit">중대 ${cr}</span>`:''}${w?`<span class="pill warn">오류 ${w}</span>`:''}</div>
+      <h2>${esc(label(c))}</h2><div class="row-b"><span class="mono">판정 ${d} / ${n}</span></div><div class="prog"><i style="width:${Math.round(d/n*100)}%"></i></div>
+      <button class="btn ${st.confirmed?'':'pri'} block" data-open="${c.id}">${st.confirmed?'결과 보기':'점검하기'}</button></div>`; }).join('');
   return bar('현장점검','’26년 하반기 농촌인력중개센터 운영실태 점검') + `<main class="wrap stack">
-    <div class="notice"><b>보안 원칙</b> · 센터는 관리코드로만 입력하고, 센터명·사람 이름·연락처는 쓰지 않습니다. 입력 내용은 이 기기에만 저장되며 외부로 전송되지 않습니다. 확정 후 파일로 저장해 원 내부 공유폴더에 올리고 기기에서는 삭제합니다.</div>
-    <div class="fields"><button class="btn" data-add="1">+ 센터 등록</button><button class="btn" data-agg="1">결과 모아보기</button></div>
-    ${cards||'<div class="notice">등록된 센터가 없습니다.</div>'}
-    <details class="card more"><summary>적용 기준치 보기 (’26년 시행지침)</summary><dl class="kv">${STD_ROWS.map(([t,p])=>`<dt class="mono">${p}</dt><dd>${esc(t)}</dd>`).join('')}</dl></details>
-    <div class="foot"><span>기준: ’26년 농촌인력중개센터 시행지침(2026. 9.) · 점검표: ’26년 하반기 운영실태 점검 계획 붙임 2·3</span>
-      ${ASK==='reset'?'<div class="confirm-box"><span>등록한 센터와 입력 내용이 모두 지워집니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-reset="go">초기화</button></div></div>':'<button class="linkbtn" data-ask="reset">전체 초기화(예시 센터로 되돌리기)</button>'}</div>
+    <label class="btn pri block" for="prefile">사전제출 파일 불러오기 (.xlsx)</label><input id="prefile" type="file" accept=".xlsx,.csv" data-prefile="1" hidden>
+    <div class="fields"><button class="btn" data-dash="1">종합 대시보드</button><button class="btn" data-add="1">직접 등록</button></div>
+    <div class="notice"><b>보안 원칙</b> · 센터는 관리코드(연번)로만 다룹니다. 센터명·담당자·연락처·주소·점검자 이름은 앱에 쓰지 않고 출력 후 서명할 때 손으로 적습니다. 입력 내용은 이 기기 안에만 저장되고 외부로 전송되지 않습니다.</div>
+    ${cards||'<div class="notice">사전제출 파일을 불러오면 점검할 센터가 여기에 나타납니다.</div>'}
+    <details class="card more"><summary>적용 기준치 (’26년 시행지침)</summary><dl class="kv">${STD_ROWS.map(([t,p])=>`<dt class="mono">${p}</dt><dd>${esc(t)}</dd>`).join('')}</dl></details>
+    <div class="foot">${ASK==='reset'?'<div class="confirm-box"><span>이 기기의 모든 점검 기록을 지우고 예시만 남깁니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-reset="go">초기화</button></div></div>':'<button class="linkbtn" data-ask="reset">이 기기 기록 전체 지우기</button>'}</div>
   </main>`;
 }
 
-/* ── 단계(한 화면에 한 가지) ── */
-const BUDGET_STEP = { key:'budget', title:'예산 집행', q:'e나라도움 집행내역으로 예산과 집행액을 확인할게요.', f:[
-  {k:'b_plan',l:'총 예산',type:'num',u:'천원'},
-  {k:'b_exe',l:'오늘 기준 집행액',type:'num',u:'천원'},
-  {k:'b_center',l:'그중 센터운영비 예산',type:'num',u:'천원',std:c=>c.sub==='시도형'?'기준 ≤ 60%':'기준 ≤ 40%'},
-  {k:'b_ev',l:'집행 증빙',type:'seg',o:['모두 확인','일부 미확인']},
-  {k:'why',l:'집행이 늦다면 사유',type:'text',ph:'예: 전담인력 채용 지연'} ] };
-const stepsOf = c => [BUDGET_STEP, ...CATS[c.type].map(([k,l,note])=>({key:k, title:l, note, grade:true, ...CAT_INPUTS[k]})), {key:'end', title:'마무리'}];
-function budgetCalc(c){ const v=S[c.id].v; return {all:[num(v.b_plan), num(v.b_exe)], center:num(v.b_center)}; }
-function budgetInfo(c){
-  const {all,center}=budgetCalc(c); const rate=pct(all[1],all[0]), ratio=pct(center,all[0]);
-  if(rate==null && ratio==null) return '';
-  return `<div class="tiles" style="grid-template-columns:1fr 1fr"><div class="tile"><b>${rate??'-'}${rate!=null?'%':''}</b><span>집행률</span></div><div class="tile"><b>${ratio??'-'}${ratio!=null?'%':''}</b><span>센터운영비 비율</span></div></div>
-    ${rate!=null && c.type==='rural' ? `<div class="w info"><span class="tag">참고</span><span>성과평가 ${rateBand(rate)} · 판정 기준 아님</span></div>`:''}`;
-}
+/* ── 단계 ── */
+const stepsOf=c=>[
+  {key:'center',title:'① 센터 현황'},{key:'progress',title:'② 사업 추진현황'},{key:'budget',title:'③ 예산 집행현황'},{key:'ops',title:'④ 운영현황'},
+  ...CATS[c.type].map(([k,l,note],i)=>({key:k,title:`⑤-${i+1} ${l}`,note,grade:true,...CAT_INPUTS[k]})),
+  {key:'end',title:'⑥ 현장 의견·확정'}];
 function stepView(c){
-  const st=S[c.id], v=st.v, pub=c.type==='public', steps=stepsOf(c), i=Math.min(V.step||0, steps.length-1), s=steps[i];
-  const prog = `<div class="steps" aria-hidden="true">${steps.map((x,j)=>`<i class="${j===i?'cur':(x.grade?st.g[x.key]:(x.key==='budget'?num(v.b_plan)!=null:st.confirmed))?'j':''}"></i>`).join('')}</div>`;
-  const head = `${prog}<div class="calc">${i+1} / ${steps.length}단계</div>`;
-  const nav = `<nav class="dock"><div class="dock-in"><button class="btn sm" data-step="${i-1}" ${i===0?'disabled':''}>이전</button>${i<steps.length-1?`<button class="btn pri" data-step="${i+1}">다음</button>`:''}</div></nav>`;
-  if(s.key==='end') return head + tResult(c) + nav;
-  const imp = i===0 && !st.confirmed ? `<label class="linkbtn" for="prevfile" style="align-self:flex-start;cursor:pointer">지난 점검 결과 불러오기</label><input id="prevfile" type="file" accept=".json,application/json" data-importprev="1" hidden>`:'';
-  const prior = i===0 && c.prior.length ? `<section class="card stack" style="gap:8px"><div class="jl">지난 점검 지적사항 · 이행 확인</div>${c.prior.map((p,k)=>`<div>${esc(p.t)}</div><div class="seg" role="group">${['이행','미이행'].map(o=>`<button type="button" data-prior="${k}" data-val="${o}" aria-pressed="${st.prior[k]===o}">${o}</button>`).join('')}</div>`).join('')}</section>`:'';
-  const fs = (s.f||[]).filter(f=>!(f.rural&&pub)&&!(f.pub&&!pub));
-  const list = checks(c).filter(e=>s.key==='budget' ? /집행률|편성비율|증빙/.test(e.text) : e.cat===s.key);
-  const sg = s.grade && s.key!=='will' ? suggest(list) : '';
-  const nums = fs.filter(f=>f.type==='num'), others = fs.filter(f=>f.type!=='num');
-  const dorm = s.dorm ? `<section class="card"><div class="sec-t" style="margin-top:0">숙소 둘러보기 (부적합만 누르세요)</div>${DORM.map((t,j)=>j===1?'':`<div class="dorm-row"><span>${j+1}. ${esc(t)}</span><div class="seg" role="group">${['적합','부적합'].map(o=>`<button type="button" data-seg="d${j}" data-val="${o}" aria-pressed="${v['d'+j]===o}">${o}</button>`).join('')}</div></div>`).join('')}</section>`:'';
-  return head + imp + prior + `
-    <section class="card stack" style="gap:10px">
-      <h2 class="it-title" style="margin:0">${esc(s.title)}</h2>
-      <p class="q-txt" style="margin:0"><span class="q-mark" aria-hidden="true">Q</span>${esc(s.q||'')}</p>
-      ${s.note?`<span class="calc">확인 자료: ${esc(s.note)}</span>`:''}
-    </section>
-    ${nums.length?`<section class="card"><div class="fields">${nums.map(f=>fld({...f,std:f.std?()=>f.std(c,v):null},v)).join('')}</div></section>`:''}
-    ${others.length?`<section class="card stack" style="gap:12px">${others.map(f=>fld({...f,full:1,std:f.std?()=>f.std(c,v):null},v)).join('')}</section>`:''}
-    ${dorm}
-    <div class="warns" data-live="step">${s.key==='budget'?budgetInfo(c):''}${errHtml(list)}${!list.filter(e=>e.lv!=='info').length && (nums.length||others.length) ? '<div class="w ok-msg"><span class="tag">통과</span><span>입력한 값이 지침 기준 안에 있습니다.</span></div>':''}</div>
-    ${s.grade?`<section class="card stack" style="gap:10px">
-      <div class="jl">판정${sg?` · <span data-live="sg">제안: <b>${sg}</b></span>`:''}</div>
-      <div class="g4" role="group">${GRADES.map(gd=>`<button class="gb" data-grade="${s.key}" data-val="${gd}" aria-pressed="${st.g[s.key]===gd}" ${st.confirmed?'disabled':''}>${gd}</button>`).join('')}</div>
-      ${st.g[s.key] && st.g[s.key]!=='양호' ? `<div class="fld"><label for="m-${s.key}">사유 한 줄 (실명·연락처 쓰지 않기)</label><textarea id="m-${s.key}" data-memo="${s.key}" style="min-height:64px">${esc(st.memo[s.key]||'')}</textarea></div>`:''}
-    </section>`:''}
-  ` + nav;
+  const st=S[c.id], v=st.v, pub=c.type==='public', steps=stepsOf(c), i=Math.min(V.step||0,steps.length-1), s=steps[i];
+  const prog=`<div class="steps" aria-hidden="true">${steps.map((x,j)=>`<i class="${j===i?'cur':(x.grade?(st.g[x.key]?'j':''):(j<i?'j':''))}"></i>`).join('')}</div><div class="calc">${i+1} / ${steps.length} · ${esc(s.title)}</div>`;
+  const nav=`<nav class="dock no-print"><div class="dock-in"><button class="btn sm" data-step="${i-1}" ${i===0?'disabled':''}>이전</button>${i<steps.length-1?`<button class="btn pri" data-step="${i+1}">다음</button>`:''}</div></nav>`;
+  const all=checks(c); let body='';
+  if(['center','progress','ops'].includes(s.key)){
+    const fs=INFO[s.key](c).map(f=>fld(f,v,st.pre)).join('');
+    const prior=s.key==='center'&&c.prior.length?`<section class="card stack" style="gap:8px"><div class="jl">지난 점검 지적사항 · 이행 확인</div>${c.prior.map((p,k)=>`<div><span class="mono">${esc(p.y)}</span> ${esc(p.t)}</div><div class="seg" role="group">${['이행','미이행'].map(o=>`<button type="button" data-prior="${k}" data-val="${o}" aria-pressed="${st.prior[k]===o}">${o}</button>`).join('')}</div>`).join('')}</section>`:'';
+    const imp=s.key==='center'&&!st.confirmed?`<label class="linkbtn" for="prevfile" style="cursor:pointer">지난 점검 결과 불러오기</label><input id="prevfile" type="file" accept=".json" data-prevfile="1" hidden>`:'';
+    body=`${prior}<div class="notice">사전제출 값이 채워져 있습니다. 증빙과 다르면 현장 값으로 고치세요. 고친 칸은 표시가 남습니다.</div>
+      <section class="card"><div class="fields">${fs}</div></section><div class="warns" data-live>${liveHtml(c,s)}</div>${imp}`;
+  } else if(s.key==='budget'){
+    let lastG=''; const rows=BROWS.map(([k,g,n])=>{ const h=g!==lastG?`<div class="sec-t">${g} (${g==='센터운영비'?40:60}%)</div>`:''; lastG=g;
+      return h+`<div class="brow"><div class="brow-h"><b>${n}</b><span class="mono" data-rate="${k}">${pct(num(v['e_'+k]),num(v['p_'+k]))??''}${pct(num(v['e_'+k]),num(v['p_'+k]))!=null?'%':''}</span></div>
+        <div class="fields">${fld({k:'p_'+k,l:'예산계획',type:'num',u:'천원'},v,st.pre)}${fld({k:'e_'+k,l:'집행실적',type:'num',u:'천원'},v,st.pre)}</div>
+        <label class="chk"><input type="checkbox" data-k="ev_${k}" ${v['ev_'+k]?'checked':''}><span>증빙 확인</span></label></div>`; }).join('');
+    body=`<section class="card stack" style="gap:10px"><div data-live>${liveHtml(c,s)}</div></section><section class="card">${rows}</section>
+      <section class="card">${fld({k:'why',l:'집행부진 사유',type:'text'},v,st.pre)}</section>`;
+  } else if(s.grade){
+    const fs=(s.f||[]).filter(f=>!(f.rural&&pub)&&!(f.pub&&!pub)); const nums=fs.filter(f=>f.type==='num'), oth=fs.filter(f=>f.type!=='num');
+    const list=all.filter(e=>e.cat===s.key); const sg=s.key==='will'?'':suggest(list);
+    const dorm=s.dorm?`<section class="card"><div class="jl">참고 점검표 (부적합만 누르세요)</div>${DORM.map((t,j)=>`<div class="dorm-row"><span>${j+1}. ${esc(t)}</span>${j===1?fld({k:'d1',l:'',type:'seg',o:['아파트','단독','다세대','마을회관','기타']},v):`<div class="seg" role="group">${['적합','부적합'].map(o=>`<button type="button" data-seg="d${j}" data-val="${o}" aria-pressed="${v['d'+j]===o}">${o}</button>`).join('')}</div>`}</div>`).join('')}</section>`:'';
+    body=`<section class="card stack" style="gap:8px"><p class="q-txt" style="margin:0"><span class="q-mark" aria-hidden="true">Q</span>${esc(s.q)}</p>${s.note?`<span class="calc">${esc(s.note)}</span>`:''}</section>
+      ${nums.length?`<section class="card"><div class="fields">${nums.map(f=>fld(f,v)).join('')}</div></section>`:''}
+      ${oth.length?`<section class="card stack" style="gap:12px">${oth.map(f=>fld(f,v)).join('')}</section>`:''}${dorm}
+      <div class="warns" data-live>${liveHtml(c,s)}</div>
+      <section class="card stack" style="gap:10px"><div class="jl">판정${sg?` · <span data-sg>제안: <b>${sg}</b></span>`:''}</div>
+        <div class="g4" role="group">${GRADES.map(gd=>`<button class="gb" data-grade="${s.key}" data-val="${gd}" aria-pressed="${st.g[s.key]===gd}" ${st.confirmed?'disabled':''}>${gd}</button>`).join('')}</div>
+        ${st.g[s.key]&&st.g[s.key]!=='양호'?`<div class="fld"><label for="m-${s.key}">비고 (실명·연락처 쓰지 않기)</label><textarea id="m-${s.key}" data-memo="${s.key}" style="min-height:60px">${esc(st.memo[s.key]||'')}</textarea></div>`:''}</section>`;
+  } else body=tEnd(c);
+  return prog+body+nav;
 }
-function tResult(c){
-  const st=S[c.id], all=checks(c).filter(e=>e.lv!=='info'); const blankG=CATS[c.type].filter(([k])=>!st.g[k]).length;
-  const names=Object.fromEntries(CATS[c.type].map(([a,b])=>[a,b]));
+function liveHtml(c,s){
+  const all=checks(c);
+  if(s.key==='budget'){ const {cen,hum,all:A}=budgetCalc(c); const rate=pct(A[1],A[0]), ratio=pct(cen[0],A[0]); const lim=c.sub==='시도형'?60:40;
+    return `<div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile"><b>${rate??'-'}${rate!=null?'%':''}</b><span>전체 집행률</span></div><div class="tile"><b>${pct(cen[1],cen[0])??'-'}${cen[0]?'%':''}</b><span>센터운영비</span></div><div class="tile"><b>${pct(hum[1],hum[0])??'-'}${hum[0]?'%':''}</b><span>인력운영비</span></div></div>
+      <div class="calc">센터운영비 편성 <b>${ratio??'-'}${ratio!=null?'%':''}</b> <span class="std-tag">≤ ${lim}%</span> · 합계 ${fmt(A[0])}천원 중 ${fmt(A[1])}천원 집행</div>
+      ${rate!=null&&c.type==='rural'?`<div class="w info"><span class="tag">참고</span><span>성과평가 ${rateBand(rate)} · 판정 기준 아님</span></div>`:''}${errHtml(all.filter(e=>e.step==='budget'))||(A[0]?okHtml:'')}`; }
+  if(s.key==='will') return '';
+  if(!s.grade){ const l=all.filter(e=>e.step===s.key); return errHtml(l)||okHtml; }
+  const own=all.filter(e=>e.cat===s.key && e.step===s.key), prev=all.filter(e=>e.cat===s.key && e.step!==s.key);
+  return (errHtml(own)||okHtml) + (prev.length?`<div class="calc" style="margin-top:4px">앞 단계에서 걸린 항목 (판정 제안에 반영)</div>${errHtml(prev)}`:'');
+}
+function tEnd(c){
+  const st=S[c.id], all=checks(c); const blankG=CATS[c.type].filter(([k])=>!st.g[k]).length; const names=Object.fromEntries(CATS[c.type].map(([a,b])=>[a,b]));
   return `${st.confirmed?`<div class="lock">${esc(st.confirmedAt)} 확정 완료</div>`:''}
-    <section class="card"><table class="b14">${CATS[c.type].map(([a,b],j)=>`<tr><th>${b}</th><td style="width:96px">${st.g[a]?`<b>${st.g[a]}</b>`:`<button class="linkbtn" data-step="${j+1}">판정하기</button>`}</td></tr>`).join('')}</table></section>
+    <section class="card"><table class="b14">${CATS[c.type].map(([a,b],j)=>`<tr><th>${b}</th><td style="width:96px">${st.g[a]?`<b>${st.g[a]}</b>`:`<button class="linkbtn" data-step="${4+j}">판정하기</button>`}</td></tr>`).join('')}</table></section>
     ${all.length?`<div class="sec-t">기준 벗어난 항목 ${all.length}건</div><section class="card stack" style="gap:8px">${all.map(e=>`<div class="w ${LV[e.lv][1]}"><span class="tag">${LV[e.lv][0]}</span><span>${esc(e.text)} <span class="mono">${esc(names[e.cat]||'')}</span></span></div>`).join('')}</section>`:''}
-    <div class="sec-t">현장 의견</div>
-    <section class="card stack" style="gap:10px"><textarea data-opinion="1" style="min-height:110px" ${st.confirmed?'readonly':''} placeholder="실명·연락처 쓰지 않기">${esc(st.opinion)}</textarea>
-      ${st.confirmed?'':'<button class="btn ghost" data-draft="1">자동으로 초안 쓰기</button>'}</section>
-    ${st.confirmed
-      ? `<button class="btn pri block" data-expjson="1">결과 파일 저장</button><button class="btn block" data-report="1">점검표에 붙일 내용 보기·복사</button><button class="btn ghost block" data-expcsv="1">엑셀용 파일 저장</button>`
-      : ASK==='confirm' ? `<div class="confirm-box"><span>${blankG?`판정 안 한 항목이 ${blankG}개 있습니다. `:''}확정하면 고칠 수 없습니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-confirm="go">확정</button></div></div>`
-      : `<button class="btn pri block" data-ask="confirm">점검 확정</button>`}
-    <div class="foot">${ASK==='del'?'<div class="confirm-box"><span>이 기기에서 이 센터 기록을 지웁니다. 저장한 파일은 남습니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-delc="go">삭제</button></div></div>':`<button class="${st.confirmed?'btn block':'linkbtn'}" data-ask="del">${st.confirmed?'파일 저장 후 이 기기에서 지우기':'이 센터 지우기'}</button>`}</div>`;
+    <div class="sec-t">현장 의견 / 지도·점검 사항</div>
+    <section class="card stack" style="gap:10px"><textarea data-opinion="1" style="min-height:110px" ${st.confirmed?'readonly':''} placeholder="실명·연락처 쓰지 않기">${esc(st.opinion)}</textarea>${st.confirmed?'':'<button class="btn ghost" data-draft="1">자동으로 초안 쓰기</button>'}</section>
+    ${st.confirmed?`<button class="btn pri block" data-print="1">점검표 출력용 파일 저장</button><button class="btn block" data-expjson="1">결과 파일 저장(대시보드용)</button><button class="btn ghost block" data-preview="1">점검표 미리보기</button>`
+      : ASK==='confirm'?`<div class="confirm-box"><span>${blankG?`판정 안 한 항목 ${blankG}개. `:''}확정하면 고칠 수 없습니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-confirm="go">확정</button></div></div>`
+      : `<button class="btn ghost block" data-preview="1">점검표 미리보기</button><button class="btn pri block" data-ask="confirm">점검 확정</button>`}
+    <div class="foot">${ASK==='del'?'<div class="confirm-box"><span>이 기기에서 이 센터 기록을 지웁니다. 저장한 파일은 남습니다.</span><div class="btns"><button class="btn" data-ask="">취소</button><button class="btn pri" data-delc="go">지우기</button></div></div>':`<button class="${st.confirmed?'btn block':'linkbtn'}" data-ask="del">${st.confirmed?'파일 저장 후 이 기기에서 지우기':'이 센터 지우기'}</button>`}</div>`;
 }
 function draftOpinion(c){
-  const all=checks(c).filter(e=>e.lv!=='info'); const names=Object.fromEntries(CATS[c.type].map(([a,b])=>[a,b]));
-  const {all:A}=budgetCalc(c); const rate=pct(A[1],A[0]);
-  let t = `▸ 기준일 사업비 집행률 ${rate!=null?rate+'%':'(미입력)'}`;
-  const crit=all.filter(e=>e.lv==='crit'), warn=all.filter(e=>e.lv==='warn'), chk=all.filter(e=>e.lv==='check');
-  if(crit.length) t += `\n▸ 중대 위반 의심: ${crit.map(e=>e.text).join('; ')} — 관리자 보고 후 조치`;
-  if(warn.length) t += `\n▸ 지침 기준 위반: ${warn.map(e=>`${e.text}(${names[e.cat]})`).join('; ')} — 시정 요청`;
-  if(chk.length) t += `\n▸ 보완 필요: ${chk.map(e=>e.text).join('; ')}`;
-  if(!all.length) t += `\n▸ 지침 기준치 대비 특이사항 없음`;
-  if(S[c.id].v.why) t += `\n▸ 집행부진 사유: ${S[c.id].v.why}`;
+  const all=checks(c).filter(e=>e.lv!=='info'); const names=Object.fromEntries(CATS[c.type].map(([a,b])=>[a,b])); const {all:A}=budgetCalc(c); const rate=pct(A[1],A[0]);
+  let t=`▸ 기준일 사업비 집행률 ${rate!=null?rate+'%':'(미입력)'}`;
+  const cr=all.filter(e=>e.lv==='crit'), w=all.filter(e=>e.lv==='warn'), k=all.filter(e=>e.lv==='check');
+  if(cr.length) t+=`\n▸ 중대 위반 의심: ${cr.map(e=>e.text).join('; ')} — 관리자 보고 후 조치`;
+  if(w.length) t+=`\n▸ 지침 기준 위반: ${w.map(e=>`${e.text}(${names[e.cat]})`).join('; ')} — 시정 요청`;
+  if(k.length) t+=`\n▸ 보완 필요: ${k.map(e=>e.text).join('; ')}`;
+  if(!all.length) t+='\n▸ 지침 기준치 대비 특이사항 없음';
+  const pr=c.prior.map((p,i)=>S[c.id].prior[i]?`${p.t}: ${S[c.id].prior[i]}`:null).filter(Boolean);
+  if(pr.length) t+=`\n▸ 지난 지적사항 이행: ${pr.join('; ')}`;
   return t;
 }
-function vWork(c){
-  return bar(c.name, `${c.typeL}${c.sub?' · '+c.sub:''}${c.date?' · '+esc(c.date):''}`, 'home') + `<main class="wrap stack">${stepView(c)}</main>`;
+
+/* ── 점검표(붙임 2·3) 양식 ── */
+function formHtml(c){
+  const st=S[c.id], v=st.v, pub=c.type==='public'; const {cen,hum,all}=budgetCalc(c);
+  const P=k=>num(v['p_'+k]), E=k=>num(v['e_'+k]);
+  let lastG=''; const rows=BROWS.map(([k,g,n])=>{ const first=g!==lastG; lastG=g; const gg=g==='센터운영비'?cen:hum;
+    return `<tr>${first?`<td rowspan="4" class="c">${g}<br>(${g==='센터운영비'?40:60}%)</td>`:''}<td>${n}</td><td class="n">${fmt(P(k))}</td><td class="n">${fmt(E(k))}</td>${first?`<td rowspan="4" class="n">${pct(gg[1],gg[0])??''}%</td>`:''}</tr>`; }).join('');
+  const memo=k=>[st.memo[k],...checks(c).filter(e=>e.cat===k&&e.lv!=='info').map(e=>e.text)].filter(Boolean).join(' / ');
+  const changed=Object.keys(st.pre||{}).filter(k=>String(st.pre[k])!==String(v[k]??''));
+  return `<article class="form">
+  <h2>농촌인력중개센터(${pub?'공공형':'농촌형'}) 현장점검표</h2>
+  <table>
+    <tr><th class="sec" rowspan="${pub?5:5}">센터<br>현황</th><th>센터명</th><td colspan="3">관리코드 ${esc(c.code)}</td></tr>
+    <tr><th>담당자</th><td></td><th>연락처</th><td></td></tr>
+    <tr><th>주 소</th><td colspan="3"></td></tr>
+    <tr><th>전담인력 수</th><td>${fmt(num(v.staff))}명</td><th>채용형태 / 계약기간</th><td>${esc(v.hire||'')} / ${esc(v.period||'')}</td></tr>
+    <tr><th>예 산</th><td colspan="3">${fmt(num(v.bud_total))}백만원 (국비 ${fmt(num(v.bud_nat))}백만원, 지방비 ${fmt(num(v.bud_loc))}백만원)</td></tr>
+  </table>
+  <table>
+    <tr><th class="sec" rowspan="${pub?5:4}">추진<br>현황</th><th colspan="4" class="l">사업 추진현황 (기준일: ${esc(v.base||'')})</th></tr>
+    ${pub?`<tr><td colspan="4">배정 ${fmt(num(v.alloc))}명 · 도입 ${fmt(num(v.intro))}명 · 이탈 ${fmt(num(v.escape))}명 · 근무종료 ${fmt(num(v.ended))}명 · 근무현원 ${fmt(num(v.current))}명</td></tr>`:''}
+    <tr><th>지원농가 수</th><td>${fmt(num(v.farms))}개</td><th>중개실적(연인원)</th><td>${fmt(num(v.match))}명</td></tr>
+    <tr><th>인력수급 동향</th><td colspan="3">${esc(v.trend||'')}</td></tr>
+    <tr><th>인건비 동향</th><td colspan="3">${esc(v.wtrend||'')}</td></tr>
+  </table>
+  <table>
+    <tr><th class="sec" rowspan="12">예산<br>집행<br>현황</th><th>항목</th><th>세부항목</th><th>예산계획(천원)</th><th>집행실적(천원)</th><th>집행률</th></tr>
+    <tr><td colspan="2" class="c"><b>합 계</b></td><td class="n"><b>${fmt(all[0])}</b></td><td class="n"><b>${fmt(all[1])}</b></td><td class="n"><b>${pct(all[1],all[0])??''}%</b></td></tr>
+    ${rows}
+    <tr><th colspan="2">집행부진 사유</th><td colspan="3">${esc(v.why||'')}</td></tr>
+  </table>
+  <table>
+    <tr><th class="sec" rowspan="${pub?2:2}">운영<br>현황</th>${pub?`<th>영농작업반</th><td>${fmt(num(v.teams))}개 반 (${fmt(num(v.team_people))}명)</td><th>통역지원자</th><td>${esc(v.interp||'')} ${num(v.interp_n)!=null?fmt(num(v.interp_n))+'명':''}</td></tr><tr><td colspan="4"></td></tr>`
+      :`<th>인력풀</th><td colspan="3">총 ${fmt(num(v.pool_total))}명 (관내 ${fmt(num(v.pool_in))}명, 관외 ${fmt(num(v.pool_out))}명)</td></tr><tr><th>영농작업반</th><td colspan="3">${fmt(num(v.teams))}개 반 (${fmt(num(v.team_people))}명)</td></tr>`}
+  </table>
+  <table>
+    <tr><th colspan="3" class="l">기타 지도·점검 사항</th></tr><tr><th>구분</th><th>점검결과</th><th>비고</th></tr>
+    ${CATS[c.type].map(([k,l,note])=>`<tr><td>${l}</td><td class="c nowrap">${GRADES.map(gd=>(st.g[k]===gd?'■':'□')+' '+gd).join(' ')}</td><td>${esc(memo(k)||note)}</td></tr>`).join('')}
+    <tr><th>현장 의견/<br>지도·점검 사항</th><td colspan="2" class="pre">${esc(st.opinion||'')}</td></tr>
+  </table>
+  <p class="sign">점검자 &nbsp; 소속 : <span class="blank"></span> 직위 : <span class="blank sm"></span> 성명 : <span class="blank"></span> (인)</p>
+  ${changed.length?`<p class="note">※ 현장 확인으로 사전제출 값을 수정한 칸 ${changed.length}개</p>`:''}
+  ${pub?`<div class="pb"></div><h3>[참고] 공공형 계절노동자 공동 숙식시설 점검표</h3><table><tr><th>구분</th><th>점검사항</th><th>점검결과</th><th>조치사항</th></tr>${DORM.map((t,j)=>`<tr><td class="c">${j+1}</td><td>${esc(t)}</td><td class="c">${esc(j===1?(v.d1||''):(v['d'+j]||'적합'))}</td><td></td></tr>`).join('')}</table>`:''}
+  </article>`;
+}
+const FORM_CSS=`.form{font-family:"맑은 고딕","Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:9.5pt;color:#000;line-height:1.45}
+.form h2{text-align:center;font-size:15pt;margin:0 0 10px}.form h3{font-size:11pt;margin:10px 0 6px}
+.form table{width:100%;border-collapse:collapse;margin:0 0 -1px;table-layout:auto}
+.form th,.form td{border:1px solid #000;padding:3px 5px;vertical-align:middle;text-align:left}
+.form th{background:#f0f0f0;font-weight:600;text-align:center}.form th.l{text-align:left}.form th.sec{width:46px}
+.form td.c{text-align:center}.form td.n{text-align:right;font-variant-numeric:tabular-nums}.form .nowrap{white-space:nowrap}
+.form .pre{white-space:pre-wrap;min-height:60px;height:70px;vertical-align:top}
+.form .sign{text-align:right;margin:14px 0 0}.form .blank{display:inline-block;width:90px;border-bottom:1px solid #000}.form .blank.sm{width:60px}
+.form .note{font-size:8.5pt;color:#444;margin:6px 0 0}.form .pb{page-break-before:always}
+@page{size:A4;margin:14mm}`;
+function vPreview(c){
+  return bar('점검표 미리보기',esc(label(c)),'end') + `<main class="wrap stack"><div class="no-print row-b"><span class="calc">원 PC에서 출력용 파일을 열어 인쇄하고 서명합니다.</span>${S[c.id].confirmed?'<button class="btn pri" data-print="1">파일 저장</button>':''}</div>
+    <div class="paper">${formHtml(c)}</div></main>`;
+}
+function printFile(c){
+  const html=`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>현장점검표_${esc(label(c))}</title><style>body{margin:0;padding:12mm;background:#fff}${FORM_CSS}
+.bar{font-family:sans-serif;font-size:12px;background:#fff8e1;border:1px solid #e0c060;padding:8px 10px;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center}
+.bar button{font-size:13px;padding:6px 14px}@media print{.bar{display:none}body{padding:0}}</style></head><body>
+<div class="bar"><span>인쇄 후 센터명·담당자·연락처·주소·점검자를 손으로 적고 서명합니다.</span><button onclick="window.print()">인쇄</button></div>${formHtml(c)}</body></html>`;
+  download(`${fbase(c)}_form.html`, html, 'text/html');
 }
 
-/* ── 점검표에 붙일 내용(점검반 작성분) ── */
-function vReport(c){
-  const st=S[c.id], v=st.v, pub=c.type==='public'; const {all}=budgetCalc(c);
-  const memoOf = k => [st.memo[k], ...checks(c).filter(e=>e.cat===k&&e.lv!=='info').map(e=>e.text)].filter(Boolean).join(' / ');
-  return bar('점검표에 붙일 내용', `붙임 ${pub?3:2} · ${esc(c.name)}`, 'result') + `<main class="wrap stack">
-    <div class="row-b"><span class="calc">지방정부 점검표의 ‘기타 지도·점검 사항’에 붙여 넣습니다.</span><button class="btn pri" data-copyrep="1">복사</button></div>
-    <div class="rep-wrap"><article class="rep" id="rep">
-      <table><tr><th colspan="3">기타 지도·점검 사항</th></tr><tr><th>구분</th><th>점검결과</th><th>비고</th></tr>
-        ${CATS[c.type].map(([k,l])=>`<tr><td>${l}</td><td class="c">${GRADES.map(gd=>(st.g[k]===gd?'■ ':'□ ')+gd).join(' ')}</td><td>${esc(memoOf(k))}</td></tr>`).join('')}
-        <tr><th>현장 의견/지도·점검 사항</th><td colspan="2" class="pre">${esc(st.opinion||'')}</td></tr></table>
-      <table><tr><th colspan="2">[참고] 현장 확인 수치</th></tr>
-        <tr><th>예산 / 집행액</th><td>${fmt(all[0])}천원 / ${fmt(all[1])}천원 (집행률 ${pct(all[1],all[0])??'-'}%)</td></tr>
-        <tr><th>집행부진 사유</th><td>${esc(v.why||'')}</td></tr></table>
-      ${pub?`<table><tr><th colspan="3">[참고] 공동 숙식시설 점검표</th></tr>${DORM.map((t,j)=>j===1?'':`<tr><td class="c">${j+1}</td><td>${esc(t)}</td><td class="c">${esc(v['d'+j]||'적합')}</td></tr>`).join('')}</table>`:''}
-    </article></div></main>`;
+/* ── 사전제출 파일 읽기 (.xlsx, 외부 라이브러리 없이) ── */
+async function unzipEntries(buf){
+  const dv=new DataView(buf), u8=new Uint8Array(buf); let e=-1;
+  for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-66000);i--){ if(dv.getUint32(i,true)===0x06054b50){ e=i; break; } }
+  if(e<0) throw new Error('zip');
+  const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true); const out={}; const td=new TextDecoder();
+  for(let k=0;k<n;k++){ const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    const name=td.decode(u8.subarray(p+46,p+46+nl)); out[name]={method,csize,lo}; p+=46+nl+xl+cl; }
+  out.__read=async name=>{ const f=out[name]; if(!f) return null; const ln=dv.getUint16(f.lo+26,true), lx=dv.getUint16(f.lo+28,true); const data=u8.subarray(f.lo+30+ln+lx, f.lo+30+ln+lx+f.csize);
+    if(f.method===0) return td.decode(data);
+    const ds=new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw')); return await new Response(ds).text(); };
+  return out;
+}
+async function readXlsx(file){
+  const z=await unzipEntries(await file.arrayBuffer()); const P=new DOMParser();
+  const ssx=await z.__read('xl/sharedStrings.xml'); const ss=ssx?[...P.parseFromString(ssx,'application/xml').getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(t=>t.textContent).join('')):[];
+  const name=Object.keys(z).find(k=>/^xl\/worksheets\/sheet1\.xml$/.test(k))||Object.keys(z).find(k=>/^xl\/worksheets\/.*\.xml$/.test(k));
+  const doc=P.parseFromString(await z.__read(name),'application/xml'); const rows={};
+  [...doc.getElementsByTagName('c')].forEach(cel=>{ const ref=cel.getAttribute('r'), t=cel.getAttribute('t'); const m=/^([A-Z]+)(\d+)$/.exec(ref); if(!m) return;
+    let val=''; if(t==='s') val=ss[Number(cel.getElementsByTagName('v')[0]?.textContent)]??''; else if(t==='inlineStr') val=[...cel.getElementsByTagName('t')].map(x=>x.textContent).join(''); else val=cel.getElementsByTagName('v')[0]?.textContent??'';
+    (rows[m[2]] ||= {})[m[1]]=val; });
+  const kv={}; Object.values(rows).forEach(r=>{ if(r.A && r.C!==undefined && r.C!=='') kv[String(r.A).trim()]=String(r.C).trim(); }); return kv;
+}
+function readCsvKv(text){ const kv={}; text.replace(/^﻿/,'').split(/\r?\n/).forEach(l=>{ const a=l.split(','); if(a[0]&&a[2]) kv[a[0].trim()]=a[2].trim(); }); return kv; }
+function applyPre(kv){
+  const code=(kv.code||'').replace(/[^0-9A-Za-z-]/g,''); if(!code) return toast('관리코드가 없는 파일입니다');
+  const type=kv.type==='공공형'?'public':'rural';
+  let c=centers().find(x=>x.code===code && x.type===type);
+  if(!c){ c={id:'c'+Date.now(), code, type, typeL:type==='public'?'공공형':'농촌형', sub:type==='rural'?(kv.sub||'시군형'):'', op:kv.op||'', prior:[]}; centers().push(c); S[c.id]=blank(); }
+  const st=S[c.id]; if(st.confirmed) return toast('이미 확정된 센터입니다');
+  const NUMK=/^(staff|support|bud_|farms|match|alloc|intro|escape|ended|current|p_|e_|pool_|teams|team_people|interp_n)/;
+  Object.entries(kv).forEach(([k,val])=>{ if(['code','type','sub','op'].includes(k)) return; const x=NUMK.test(k)?num(val.replace(/,/g,'')):mask(val)[0]; if(x===null||x==='') return; st.v[k]=x; st.pre[k]=x; });
+  save(); toast(`${label(c)} 사전제출 자료를 불러왔습니다`); V={name:'work',cid:c.id,step:0}; render();
 }
 
-/* ── 센터 등록 ── */
-function vAdd(){
-  const d = S.__draft || (S.__draft = {type:'농촌형', sub:'시군형', op:'지자체'});
-  const seg = (k,o) => `<div class="seg" role="group">${o.map(x=>`<button type="button" data-addseg="${k}" data-val="${x}" aria-pressed="${d[k]===x}">${x}</button>`).join('')}</div>`;
-  return bar('센터 등록','점검 대상 센터를 추가합니다','home') + `<main class="wrap stack"><section class="card stack" style="gap:12px">
-    <div class="fld"><label for="a-name">관리코드</label><input id="a-name" type="text" value="${esc(d.name||'')}" placeholder="예: 08 (점검계획 붙임 1 연번)"></div>
-    <div class="notice">센터명·지역명은 입력하지 않습니다. 연번(관리코드)과 센터 대조표는 원 내부에만 둡니다.</div>
-    <div class="fld"><label>사업유형</label>${seg('type',['농촌형','공공형'])}</div>
-    ${d.type==='농촌형'?`<div class="fld"><label>세부유형</label>${seg('sub',['시군형','시도형'])}</div>`:''}
-    <div class="fld"><label>운영기관</label>${seg('op',['지자체','농협','기타'])}</div>
-    <div class="fld"><label for="a-date">점검일</label><input id="a-date" type="text" value="${esc(d.date||'')}" placeholder="예: 11.17.(화)"></div>
-    <button class="btn pri block" data-addsave="1">등록</button></section></main>`;
-}
+/* ── 파일 저장 ── */
+function download(name,text,mime){ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:mime})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000); toast('저장했습니다. 다운로드 폴더를 확인하세요'); }catch(e){ toast('이 환경에서는 파일 저장이 막혀 있습니다'); } }
+const fbase=c=>{ const d=new Date(); return `jungae_${c.type==='rural'?'R':'P'}-${c.code.replace(/[^0-9A-Za-z-]/g,'')}_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; };
+function summary(c){ const st=S[c.id], {all}=budgetCalc(c), ch=checks(c); const names=Object.fromEntries(CATS[c.type].map(([a,b])=>[a,b]));
+  return {rate:pct(all[1],all[0]), grades:Object.fromEntries(CATS[c.type].map(([k,l])=>[l,st.g[k]||''])), errors:ch.map(e=>({lv:e.lv,text:e.text,cat:names[e.cat]||''}))}; }
+function exportJson(c){ download(`${fbase(c)}.json`, JSON.stringify({app:'jungae-check',ver:5,savedAt:new Date().toISOString(),center:{...c,prior:[]},state:{...S[c.id],prior:undefined},summary:summary(c)},null,1),'application/json'); }
+function readJson(files,cb){ const out=[]; let n=files.length; if(!n) return; [...files].forEach(f=>{ const fr=new FileReader(); fr.onload=()=>{ try{ const p=JSON.parse(fr.result); if(p.app==='jungae-check'&&p.ver===5) out.push(p);}catch(e){} if(--n===0) cb(out); }; fr.onerror=()=>{ if(--n===0) cb(out); }; fr.readAsText(f); }); }
 
-/* ── 파일 저장·불러오기·모아보기 ── */
-function download(name, text, mime){
-  try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:mime})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000); toast('파일을 저장했습니다. 다운로드 폴더를 확인하세요'); }
-  catch(e){ toast('이 환경에서는 파일 저장이 막혀 있습니다'); }
+/* ── 종합 대시보드 ── */
+const GCLS={'양호':'ok','보통':'acc','미흡':'warn','매우 미흡':'crit'};
+function vDash(){
+  const list=AGG.filter(p=>AGGF==='전체'||p.center.typeL===AGGF);
+  const rates=list.map(p=>p.summary.rate).filter(x=>x!=null); const avg=rates.length?r1(rates.reduce((a,b)=>a+b,0)/rates.length):null;
+  const nCrit=list.filter(p=>p.summary.errors.some(e=>e.lv==='crit')).length, nBad=list.filter(p=>Object.values(p.summary.grades).some(g=>g==='미흡'||g==='매우 미흡')).length;
+  const catNames=[...new Set(list.flatMap(p=>Object.keys(p.summary.grades)))];
+  const dist=catNames.map(l=>{ const cnt={}; GRADES.forEach(g=>cnt[g]=0); list.forEach(p=>{ const g=p.summary.grades[l]; if(g) cnt[g]++; }); return [l,cnt]; });
+  const m={}; list.forEach(p=>p.summary.errors.filter(e=>e.lv!=='info').forEach(e=>{ const key=(e.text.includes(':')?e.text.split(':')[0]:e.text).replace(/\d[\d,.]*(원|%|㎡|명|회|건|일|백만원|천원)?/g,'○'); (m[key] ||= new Set()).add(p.center.id); }));
+  const common=Object.entries(m).sort((a,b)=>b[1].size-a[1].size).slice(0,8);
+  const maxC=common.length?common[0][1].size:1;
+  const rows=list.slice().sort((a,b)=>(a.summary.rate??999)-(b.summary.rate??999)).map(p=>`<tr><td>${esc(p.center.typeL)} ${esc(p.center.code)}</td><td class="n">${p.summary.rate!=null?p.summary.rate+'%':'-'}</td><td>${Object.values(p.summary.grades).map(g=>g?`<span class="gchip ${GCLS[g]}">${g==='매우 미흡'?'매우':g}</span>`:'<span class="gchip">-</span>').join('')}</td><td class="n">${p.summary.errors.filter(e=>e.lv==='crit').length||''}</td></tr>`).join('');
+  return bar('종합 대시보드','실원들의 결과 파일을 모아 봅니다','home') + `<main class="wrap stack">
+    <section class="card stack" style="gap:10px"><label class="btn pri block" for="aggfiles">결과 파일(.json) 불러오기 — 여러 개 선택</label><input id="aggfiles" type="file" accept=".json" multiple data-aggfiles="1" hidden>
+      <span class="calc">불러온 파일 ${AGG.length}개 · 화면을 닫으면 집계는 사라지고 원본 파일은 남습니다.</span>
+      ${AGG.length?`<div class="seg" role="group">${['전체','농촌형','공공형'].map(o=>`<button type="button" data-aggf="${o}" aria-pressed="${AGGF===o}">${o}</button>`).join('')}</div>`:''}</section>
+    ${list.length?`<div class="tiles"><div class="tile"><b>${list.length}</b><span>점검 센터</span></div><div class="tile"><b>${avg??'-'}${avg!=null?'%':''}</b><span>평균 집행률</span></div><div class="tile w2"><b>${nBad}</b><span>미흡 이하 센터</span></div><div class="tile"><b style="color:var(--crit)">${nCrit}</b><span>중대 센터</span></div></div>
+    <div class="sec-t">항목별 판정 분포</div><section class="card stack" style="gap:10px">${dist.map(([l,cnt])=>{ const tot=GRADES.reduce((t,g)=>t+cnt[g],0)||1; return `<div><div class="calc" style="margin-bottom:4px">${esc(l)}</div><div class="stack-bar">${GRADES.map(g=>cnt[g]?`<i class="${GCLS[g]}" style="width:${cnt[g]/tot*100}%" title="${g} ${cnt[g]}">${cnt[g]}</i>`:'').join('')}</div></div>`; }).join('')}
+      <div class="legend">${GRADES.map(g=>`<span><b class="sw ${GCLS[g]}"></b>${g}</span>`).join('')}</div></section>
+    <div class="sec-t">자주 걸린 오류</div><section class="card stack" style="gap:8px">${common.map(([t,s])=>`<div class="hbar"><span>${esc(t)}</span><i style="width:${s.size/maxC*100}%"></i><b>${s.size}곳</b></div>`).join('')||'<span class="calc">없음</span>'}</section>
+    <div class="sec-t">센터별 (집행률 낮은 순)</div><div class="rep-wrap"><div class="rep"><table><tr><th>센터</th><th>집행률</th><th>판정</th><th>중대</th></tr>${rows}</table></div></div>
+    <button class="btn block" data-aggcsv="1">집계표 엑셀용 저장(.csv)</button>`
+    :'<div class="notice">실원들이 확정 후 저장한 결과 파일(.json)을 원 내부 공유폴더에서 받아 한꺼번에 불러오세요.</div>'}</main>`;
 }
-const safe = s => String(s).replace(/[\\/:*?"<>|\s]+/g,'_');
-const fbase = c => { const d=new Date(); const ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; return `jungae_${c.type==='rural'?'R':'P'}-${(c.name.split('-').slice(1).join('-')||c.id).replace(/[^0-9A-Za-z-]/g,'')||c.id}_${ymd}`; };
-const csv = v => { const s=String(v??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
-function summary(c){
-  const st=S[c.id], {all}=budgetCalc(c), ch=checks(c).filter(e=>e.lv!=='info');
-  return {rate:pct(all[1],all[0]), grades:Object.fromEntries(CATS[c.type].map(([k,l])=>[l,st.g[k]||''])), errors:ch.map(e=>({lv:e.lv,text:e.text,cat:(CATS[c.type].find(x=>x[0]===e.cat)||[])[1]||''}))};
-}
-function exportJson(c){ download(`${fbase(c)}.json`, JSON.stringify({app:'jungae-check', ver:2, savedAt:new Date().toISOString(), center:{...c, prior:[]}, state:{...S[c.id], insp:undefined, prior:undefined}, summary:summary(c)},null,1), 'application/json'); }
-function exportCsv(c){
-  const st=S[c.id], sm=summary(c); const rows=[['구분','항목','값·판정','비고']];
-  rows.push(['센터',c.name,`${c.typeL}${c.sub?' '+c.sub:''}`,`점검일 ${c.date} / 확정 ${st.confirmedAt||'미확정'}`]);
-  rows.push(['예산','총 예산 / 집행액(천원)',`${st.v.b_plan??''} / ${st.v.b_exe??''}`,st.v.b_ev||'']);
-  rows.push(['예산','전체 집행률',sm.rate!=null?sm.rate+'%':'','']);
-  CATS[c.type].forEach(([k,l])=>rows.push(['점검사항',l,st.g[k]||'',st.memo[k]||'']));
-  sm.errors.forEach(e=>rows.push(['자동점검',e.cat,LV[e.lv][0],e.text]));
-  rows.push(['현장 의견','','',st.opinion||'']);
-  download(`${fbase(c)}.csv`, '﻿'+rows.map(r=>r.map(csv).join(',')).join('\r\n'), 'text/csv');
-}
-function readJson(files, cb){ const out=[]; let n=files.length; if(!n) return; [...files].forEach(f=>{ const fr=new FileReader(); fr.onload=()=>{ try{ const p=JSON.parse(fr.result); if(p.app==='jungae-check'&&p.ver===2) out.push(p);}catch(e){} if(--n===0) cb(out); }; fr.onerror=()=>{ if(--n===0) cb(out); }; fr.readAsText(f); }); }
-function vAgg(){
-  const rows = AGG.map(p=>{ const s=p.summary; const cr=s.errors.filter(e=>e.lv==='crit').length, w=s.errors.filter(e=>e.lv==='warn').length;
-    const bad=Object.entries(s.grades).filter(([,g])=>g==='미흡'||g==='매우 미흡').map(([l])=>l);
-    return `<tr><td>${esc(p.center.name)}<small>${esc(p.center.typeL)} · ${esc(p.center.date)}</small></td><td class="n">${s.rate!=null?s.rate+'%':'-'}</td><td class="n">${cr||'-'}</td><td class="n">${w||'-'}</td><td>${esc(bad.join(', ')||'-')}</td></tr>`; }).join('');
-  const m={}; AGG.forEach(p=>p.summary.errors.forEach(e=>{ const key=e.text.replace(/[\d,.]+(원|%|㎡|명|회|건|일)?/g,'○'); (m[key] ||= new Set()).add(p.center.name); }));
-  const common = Object.entries(m).sort((a,b)=>b[1].size-a[1].size).slice(0,10).map(([t,s])=>`<tr><td>${esc(t)}</td><td class="n">${s.size}곳</td></tr>`).join('');
-  return bar('결과 모아보기','실원들의 결과 파일을 불러와 집계합니다','home') + `<main class="wrap stack"><section class="card stack" style="gap:10px">
-    <label class="btn pri block" for="aggfiles">결과 파일(.json) 불러오기 — 여러 개 선택 가능</label><input id="aggfiles" type="file" accept=".json,application/json" multiple data-aggfiles="1" hidden>
-    <span class="calc">불러온 파일 ${AGG.length}개 · 화면을 닫으면 집계는 사라지고 원본 파일은 그대로 남습니다.</span>
-    ${AGG.length?'<button class="btn block" data-aggcsv="1">집계표 엑셀용 저장(.csv)</button><button class="btn ghost block" data-aggclear="1">비우기</button>':''}</section>
-    ${AGG.length?`<div class="sec-t">센터별 결과</div><div class="rep-wrap"><div class="rep"><table><tr><th>센터</th><th>집행률</th><th>중대</th><th>오류</th><th>미흡 이하</th></tr>${rows}</table></div></div>
-    <div class="sec-t">공통 오류 (센터 수 기준 상위 10)</div><div class="rep-wrap"><div class="rep"><table><tr><th>오류</th><th>센터 수</th></tr>${common||'<tr><td colspan="2">없음</td></tr>'}</table></div></div>`
-    :'<div class="notice">실원들이 확정 후 저장한 결과 파일을 원 내부 공유폴더에서 받아 한꺼번에 불러오세요.</div>'}</main>`;
-}
-function aggCsv(){ const rows=[['센터명','유형','점검일','집행률','중대','오류','확인','판정','자동점검 내용']];
-  AGG.forEach(p=>{ const s=p.summary,c=p.center; rows.push([c.name,c.typeL,c.date,s.rate!=null?s.rate+'%':'',s.errors.filter(e=>e.lv==='crit').length,s.errors.filter(e=>e.lv==='warn').length,s.errors.filter(e=>e.lv==='check').length,Object.entries(s.grades).map(([l,g])=>`${l}:${g}`).join(' / '),s.errors.map(e=>e.text).join(' / ')]); });
-  download('jungae_summary.csv','﻿'+rows.map(r=>r.map(csv).join(',')).join('\r\n'),'text/csv'); }
-function copyReport(){
-  const el=document.getElementById('rep'); if(!el) return;
-  const html=`<div style="font-family:'맑은 고딕';font-size:10pt">${el.innerHTML.replace(/<table>/g,'<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%;margin-bottom:6px">')}</div>`, text=el.innerText;
-  const fb=()=>navigator.clipboard.writeText(text).then(()=>toast('복사했습니다(텍스트)')).catch(()=>{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);toast('선택된 내용을 복사하세요');});
-  try{ if(window.ClipboardItem&&navigator.clipboard?.write) navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]).then(()=>toast('복사했습니다. 한글에 붙여 넣으세요')).catch(fb); else fb(); }catch(e){ fb(); }
-}
+const csv=v=>{ const s=String(v??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+function aggCsv(){ const rows=[['유형','관리코드','집행률','판정','중대','오류','확인','자동점검 내용']];
+  AGG.forEach(p=>{ const s=p.summary,c=p.center; rows.push([c.typeL,c.code,s.rate!=null?s.rate+'%':'',Object.entries(s.grades).map(([l,g])=>`${l}:${g}`).join(' / '),...['crit','warn','check'].map(lv=>s.errors.filter(e=>e.lv===lv).length),s.errors.map(e=>e.text).join(' / ')]); });
+  download('jungae_dashboard.csv','﻿'+rows.map(r=>r.map(csv).join(',')).join('\r\n'),'text/csv'); }
+
+/* ── 직접 등록 ── */
+function vAdd(){ const d=S.__draft||(S.__draft={type:'농촌형',sub:'시군형',op:'지자체'});
+  const seg=(k,o)=>`<div class="seg" role="group">${o.map(x=>`<button type="button" data-addseg="${k}" data-val="${x}" aria-pressed="${d[k]===x}">${x}</button>`).join('')}</div>`;
+  return bar('직접 등록','사전제출 파일이 없을 때','home')+`<main class="wrap stack"><section class="card stack" style="gap:12px">
+    <div class="fld"><label for="a-code">관리코드(연번)</label><input id="a-code" type="text" inputmode="numeric" value="${esc(d.code||'')}" placeholder="예: 08"></div>
+    <div class="fld"><label>사업유형</label>${seg('type',['농촌형','공공형'])}</div>${d.type==='농촌형'?`<div class="fld"><label>세부유형</label>${seg('sub',['시군형','시도형'])}</div>`:''}
+    <div class="fld"><label>운영기관</label>${seg('op',['지자체','농협','기타'])}</div><button class="btn pri block" data-addsave="1">등록</button></section></main>`; }
+
+/* ── 개인정보 가림 ── */
+const PII=[/01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/g,/0\d{1,2}-\d{3,4}-\d{4}/g,/\d{6}-?[1-4]\d{6}/g,/[\w.+-]+@[\w-]+\.[\w.]+/g,/\b[A-Z]{1,2}\d{7,8}\b/g];
+function mask(t){ let hit=false, o=String(t); PII.forEach(r=>{ o=o.replace(r,()=>{hit=true;return '***';}); }); return [o,hit]; }
 
 /* ── 렌더 ── */
-const app = document.getElementById('app');
-function render(keep){
-  const y=window.scrollY; let h='';
-  if(V.name==='home') h=vHome(); else if(V.name==='work') h=vWork(cur()); else if(V.name==='report') h=vReport(cur()); else if(V.name==='add') h=vAdd(); else if(V.name==='agg') h=vAgg();
-  app.innerHTML=h; window.scrollTo(0, keep?y:0);
-  const tb=document.querySelector('.tabs'), ct=document.querySelector('.tab[aria-current="true"]'); if(tb&&ct) tb.scrollLeft=ct.offsetLeft-(tb.clientWidth-ct.offsetWidth)/2;
-}
-function live(){
-  const c=cur(); if(!c || V.name!=='work') return; const el=document.querySelector('[data-live="step"]'); if(!el) return;
-  const steps=stepsOf(c), s2=steps[Math.min(V.step||0,steps.length-1)]; if(s2.key==='end') return;
-  const list=checks(c).filter(e=>s2.key==='budget' ? /집행률|편성비율|증빙/.test(e.text) : e.cat===s2.key);
-  const hasIn=(s2.f||[]).length;
-  el.innerHTML=(s2.key==='budget'?budgetInfo(c):'')+errHtml(list)+(!list.filter(e=>e.lv!=='info').length && hasIn ? '<div class="w ok-msg"><span class="tag">통과</span><span>입력한 값이 지침 기준 안에 있습니다.</span></div>':'');
-  const sg=document.querySelector('[data-live="sg"]'); if(sg && s2.grade && s2.key!=='will') sg.innerHTML=`제안: <b>${suggest(list)}</b>`;
-}
-const PII = [/01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/g, /0\d{1,2}-\d{3,4}-\d{4}/g, /\d{6}-?[1-4]\d{6}/g, /[\w.+-]+@[\w-]+\.[\w.]+/g, /\b[A-Z]{1,2}\d{7,8}\b/g];
-function mask(t){ let hit=false; let o=String(t); PII.forEach(r=>{ o=o.replace(r,()=>{hit=true; return '***';}); }); return [o,hit]; }
-let tt; function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.hidden=false; clearTimeout(tt); tt=setTimeout(()=>t.hidden=true,1800); }
+const app=document.getElementById('app');
+function render(keep){ const y=window.scrollY; let h=''; const c=cur();
+  if(V.name==='home') h=vHome(); else if(V.name==='work') h=bar(label(c),`${c.typeL}${c.sub?' · '+c.sub:''}${c.op?' · '+esc(c.op):''}`,'home')+`<main class="wrap stack">${stepView(c)}</main>`;
+  else if(V.name==='preview') h=vPreview(c); else if(V.name==='dash') h=vDash(); else if(V.name==='add') h=vAdd();
+  app.innerHTML=h; window.scrollTo(0,keep?y:0); }
+function live(){ const c=cur(); if(!c||V.name!=='work') return; const steps=stepsOf(c), s=steps[Math.min(V.step||0,steps.length-1)];
+  document.querySelectorAll('[data-live]').forEach(el=>el.innerHTML=liveHtml(c,s));
+  document.querySelectorAll('[data-rate]').forEach(el=>{ const k=el.dataset.rate, v=S[c.id].v, x=pct(num(v['e_'+k]),num(v['p_'+k])); el.textContent=x!=null?x+'%':''; });
+  const sg=document.querySelector('[data-sg]'); if(sg) sg.innerHTML=`제안: <b>${suggest(checks(c).filter(e=>e.cat===s.key))}</b>`; }
+let tt; function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.hidden=false; clearTimeout(tt); tt=setTimeout(()=>t.hidden=true,2000); }
 
-app.addEventListener('click', e=>{
-  const b=e.target.closest('button'); if(!b) return; const d=b.dataset; const c=cur();
+app.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const d=b.dataset, c=cur();
   if(d.go==='home'){ V={name:'home'}; ASK=''; return render(); }
-  if(d.go==='result'){ V={name:'work',cid:c.id,step:stepsOf(c).length-1}; return render(); }
-  if(d.step!==undefined){ V={name:'work',cid:c.id,step:Math.max(0,Number(d.step))}; ASK=''; return render(); }
+  if(d.go==='end'){ V={name:'work',cid:c.id,step:stepsOf(c).length-1}; return render(); }
   if(d.ask!==undefined){ ASK=d.ask; return render(true); }
   if(d.open){ const oc=centers().find(x=>x.id===d.open); V={name:'work',cid:d.open,step:S[d.open].confirmed?stepsOf(oc).length-1:0}; ASK=''; return render(); }
-  if(d.reset==='go'){ S=seed(); ASK=''; save(); toast('예시 센터로 되돌렸습니다'); return render(); }
+  if(d.step!==undefined){ V={name:'work',cid:c.id,step:Math.max(0,Number(d.step))}; ASK=''; return render(); }
+  if(d.reset==='go'){ S=seed(); ASK=''; save(); toast('이 기기의 기록을 지웠습니다'); return render(); }
+  if(d.dash){ V={name:'dash'}; return render(); }
   if(d.add){ V={name:'add'}; return render(); }
-  if(d.agg){ V={name:'agg'}; return render(); }
-  if(d.report){ V={name:'report',cid:c.id}; return render(); }
-  if(d.copyrep) return copyReport();
-  if(d.addseg){ const dr=S.__draft; ['name','date'].forEach(k=>{const el=document.getElementById('a-'+k); if(el) dr[k]=el.value;}); dr[d.addseg]=d.val; save(); return render(true); }
-  if(d.addsave){ const dr=S.__draft; ['name','date'].forEach(k=>{const el=document.getElementById('a-'+k); if(el) dr[k]=el.value.trim();});
-    if(!dr.name){ toast('관리코드를 입력하세요'); return; } const type=dr.type==='공공형'?'public':'rural';
-    const nc={id:'c'+Date.now(), name:`${dr.type}-${dr.name.replace(/[^0-9A-Za-z-]/g,'')||dr.name.slice(0,4)}`, type, typeL:dr.type, sub:type==='rural'?dr.sub:'', op:dr.op, date:dr.date||'', prior:[]};
-    centers().push(nc); S[nc.id]=blank(); delete S.__draft; save(); toast('센터를 등록했습니다'); V={name:'home'}; return render(); }
-  if(d.delc==='go'){ S.__c=centers().filter(x=>x.id!==c.id); delete S[c.id]; ASK=''; save(); V={name:'home'}; toast('삭제했습니다'); return render(); }
+  if(d.addseg){ const dr=S.__draft; const el=document.getElementById('a-code'); if(el) dr.code=el.value; dr[d.addseg]=d.val; save(); return render(true); }
+  if(d.addsave){ const dr=S.__draft; dr.code=(document.getElementById('a-code').value||'').replace(/[^0-9A-Za-z-]/g,''); if(!dr.code) return toast('관리코드를 입력하세요');
+    const type=dr.type==='공공형'?'public':'rural'; const nc={id:'c'+Date.now(),code:dr.code,type,typeL:dr.type,sub:type==='rural'?dr.sub:'',op:dr.op,prior:[]}; centers().push(nc); S[nc.id]=blank(); delete S.__draft; save(); V={name:'work',cid:nc.id,step:0}; return render(); }
+  if(d.delc==='go'){ S.__c=centers().filter(x=>x.id!==c.id); delete S[c.id]; ASK=''; save(); V={name:'home'}; toast('지웠습니다'); return render(); }
   if(d.prior){ S[c.id].prior[d.prior]=d.val; save(); return render(true); }
-  if(d.seg){ if(S[c.id].confirmed) return; const v=S[c.id].v; v[d.seg]= v[d.seg]===d.val?'':d.val; save();
-    b.parentElement.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.val===v[d.seg]))); return live(); }
-  if(d.grade){ if(S[c.id].confirmed) return; const g=S[c.id].g; g[d.grade]= g[d.grade]===d.val?'':d.val; save(); return render(true); }
+  if(d.seg){ if(S[c.id].confirmed) return; const v=S[c.id].v; v[d.seg]=v[d.seg]===d.val?'':d.val; save(); return render(true); }
+  if(d.grade){ if(S[c.id].confirmed) return; const g=S[c.id].g; g[d.grade]=g[d.grade]===d.val?'':d.val; save(); return render(true); }
   if(d.draft){ S[c.id].opinion=draftOpinion(c); save(); return render(true); }
   if(d.confirm==='go'){ const st=S[c.id], n=new Date(); st.confirmed=true; st.confirmedAt=`${n.getMonth()+1}.${n.getDate()}. ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; ASK=''; save(); toast('확정했습니다'); return render(true); }
+  if(d.preview){ V={name:'preview',cid:c.id}; return render(); }
+  if(d.print) return printFile(c);
   if(d.expjson) return exportJson(c);
-  if(d.expcsv) return exportCsv(c);
+  if(d.aggf){ AGGF=d.aggf; return render(true); }
   if(d.aggcsv) return aggCsv();
-  if(d.aggclear){ AGG=[]; return render(); }
 });
-app.addEventListener('input', e=>{
-  const t=e.target, c=cur(); if(!c) return; const st=S[c.id];
-  if(t.dataset.k){ if(st.confirmed) return; st.v[t.dataset.k] = t.type==='checkbox'?t.checked:t.value; save(); return live(); }
+app.addEventListener('input',e=>{ const t=e.target, c=cur(); if(!c) return; const st=S[c.id];
+  if(t.dataset.k){ if(st.confirmed) return; st.v[t.dataset.k]=t.type==='checkbox'?t.checked:(t.type==='number'?(t.value===''?'':Number(t.value)):t.value); save(); return live(); }
   if(t.dataset.memo){ st.memo[t.dataset.memo]=t.value; save(); return; }
-  if(t.dataset.opinion){ st.opinion=t.value; save(); return; }
-  if(t.dataset.insp){ st.insp[t.dataset.insp]=t.value; save(); return; }
-});
-app.addEventListener('change', e=>{
-  const t=e.target;
-  if((t.tagName==='TEXTAREA' || (t.tagName==='INPUT' && t.type==='text')) && cur()){ const [m,hit]=mask(t.value); if(hit){ t.value=m; t.dispatchEvent(new Event('input',{bubbles:true})); toast('개인정보로 보이는 내용(전화번호 등)을 *** 로 가렸습니다'); } }
-  if(t.dataset.aggfiles){ readJson(t.files, list=>{ list.forEach(p=>{ const i=AGG.findIndex(x=>x.center.id===p.center.id); i<0?AGG.push(p):AGG.splice(i,1,p); }); toast(`${list.length}개 파일을 불러왔습니다`); render(true); }); return; }
+  if(t.dataset.opinion){ st.opinion=t.value; save(); return; } });
+app.addEventListener('change',e=>{ const t=e.target;
+  if((t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&t.type==='text'))&&cur()){ const [m,hit]=mask(t.value); if(hit){ t.value=m; t.dispatchEvent(new Event('input',{bubbles:true})); toast('전화번호 등 개인정보로 보이는 내용을 *** 로 가렸습니다'); } }
+  if(t.dataset.prefile){ const f=t.files[0]; if(!f) return; if(/\.csv$/i.test(f.name)){ f.text().then(x=>applyPre(readCsvKv(x))); } else readXlsx(f).then(applyPre).catch(()=>toast('파일을 읽지 못했습니다. 사전제출 양식(.xlsx)인지 확인하세요')); t.value=''; return; }
+  if(t.dataset.aggfiles){ readJson(t.files,list=>{ list.forEach(p=>{ const i=AGG.findIndex(x=>x.center.type===p.center.type&&x.center.code===p.center.code); i<0?AGG.push(p):AGG.splice(i,1,p); }); toast(`${list.length}개 파일을 불러왔습니다`); render(true); }); return; }
   const c=cur(); if(!c) return;
-  if(t.dataset.importprev){ readJson(t.files, list=>{ const p=list[0]; if(!p){ toast('점검 결과 파일이 아닙니다'); return; }
-    const bad=Object.entries(p.summary.grades).filter(([,g])=>g==='미흡'||g==='매우 미흡').map(([l,g])=>({y:p.center.date,t:`${l} ${g}`}));
-    const errs=p.summary.errors.filter(e=>e.lv!=='check').map(e=>({y:p.center.date,t:e.text}));
-    c.prior=[...bad,...errs]; S[c.id].prior={}; save(); toast(`지난 지적사항 ${c.prior.length}건을 불러왔습니다`); render(true); }); return; }
-  if(t.dataset.k && t.type==='checkbox'){ S[c.id].v[t.dataset.k]=t.checked; save(); live(); }
-});
+  if(t.dataset.prevfile){ readJson(t.files,list=>{ const p=list[0]; if(!p) return toast('결과 파일이 아닙니다');
+    c.prior=[...Object.entries(p.summary.grades).filter(([,g])=>g==='미흡'||g==='매우 미흡').map(([l,g])=>({y:'지난 점검',t:`${l} ${g}`})),...p.summary.errors.filter(e=>e.lv==='warn'||e.lv==='crit').map(e=>({y:'지난 점검',t:e.text}))];
+    S[c.id].prior={}; save(); toast(`지난 지적사항 ${c.prior.length}건을 불러왔습니다`); render(true); }); return; }
+  if(t.dataset.k&&t.type==='checkbox'){ S[c.id].v[t.dataset.k]=t.checked; save(); live(); } });
+document.getElementById('formcss').textContent=FORM_CSS;
 render();
 })();
 </script>
