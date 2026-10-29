@@ -1,0 +1,797 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>농부름</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: 상단 바 + [농가 앱 | 구직자 앱 | 실시간 흐름] 3열 시연 화면, 별도 탭에 중개센터 웹 대시보드 */
+:root{
+  --bg:#EDF1EA; --surface:#FFFFFF; --surface-2:#F4F7F1; --ink:#16231B; --muted:#5A6A5F; --line:#D6DED3;
+  --green:#2C7649; --green-soft:#E0EFE4; --on-green:#FFFFFF;
+  --call:#D9701A; --call-soft:#FBE9D8; --on-call:#FFFFFF;
+  --warn:#9A6A0C; --warn-soft:#FBF1D6; --info:#2D6697; --info-soft:#E1ECF6; --danger:#B33A2E; --danger-soft:#F8E1DE;
+  --shadow:0 1px 2px rgba(22,35,27,.06),0 8px 28px rgba(22,35,27,.08);
+  --f-display:"Do Hyeon","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1511; --surface:#17201A; --surface-2:#1D2821; --ink:#E4ECE5; --muted:#98A89D; --line:#2A382F;
+  --green:#4DB277; --green-soft:#1C3325; --on-green:#0D1A12;
+  --call:#F0954A; --call-soft:#3A2817; --on-call:#1F1206;
+  --warn:#E2B44E; --warn-soft:#352B12; --info:#7DB2E2; --info-soft:#17293A; --danger:#EC7C70; --danger-soft:#3A1C19;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1511; --surface:#17201A; --surface-2:#1D2821; --ink:#E4ECE5; --muted:#98A89D; --line:#2A382F;
+  --green:#4DB277; --green-soft:#1C3325; --on-green:#0D1A12;
+  --call:#F0954A; --call-soft:#3A2817; --on-call:#1F1206;
+  --warn:#E2B44E; --warn-soft:#352B12; --info:#7DB2E2; --info-soft:#17293A; --danger:#EC7C70; --danger-soft:#3A1C19;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--call);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+h1,h2,h3{text-wrap:balance;margin:0}
+
+/* top bar */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;max-width:1320px;margin:0 auto;padding-block:18px 14px}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand b{font-family:var(--f-display);font-weight:400;font-size:30px;letter-spacing:.5px;color:var(--green)}
+.brand span{color:var(--muted);font-size:13px}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:999px;font-weight:600;font-size:13px;color:var(--muted);position:relative}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.ghost{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--muted)}
+.note{max-width:1320px;margin:0 auto 14px;font-size:12.5px;color:var(--muted)}
+
+/* demo grid */
+.demo{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:400px 400px minmax(0,1fr);gap:24px;align-items:start}
+.devseg{display:none;margin:0 auto 12px;max-width:440px}
+.device{background:var(--surface);border:1px solid var(--line);border-radius:30px;box-shadow:var(--shadow);height:780px;display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:0}
+.devlabel{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin:0 0 8px 8px}
+.dhead{padding:16px 18px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.dhead .logo{font-family:var(--f-display);font-size:22px;color:var(--green);line-height:1}
+.dhead .who{margin-left:auto;text-align:right;font-size:12px;color:var(--muted);line-height:1.3}
+.dhead .who b{display:block;color:var(--ink);font-size:13px}
+.screen{flex:1;overflow-y:auto;padding:16px 16px 20px;display:flex;flex-direction:column;gap:14px}
+.bnav{display:grid;border-top:1px solid var(--line);background:var(--surface)}
+.bnav button{border:0;background:transparent;padding:10px 4px 12px;font-size:12px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+.bnav button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+.bnav button[aria-current="true"]{color:var(--green)}
+.dot{position:absolute;top:7px;right:calc(50% - 16px);width:8px;height:8px;border-radius:50%;background:var(--call)}
+.toast{position:absolute;left:12px;right:12px;top:64px;z-index:5;background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow);transform:translateY(-8px);opacity:0;pointer-events:none;transition:.25s}
+.toast.on{opacity:1;transform:none}
+.toast i{font-style:normal;background:var(--call);color:var(--on-call);border-radius:6px;padding:1px 6px;font-size:11px;font-weight:700;flex:none;margin-top:1px}
+
+/* common pieces */
+.sect{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center}
+.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.card.hi{border-color:var(--call);box-shadow:0 0 0 3px var(--call-soft)}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row.sb{justify-content:space-between}
+.title{font-weight:700;font-size:15px}
+.sub{font-size:12.5px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.c-open{background:var(--call-soft);color:var(--call)}
+.c-match{background:var(--info-soft);color:var(--info)}
+.c-work{background:var(--green-soft);color:var(--green)}
+.c-pay{background:var(--warn-soft);color:var(--warn)}
+.c-done{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.c-urgent{background:var(--danger-soft);color:var(--danger)}
+.lv{border:1px solid var(--line);color:var(--ink);background:var(--surface-2)}
+.lv.master{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
+.lv.expert{border-color:var(--info);color:var(--info);background:var(--info-soft)}
+.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:700;font-size:14px;background:var(--green);color:var(--on-green)}
+.btn.call{background:var(--call);color:var(--on-call)}
+.btn.line{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.sm{padding:7px 11px;font-size:12.5px;border-radius:10px}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;text-align:right}
+.bar{height:6px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+.bar>span{display:block;height:100%;background:var(--green)}
+.person{display:flex;align-items:center;gap:10px}
+.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--green-soft);color:var(--green);flex:none}
+.av.empty{background:transparent;border:1.5px dashed var(--line);color:var(--muted)}
+.person .meta{min-width:0;flex:1}
+.person .meta b{font-size:13.5px}
+.star{color:var(--warn);font-weight:600;font-size:12.5px}
+.money{font-family:var(--f-num);font-weight:600;font-variant-numeric:tabular-nums}
+.big{font-size:22px}
+.empty-st{border:1px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted);font-size:13px}
+
+/* form */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;font-weight:600;color:var(--muted)}
+.field input,.field select{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:9px 10px;width:100%;min-width:0}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opt{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 10px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.opt[aria-pressed="true"]{border-color:var(--green);background:var(--green-soft);color:var(--green)}
+.step{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.step button{border:0;background:transparent;width:38px;height:38px;font-size:18px}
+.step span{flex:1;text-align:center;font-weight:700}
+.estimate{background:var(--surface-2);border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.err{color:var(--danger);font-size:12.5px}
+input[type=range]{width:100%;accent-color:var(--green)}
+
+/* chat */
+.threads{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.thread{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:12.5px;white-space:nowrap;font-weight:600;color:var(--muted)}
+.thread[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.msgs{display:flex;flex-direction:column;gap:8px;flex:1}
+.msg{max-width:80%;padding:9px 12px;border-radius:14px;font-size:13.5px;background:var(--surface-2);border:1px solid var(--line);align-self:flex-start;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--green);color:var(--on-green);border-color:var(--green)}
+.msg.sys{align-self:center;background:transparent;border:0;font-size:12px;color:var(--muted);text-align:center}
+.msg small{display:block;font-size:10.5px;opacity:.7;margin-top:2px}
+.composer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+.composer input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:9px 14px}
+.stars{display:flex;gap:2px}
+.stars button{border:0;background:transparent;font-size:22px;line-height:1;padding:2px;color:var(--line)}
+.stars button.on{color:var(--warn)}
+
+/* log */
+.logp{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;min-width:0;display:flex;flex-direction:column;gap:12px;max-height:806px}
+.logp h2{font-family:var(--f-display);font-weight:400;font-size:22px}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.flow div{text-align:center;font-size:11.5px;font-weight:600;padding:8px 2px;border-radius:8px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.flow div.on{background:var(--green);color:var(--on-green);border-color:var(--green)}
+.loglist{overflow-y:auto;display:flex;flex-direction:column;gap:0;font-size:13px}
+.loglist div{display:grid;grid-template-columns:66px 52px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.loglist time{color:var(--muted)}
+.who-f{color:var(--call);font-weight:700}.who-w{color:var(--info);font-weight:700}.who-s{color:var(--green);font-weight:700}
+.guide{font-size:12.5px;color:var(--muted);background:var(--surface-2);border-radius:12px;padding:12px 14px}
+.guide ol{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+
+/* center dashboard */
+.dash{max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.dash h2{font-family:var(--f-display);font-weight:400;font-size:26px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:4px}
+.kpi span{font-size:12.5px;color:var(--muted);font-weight:600}
+.kpi b{font-family:var(--f-num);font-size:28px;font-weight:600}
+.kpi small{font-size:12px;color:var(--muted)}
+.dgrid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h3{font-size:16px}
+.tag-ex{font-size:11px;font-weight:600;color:var(--warn);background:var(--warn-soft);border-radius:6px;padding:2px 7px;margin-left:6px;vertical-align:middle}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:620px}
+th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.r,th.r{text-align:right}
+svg.chart{width:100%;height:auto;display:block}
+svg.chart text{fill:var(--muted);font-family:var(--f-body);font-size:11px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.regbar{display:grid;grid-template-columns:110px 1fr 52px;gap:10px;align-items:center;font-size:13px}
+.insight{border-left:3px solid var(--call);background:var(--call-soft);padding:10px 12px;border-radius:0 10px 10px 0;font-size:13px}
+.ctrls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.ctrls select{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px 10px}
+
+@media (max-width:1240px){.demo{grid-template-columns:400px 400px}.logp{grid-column:1/-1;max-height:none}.loglist{max-height:320px}.demo{justify-content:center}}
+@media (max-width:900px){
+  .demo{grid-template-columns:minmax(0,440px)}
+  .devseg{display:flex}.devseg .seg{width:100%}.devseg .seg button{flex:1}
+  .demo[data-show="farmer"] .col-worker,.demo[data-show="worker"] .col-farmer{display:none}
+  .device{height:720px}.devlabel{display:none}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dgrid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:420px){.fgrid{grid-template-columns:1fr}.device{border-radius:22px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="brand"><b>농부름</b><span>필요한 농촌 일손을 호출·매칭하는 서비스 · 프로토타입</span></div>
+  <div class="seg" role="group" aria-label="화면 전환">
+    <button id="v-demo" data-act="view" data-v="demo" aria-pressed="true">농가·구직자 앱</button>
+    <button id="v-center" data-act="view" data-v="center" aria-pressed="false">중개센터 대시보드</button>
+  </div>
+  <button class="ghost" id="reset" data-act="reset">예시 데이터 초기화</button>
+</header>
+<p class="note">모든 농가·인력·금액·통계는 시연용 예시 데이터입니다. 송금·위치·알림은 실제로 발생하지 않으며 화면 안에서만 모의 처리됩니다.</p>
+
+<section id="view-demo">
+  <div class="devseg"><div class="seg" role="group" aria-label="앱 선택">
+    <button id="ds-farmer" data-act="devshow" data-d="farmer" aria-pressed="true">농가 앱</button>
+    <button id="ds-worker" data-act="devshow" data-d="worker" aria-pressed="false">구직자 앱</button>
+  </div></div>
+  <div class="demo" id="demo" data-show="farmer">
+    <div class="col-farmer"><p class="devlabel">농가(구인자) 앱</p>
+      <div class="device" id="dev-farmer">
+        <div class="dhead"><span class="logo">농부름</span><span class="chip c-open">농가</span><div class="who"><b id="farm-name"></b><span id="farm-addr"></span></div></div>
+        <div class="toast" id="toast-farmer"></div>
+        <div class="screen" id="scr-farmer"></div>
+        <div id="cmp-farmer"></div>
+        <nav class="bnav" id="nav-farmer" style="grid-template-columns:repeat(5,1fr)"></nav>
+      </div>
+    </div>
+    <div class="col-worker"><p class="devlabel">구직자(농작업 신청자) 앱</p>
+      <div class="device" id="dev-worker">
+        <div class="dhead"><span class="logo">농부름</span><span class="chip c-match">일손</span><div class="who"><b id="me-name"></b><span id="me-sub"></span></div></div>
+        <div class="toast" id="toast-worker"></div>
+        <div class="screen" id="scr-worker"></div>
+        <div id="cmp-worker"></div>
+        <nav class="bnav" id="nav-worker" style="grid-template-columns:repeat(4,1fr)"></nav>
+      </div>
+    </div>
+    <aside class="logp">
+      <h2>실시간 처리 흐름</h2>
+      <div class="flow" id="flow"><div>요청</div><div>매칭</div><div>근무</div><div>정산</div><div>환류</div></div>
+      <div class="guide"><b>시연 순서</b>
+        <ol>
+          <li>농가 앱 <b>호출</b>에서 작업을 등록하면 조건에 맞는 구직자에게 알림이 갑니다.</li>
+          <li>구직자 앱 <b>일자리</b>에서 신청하면, 농가 앱 <b>현황</b>에서 <b>배정 승인</b>을 눌러 매칭을 확정합니다.</li>
+          <li>구직자 앱 <b>내 근무</b>에서 출근·퇴근을 누르면 근무시간이 확정됩니다.</li>
+          <li>농가 앱 <b>정산</b>에서 확인·송금 후 서로 평가하고 재요청합니다.</li>
+        </ol>
+      </div>
+      <div class="loglist" id="log"></div>
+    </aside>
+  </div>
+</section>
+
+<section id="view-center" hidden>
+  <div class="dash" id="dash"></div>
+</section>
+
+<script>
+(function(){
+const DAY=['일','월','화','수','목','금','토'];
+const MIN_WAGE=10320; // 2026년 최저시급
+const LEVELS={basic:{n:'일반',r:0},skilled:{n:'숙련',r:1},expert:{n:'전문 기술자',r:2},master:{n:'최고 숙련자',r:3}};
+const CROPS={'벼':['수확 보조','논 정지작업','모내기'],'사과':['수확','적과','봉지 씌우기'],'딸기':['하우스 작업','정식','수확'],'고추':['수확','정식','지주 설치'],'마늘':['파종','수확','비닐 피복'],'양파':['정식','수확']};
+const ICON={
+ call:'<svg viewBox="0 0 24 24"><path d="M12 3v4M5 10l2.5 1.5M19 10l-2.5 1.5"/><path d="M6 21h12l-1.5-7h-9z"/></svg>',
+ status:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+ pay:'<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/></svg>',
+ pool:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .8 3.2 2.6 3.5 5.2"/></svg>',
+ chat:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+ jobs:'<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/></svg>',
+ work:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
+};
+
+function pad(n){return String(n).padStart(2,'0')}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function addDays(n){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+n);return ymd(d)}
+const TODAY=addDays(0);
+function dlabel(s){const[y,m,d]=s.split('-').map(Number);return m+'.'+d+'('+DAY[new Date(y,m-1,d).getDay()]+')'}
+function toMin(t){const[h,m]=t.split(':').map(Number);return h*60+m}
+function hrs(a,b){let h=(toMin(b)-toMin(a))/60;if(h>=8)h-=1;return Math.max(0,h)}
+function won(n){return Math.round(n).toLocaleString('ko-KR')+'원'}
+function now(){const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function initials(n){return n.slice(0,1)}
+
+function seed(){
+ return {
+  me:'w_lee', farm:'f_sun', radius:20,
+  farms:{
+   f_sun:{n:'햇살농원',a:'충남 부여군 세도면 장터길 12',dist:5.4,rating:4.8},
+   f_daebak:{n:'대박딸기농원',a:'충남 부여군 규암면',dist:6.2,rating:4.7},
+   f_gu:{n:'구룡사과농장',a:'충남 부여군 구룡면',dist:14.0,rating:4.6},
+   f_eun:{n:'은산고추농가',a:'충남 부여군 은산면',dist:26.5,rating:4.5}
+  },
+  workers:{
+   w_kim:{n:'김민수',lv:'expert',y:5,rt:4.9,cnt:42,sk:'모내기·이앙 / 트랙터',src:'청년 구직자',dist:3.2},
+   w_park:{n:'박철우',lv:'expert',y:6,rt:4.7,cnt:37,sk:'트랙터 운전 / 밭 정지작업',src:'도시 유휴인력',dist:4.1},
+   w_lee:{n:'이순옥',lv:'master',y:15,rt:4.8,cnt:118,sk:'딸기 수확 / 토마토 정식',src:'귀농귀촌',dist:5.4},
+   w_choi:{n:'최영자',lv:'skilled',y:3,rt:4.6,cnt:19,sk:'사과 수확 / 적과',src:'도시 유휴인력',dist:8.5},
+   w_han:{n:'한미경',lv:'skilled',y:4,rt:4.8,cnt:27,sk:'고추 수확 / 마늘 파종',src:'귀농귀촌',dist:6.7},
+   w_jung:{n:'정우진',lv:'basic',y:1,rt:4.5,cnt:6,sk:'단순 수확 보조',src:'청년 구직자',dist:12.0},
+   w_oh:{n:'오태식',lv:'expert',y:9,rt:4.9,cnt:64,sk:'과수 전정 / 방제',src:'도시 유휴인력',dist:15.3}
+  },
+  jobs:[
+   {id:'j2',farm:'f_sun',crop:'딸기',task:'하우스 작업',date:addDays(0),st:'07:00',en:'13:00',need:1,lv:'skilled',pay:14000,mode:'즉시',urgent:false,as:[{w:'w_lee',s:'출근',in:'07:02'}]},
+   {id:'j1',farm:'f_sun',crop:'사과',task:'수확',date:addDays(2),st:'08:00',en:'17:00',need:3,lv:'skilled',pay:14000,mode:'예약',urgent:false,as:[{w:'w_kim',s:'배정'},{w:'w_park',s:'배정'}],ap:[{w:'w_oh',t:'08:41'}]},
+   {id:'j3',farm:'f_sun',crop:'마늘',task:'파종',date:addDays(-3),st:'08:00',en:'17:00',need:1,lv:'basic',pay:13000,mode:'예약',urgent:false,as:[{w:'w_park',s:'완료',in:'08:00',out:'17:00',h:8}]},
+   {id:'j4',farm:'f_daebak',crop:'딸기',task:'정식',date:addDays(3),st:'08:00',en:'17:00',need:2,lv:'skilled',pay:14000,mode:'예약',urgent:false,as:[{w:'w_han',s:'배정'}]},
+   {id:'j5',farm:'f_gu',crop:'사과',task:'수확',date:addDays(4),st:'08:00',en:'17:00',need:4,lv:'skilled',pay:13500,mode:'예약',urgent:true,as:[{w:'w_choi',s:'배정'}]},
+   {id:'j6',farm:'f_eun',crop:'고추',task:'수확',date:addDays(6),st:'07:00',en:'16:00',need:2,lv:'basic',pay:12500,mode:'예약',urgent:false,as:[]},
+   {id:'j0',farm:'f_daebak',crop:'딸기',task:'수확',date:addDays(-7),st:'07:00',en:'13:00',need:1,lv:'skilled',pay:14000,mode:'즉시',urgent:false,as:[{w:'w_lee',s:'완료',in:'07:00',out:'13:00',h:6,paid:true,fr:5,wr:5}]}
+  ],
+  chats:{
+   'f_sun|w_lee':[{f:'sys',t:'매칭이 완료되어 대화방이 열렸습니다.'},{f:'farm',t:'이순옥 님 안녕하세요. 세도면 장터길 12번지 햇살농원으로 오시면 됩니다.',tm:'06:15'},{f:'worker',t:'네 확인했습니다. 7시 전에 도착할게요!',tm:'06:20'}],
+   'f_sun|w_kim':[{f:'sys',t:'매칭이 완료되어 대화방이 열렸습니다.'},{f:'worker',t:'모레 사과 수확, 장갑과 수확 바구니 챙겨가겠습니다.',tm:'어제'}],
+   'f_daebak|w_lee':[{f:'farm',t:'지난번 수확 정말 깔끔했어요. 정식 때도 부탁드려요.',tm:'지난주'}]
+  },
+  tab:{farmer:'call',worker:'jobs'},
+  chatSel:{farmer:'w_lee',worker:'f_sun'},
+  form:{crop:'사과',task:'수확',date:addDays(5),st:'08:00',en:'17:00',need:2,lv:'skilled',pay:14000,mode:'예약',urgent:false,prefer:null},
+  dot:{farmer:{},worker:{}},
+  log:[{t:'06:15',who:'f',m:'햇살농원 → 이순옥 대화: 작업장 위치 안내'},{t:'07:02',who:'w',m:'이순옥 출근 확인 (딸기 하우스 작업)'}],
+  hi:{},
+  stage:2,
+  seq:10
+ };
+}
+let S;
+try{const raw=localStorage.getItem('nongbureum-v2');S=raw?JSON.parse(raw):seed();}catch(e){S=seed();}
+function save(){try{localStorage.setItem('nongbureum-v2',JSON.stringify(S))}catch(e){}}
+
+const W=id=>S.workers[id], F=id=>S.farms[id], J=id=>S.jobs.find(j=>j.id===id);
+function jh(j){return hrs(j.st,j.en)}
+function status(j){
+ const a=j.as;
+ if(a.length&&a.every(x=>x.paid))return['정산완료','c-done'];
+ if(a.some(x=>x.s==='완료')&&a.every(x=>x.s==='완료'))return['정산대기','c-pay'];
+ if(a.some(x=>x.s==='출근'||x.s==='완료'))return['작업중','c-work'];
+ if(a.length>=j.need)return['매칭완료','c-match'];
+ if((j.ap||[]).length)return['승인대기','c-pay'];
+ return['모집중','c-open'];
+}
+function lvChip(l){return `<span class="chip lv ${l}">${LEVELS[l].n}</span>`}
+function log(who,m){S.log.unshift({t:now(),who,m});}
+function setStage(n){S.stage=Math.max(S.stage,n)}
+const toastT={};
+function toast(dev,msg,tag){
+ const el=document.getElementById('toast-'+dev);
+ el.innerHTML=`<i>${tag||'알림'}</i><span>${msg}</span>`;el.classList.add('on');
+ clearTimeout(toastT[dev]);toastT[dev]=setTimeout(()=>el.classList.remove('on'),3800);
+ const ds=document.getElementById('ds-'+dev);
+ if(ds&&document.getElementById('demo').dataset.show!==dev)ds.innerHTML=(dev==='farmer'?'농가 앱':'구직자 앱')+' ●';
+}
+
+/* ---------- FARMER ---------- */
+const FTABS=[['call','호출'],['status','현황'],['pay','정산'],['pool','인력풀'],['chat','대화']];
+function farmerJobs(){return S.jobs.filter(j=>j.farm===S.farm)}
+function renderFarmer(){
+ const f=F(S.farm);
+ document.getElementById('farm-name').textContent=f.n;
+ document.getElementById('farm-addr').textContent='부여군 세도면';
+ const t=S.tab.farmer;
+ document.getElementById('nav-farmer').innerHTML=FTABS.map(([k,n])=>`<button data-act="tab" data-dev="farmer" data-tab="${k}" aria-current="${t===k}">${ICON[k]}${n}${S.dot.farmer[k]?'<span class="dot"></span>':''}</button>`).join('');
+ const sc=document.getElementById('scr-farmer');
+ sc.innerHTML=({call:fCall,status:fStatus,pay:fPay,pool:fPool,chat:fChat})[t]();
+ document.getElementById('cmp-farmer').innerHTML=t==='chat'?composer('farmer'):'';
+}
+function fCall(){
+ const fm=S.form,h=hrs(fm.st,fm.en),err=formErr();
+ const pre=fm.prefer?`<div class="insight"><b>${W(fm.prefer).n}</b> 님에게 우선 요청합니다. 수락하지 않으면 주변 인력에게 공개됩니다. <button class="btn sm line" data-act="clearPrefer">해제</button></div>`:'';
+ return `
+ <div><div class="title" style="font-size:18px">일손 부르기</div><div class="sub">작업 조건을 등록하면 반경 20km 안의 조건 맞는 구직자에게 바로 알림이 갑니다.</div></div>
+ ${pre}
+ <div class="card">
+  <div class="sect">1. 작업장·작업 내용</div>
+  <div class="field full"><label>작업장 위치</label><input value="${esc(F(S.farm).a)}" readonly></div>
+  <div class="fgrid">
+   <div class="field"><label for="f-crop">작물</label><select id="f-crop" data-f="crop">${Object.keys(CROPS).map(c=>`<option ${c===fm.crop?'selected':''}>${c}</option>`).join('')}</select></div>
+   <div class="field"><label for="f-task">작업 유형</label><select id="f-task" data-f="task">${CROPS[fm.crop].map(c=>`<option ${c===fm.task?'selected':''}>${c}</option>`).join('')}</select></div>
+  </div>
+ </div>
+ <div class="card">
+  <div class="sect">2. 일정·인원</div>
+  <div class="opts"><button class="opt" data-act="fset" data-k="mode" data-v="즉시" aria-pressed="${fm.mode==='즉시'}">즉시 호출 (오늘)</button><button class="opt" data-act="fset" data-k="mode" data-v="예약" aria-pressed="${fm.mode==='예약'}">예약 호출</button><button class="opt" data-act="fset" data-k="urgent" data-v="${!fm.urgent}" aria-pressed="${fm.urgent}">긴급 대체 매칭</button></div>
+  <div class="fgrid">
+   <div class="field full"><label for="f-date">작업일</label><input type="date" id="f-date" data-f="date" value="${fm.mode==='즉시'?TODAY:fm.date}" min="${TODAY}" ${fm.mode==='즉시'?'disabled':''}></div>
+   <div class="field"><label for="f-st">시작</label><input type="time" id="f-st" data-f="st" value="${fm.st}" step="1800"></div>
+   <div class="field"><label for="f-en">종료</label><input type="time" id="f-en" data-f="en" value="${fm.en}" step="1800"></div>
+   <div class="field"><label>필요 인원</label><div class="step"><button data-act="need" data-d="-1" aria-label="인원 줄이기">−</button><span class="num">${fm.need}명</span><button data-act="need" data-d="1" aria-label="인원 늘리기">+</button></div></div>
+   <div class="field"><label for="f-pay">시급 (원)</label><input type="number" id="f-pay" data-f="pay" value="${fm.pay}" step="500" min="0" inputmode="numeric"></div>
+  </div>
+ </div>
+ <div class="card">
+  <div class="sect">3. 필요 숙련도</div>
+  <div class="opts">${Object.entries(LEVELS).map(([k,v])=>`<button class="opt" data-act="fset" data-k="lv" data-v="${k}" aria-pressed="${fm.lv===k}">${v.n} 이상</button>`).join('')}</div>
+  <div class="sub">지금 조건으로 알림을 받을 수 있는 구직자 <b class="num">${eligibleCount()}</b>명</div>
+ </div>
+ <div class="estimate"><div><div class="sub">예상 인건비 · ${h}시간${toMin(fm.en)-toMin(fm.st)>=540?' (휴게 1시간 제외)':''} × ${fm.need}명</div><div class="money big">${won(h*fm.pay*fm.need)}</div></div><div class="sub" style="text-align:right">1인 일급<br><b class="money">${won(h*fm.pay)}</b></div></div>
+ ${err?`<div class="err">${err}</div>`:''}
+ <button class="btn call wide" data-act="createJob" ${err?'disabled':''}>일손 ${fm.mode==='즉시'?'즉시':'예약'} 호출하기</button>
+ <div class="sub" style="text-align:center">중개수수료 0원 · 근무 확정 후 정산</div>`;
+}
+function formErr(){
+ const fm=S.form;
+ if(!fm.st||!fm.en||toMin(fm.en)<=toMin(fm.st))return '종료 시각은 시작 시각보다 늦어야 합니다.';
+ if(!(fm.pay>=MIN_WAGE))return `시급은 2026년 최저임금 ${MIN_WAGE.toLocaleString()}원 이상으로 입력해 주세요.`;
+ if(fm.mode!=='즉시'&&fm.date<TODAY)return '작업일은 오늘 이후로 선택해 주세요.';
+ return '';
+}
+function eligibleCount(){return Object.values(S.workers).filter(w=>LEVELS[w.lv].r>=LEVELS[S.form.lv].r&&w.dist<=20).length}
+function personRow(a,j,opts){
+ const w=W(a.w);const right=opts&&opts.right||'';
+ return `<div class="person"><div class="av">${initials(w.n)}</div><div class="meta"><div class="row"><b>${w.n}</b>${lvChip(w.lv)}<span class="star">★ ${w.rt.toFixed(1)}</span></div><div class="sub">${w.sk} · 경력 ${w.y}년</div></div>${right}</div>`;
+}
+function asState(a){return a.paid?'<span class="chip c-done">정산완료</span>':a.s==='완료'?'<span class="chip c-pay">근무확정</span>':a.s==='출근'?`<span class="chip c-work">출근 ${a.in}</span>`:'<span class="chip c-match">배정</span>'}
+function fStatus(){
+ const js=farmerJobs().filter(j=>!j.as.every(a=>a.paid)||!j.as.length).sort((a,b)=>a.date.localeCompare(b.date));
+ let tot=0,exp=0;js.forEach(j=>{exp+=jh(j)*j.need;j.as.forEach(a=>{if(a.s==='완료')tot+=a.h;else if(a.s==='출근')tot+=Math.min(jh(j),Math.max(0,(Date.now()-todayAt(a.in))/36e5))})});
+ const pct=exp?Math.round(tot/exp*100):0;
+ return `
+ <div class="row sb"><div class="title" style="font-size:18px">내가 호출한 일손</div><span class="sub">총 ${js.length}건</span></div>
+ ${(()=>{const n=js.reduce((s,j)=>s+(j.ap||[]).length,0);return n?`<div class="insight"><b>승인 대기 ${n}명</b> · 신청자의 숙련도·평점을 확인하고 배정 승인을 눌러 주세요.</div>`:''})()}
+ <div class="card"><div class="row sb"><span class="sub">누적 작업시간 / 목표</span><span class="money">${tot.toFixed(1)}h / ${exp}h</span></div><div class="bar"><span style="width:${pct}%"></span></div><div class="sub">전체 공정 ${pct}% 진행</div></div>
+ ${js.map(j=>{const[st,cl]=status(j);const empty=Math.max(0,j.need-j.as.length);
+  return `<div class="card ${S.hi[j.id]?'hi':''}">
+   <div class="row sb"><div class="row"><span class="chip ${cl}">${st}</span>${j.urgent?'<span class="chip c-urgent">긴급</span>':''}<span class="chip c-done">${j.mode} 호출</span></div><span class="sub num">${j.as.length}/${j.need}명</span></div>
+   <div><div class="title">${j.crop} ${j.task}</div><div class="sub num">${dlabel(j.date)} · ${j.st}~${j.en} (${jh(j)}시간) · 시급 ${won(j.pay)}</div></div>
+   ${j.as.map(a=>personRow(a,j,{right:asState(a)})).join('')}
+   ${j.as.some(a=>a.s==='완료'&&!a.paid)?'<button class="btn call sm" data-act="tab" data-dev="farmer" data-tab="pay">정산하러 가기</button>':j.as.some(a=>a.s==='출근')?'<button class="btn sm line" data-act="tab" data-dev="farmer" data-tab="pay">근무 확정 · 정산</button>':''}
+   ${(j.ap||[]).length?`<div class="sect">신청자 ${j.ap.length}명 · 승인 대기</div>`+j.ap.map(p=>{const w=W(p.w);return `<div class="card" style="padding:10px;gap:8px;background:var(--surface-2)">${personRow({w:p.w},j,{right:`<span class="sub num">${w.dist}km</span>`})}<div class="row sb"><span class="sub">신청 ${p.t} · 누적 ${w.cnt}회 · ${w.src}</span><div class="row"><button class="btn sm line" data-act="reject" data-j="${j.id}" data-w="${p.w}">반려</button><button class="btn sm call" data-act="approve" data-j="${j.id}" data-w="${p.w}" ${j.as.length>=j.need?'disabled':''}>${j.as.length>=j.need?'정원 마감':'배정 승인'}</button></div></div></div>`}).join(''):''}
+   ${empty?Array.from({length:empty}).map(()=>`<div class="person"><div class="av empty">?</div><div class="meta sub">빈자리 · 신청을 기다리는 중</div></div>`).join(''):''}
+  </div>`}).join('')||'<div class="empty-st">진행 중인 호출이 없습니다. 호출 탭에서 일손을 등록해 보세요.</div>'}`;
+}
+function todayAt(t){const d=new Date();const[h,m]=t.split(':').map(Number);d.setHours(h,m,0,0);return d.getTime()}
+function fPay(){
+ const items=[];farmerJobs().forEach(j=>j.as.forEach(a=>items.push({j,a})));
+ const work=items.filter(x=>x.a.s!=='완료').sort((p,q)=>p.j.date.localeCompare(q.j.date));
+ const pend=items.filter(x=>x.a.s==='완료'&&!x.a.paid),done=items.filter(x=>x.a.paid);
+ const sum=pend.reduce((s,x)=>s+x.a.h*x.j.pay,0);
+ return `
+ <div><div class="title" style="font-size:18px">간편 송금 및 자동 정산</div><div class="sub">출·퇴근 기록으로 근무시간과 임금을 자동 산정합니다.</div></div>
+ <div class="card"><div class="row sb"><span class="sub">정산 대기 합계</span><span class="money big">${won(sum)}</span></div><div class="sub">${pend.length}건 · 중개수수료 0원 (공공 중개)</div>
+  ${pend.length?`<button class="btn call wide" data-act="payAll">정산 대기 ${pend.length}건 일괄 송금 · ${won(sum)}</button>`:''}</div>
+ <div class="sect">① 송금할 근무 <span>${pend.length}건</span></div>
+ ${pend.map(({j,a})=>`<div class="card ${S.hi['p'+j.id+a.w]?'hi':''}">
+   <div class="row sb"><span class="chip c-pay">정산 대기</span><span class="sub num">${dlabel(j.date)}</span></div>
+   ${personRow(a,j)}
+   <dl class="kv"><dt>작업</dt><dd>${j.crop} ${j.task}</dd><dt>출·퇴근</dt><dd class="num">${a.in} ~ ${a.out}</dd><dt>인정 근무시간</dt><dd class="num">${a.h}시간</dd><dt>시급</dt><dd class="num">${won(j.pay)}</dd></dl>
+   <div class="row sb"><span class="money big">${won(a.h*j.pay)}</span><button class="btn call sm" data-act="pay" data-j="${j.id}" data-w="${a.w}">정산하기 · 즉시 송금</button></div>
+  </div>`).join('')||'<div class="empty-st">송금할 근무가 없습니다. 아래 ②에서 근무를 확정하면 여기에 정산 금액이 생깁니다.</div>'}
+ <div class="sect">② 근무 확정 전 <span>${work.length}건</span></div>
+ ${work.map(({j,a})=>{const h=jh(j);return `<div class="card">
+   <div class="row sb">${asState(a)}<span class="sub num">${dlabel(j.date)} ${j.st}~${j.en}</span></div>
+   ${personRow(a,j)}
+   <div class="row sb"><span class="sub">${j.crop} ${j.task} · 예정 ${h}시간 · 예상 <b class="money">${won(h*j.pay)}</b></span><button class="btn sm" data-act="fconfirm" data-j="${j.id}" data-w="${a.w}">근무 확정</button></div>
+  </div>`}).join('')||'<div class="empty-st">근무 중인 인력이 없습니다.</div>'}
+ <div class="sub">작업자가 앱에서 퇴근을 누르면 자동으로 ①로 넘어옵니다. 작업자가 퇴근을 누르지 못했을 때는 농가가 직접 <b>근무 확정</b>을 누르면 됩니다.</div>
+ ${done.length?`<div class="sect">③ 정산 완료 · 평가</div>`:''}
+ ${done.map(({j,a})=>`<div class="card">
+   <div class="row sb"><span class="chip c-done">송금 완료</span><span class="money">${won(a.h*j.pay)}</span></div>
+   ${personRow(a,j)}
+   <div class="sub">${dlabel(j.date)} ${j.crop} ${j.task} · ${a.h}시간</div>
+   ${a.fr?`<div class="row sb"><span class="sub">내 평가 <span class="star">${'★'.repeat(a.fr)}</span></span><button class="btn sm line" data-act="rerequest" data-w="${a.w}" data-j="${j.id}">이 인력 다시 요청</button></div>`
+     :`<div class="row sb"><span class="sub">근로자 평가</span><div class="stars">${[1,2,3,4,5].map(n=>`<button data-act="rateW" data-j="${j.id}" data-w="${a.w}" data-n="${n}" aria-label="${n}점">★</button>`).join('')}</div></div>`}
+  </div>`).join('')}`;
+}
+function fconfirm(jid,wid){const j=J(jid),a=j.as.find(x=>x.w===wid);if(!a.in)a.in=j.st;a.s='완료';a.out=j.en;a.h=jh(j);setStage(2);
+ log('f',`${F(j.farm).n} ${W(wid).n} 근무 확정 ${a.in}~${a.out} · ${a.h}시간`);log('s',`임금 자동 산정 ${won(a.h*j.pay)} (${a.h}h × ${won(j.pay)})`);
+ if(wid===S.me)toast('worker',`${F(j.farm).n}이(가) 근무 ${a.h}시간을 확정했습니다.`,'근무');
+ flash('p'+jid+wid);renderAll()}
+let poolFilter='all';
+function fPool(){
+ const srcs=['all',...new Set(Object.values(S.workers).map(w=>w.src))];
+ const ws=Object.entries(S.workers).filter(([,w])=>poolFilter==='all'||w.src===poolFilter).sort((a,b)=>b[1].rt-a[1].rt);
+ const myHist=id=>S.jobs.filter(j=>j.farm===S.farm&&j.as.some(a=>a.w===id)).length;
+ return `
+ <div><div class="title" style="font-size:18px">등록 인력 조회</div><div class="sub">내국인 농촌 인력풀 · 경력, 평점, 우리 농가 근무 이력</div></div>
+ <div class="opts">${srcs.map(s=>`<button class="opt" data-act="pool" data-v="${s}" aria-pressed="${poolFilter===s}">${s==='all'?'전체':s}</button>`).join('')}</div>
+ ${ws.map(([id,w])=>`<div class="card">
+   <div class="person"><div class="av">${initials(w.n)}</div><div class="meta"><div class="row"><b>${w.n}</b>${lvChip(w.lv)}</div><div class="sub">${w.src} · ${w.dist}km</div></div><div style="text-align:right"><div class="star">★ ${w.rt.toFixed(1)}</div><div class="sub">경력 ${w.y}년</div></div></div>
+   <dl class="kv"><dt>특기 분야</dt><dd>${w.sk}</dd><dt>누적 참여</dt><dd class="num">${w.cnt}회</dd><dt>우리 농가 근무</dt><dd class="num">${myHist(id)}회</dd></dl>
+   <button class="btn sm line" data-act="rerequest" data-w="${id}">이 인력에게 호출</button>
+  </div>`).join('')}`;
+}
+function fChat(){
+ const threads=Object.keys(S.chats).filter(k=>k.startsWith(S.farm+'|')).map(k=>k.split('|')[1]);
+ if(!threads.includes(S.chatSel.farmer))S.chatSel.farmer=threads[0];
+ const key=S.farm+'|'+S.chatSel.farmer;
+ return `<div class="threads">${threads.map(w=>`<button class="thread" data-act="thread" data-dev="farmer" data-k="${w}" aria-pressed="${w===S.chatSel.farmer}">${W(w).n} 작업자</button>`).join('')}</div>
+ <div class="msgs">${(S.chats[key]||[]).map(m=>msgHtml(m,'farm')).join('')}</div>`;
+}
+function msgHtml(m,mine){if(m.f==='sys')return `<div class="msg sys">${esc(m.t)}</div>`;return `<div class="msg ${m.f===mine?'me':''}">${esc(m.t)}<small>${esc(m.tm||'')}</small></div>`}
+function composer(dev){return `<form class="composer" data-dev="${dev}"><input id="chat-${dev}" placeholder="메시지를 입력하세요" autocomplete="off" aria-label="메시지"><button class="btn sm" type="submit">전송</button></form>`}
+
+/* ---------- WORKER ---------- */
+const WTABS=[['jobs','일자리'],['work','내 근무'],['pay','정산'],['chat','대화']];
+function renderWorker(){
+ const me=W(S.me);
+ document.getElementById('me-name').textContent=me.n+' 작업자님';
+ document.getElementById('me-sub').textContent=LEVELS[me.lv].n+' · 경력 '+me.y+'년';
+ const t=S.tab.worker;
+ document.getElementById('nav-worker').innerHTML=WTABS.map(([k,n])=>`<button data-act="tab" data-dev="worker" data-tab="${k}" aria-current="${t===k}">${ICON[k]}${n}${S.dot.worker[k]?'<span class="dot"></span>':''}</button>`).join('');
+ document.getElementById('scr-worker').innerHTML=({jobs:wJobs,work:wWork,pay:wPay,chat:wChat})[t]();
+ document.getElementById('cmp-worker').innerHTML=t==='chat'?composer('worker'):'';
+}
+function openFor(me){
+ return S.jobs.filter(j=>j.date>=TODAY&&j.as.length<j.need&&!j.as.some(a=>a.w===me)&&!(j.ap||[]).some(a=>a.w===me)&&!(j.rej||[]).includes(me)&&LEVELS[W(me).lv].r>=LEVELS[j.lv].r);
+}
+function wJobs(){
+ const me=W(S.me);
+ const all=openFor(S.me);
+ const list=all.filter(j=>F(j.farm).dist<=S.radius).sort((a,b)=>(b.prefer===S.me)-(a.prefer===S.me)||(b.urgent-a.urgent)||a.date.localeCompare(b.date));
+ const doneCnt=me.cnt;
+ return `
+ <div class="card" style="background:var(--green);color:var(--on-green);border-color:var(--green)">
+  <div class="row sb"><b style="font-size:16px">${me.n} 작업원님</b><span class="chip" style="background:var(--surface);color:var(--green)">${LEVELS[me.lv].n}</span></div>
+  <div class="row" style="justify-content:space-around;text-align:center">
+   <div><div class="money big">${doneCnt}회</div><div style="font-size:12px;opacity:.85">누적 중개실적</div></div>
+   <div><div class="money big">${me.rt.toFixed(1)}</div><div style="font-size:12px;opacity:.85">신뢰 평점</div></div>
+   <div><div style="font-size:15px;font-weight:700;padding-top:4px">${me.src}</div><div style="font-size:12px;opacity:.85">연계 경로</div></div>
+  </div>
+ </div>
+ <div class="card">
+  <div class="row sb"><span class="sect">알림 받을 거리</span><b class="num">내 주변 ${S.radius}km</b></div>
+  <input type="range" id="w-radius" min="5" max="40" step="5" value="${S.radius}" data-f="radius" aria-label="알림 반경">
+  <div class="sub">숙련도 ${LEVELS[me.lv].n} 기준 · 반경 밖 일자리 ${all.length-list.length}건</div>
+ </div>
+ <div class="row sb"><div class="title" style="font-size:17px">내 근처 일손 모집</div><span class="sub">${list.length}건</span></div>
+ ${list.map(j=>{const f=F(j.farm),h=jh(j),left=j.need-j.as.length;
+  return `<div class="card ${S.hi['w'+j.id]?'hi':''}">
+   <div class="row sb"><div class="row">${j.prefer===S.me?'<span class="chip c-open">나에게 재요청</span>':''}${j.urgent?'<span class="chip c-urgent">긴급</span>':''}<span class="chip c-done">${j.mode} 호출</span></div><span class="sub num">${f.dist}km</span></div>
+   <div><div class="title">${j.crop} ${j.task}</div><div class="sub">${f.n} · ${f.a}</div></div>
+   <dl class="kv"><dt>일시</dt><dd class="num">${dlabel(j.date)} ${j.st}~${j.en}</dd><dt>모집</dt><dd>${left}명 남음 (총 ${j.need}명) · ${LEVELS[j.lv].n} 이상</dd><dt>시급 / 예상 일급</dt><dd class="num">${won(j.pay)} / <b>${won(h*j.pay)}</b></dd><dt>농가 평점</dt><dd class="star">★ ${f.rating.toFixed(1)}</dd></dl>
+   <button class="btn wide" data-act="accept" data-j="${j.id}">일자리 신청</button><div class="sub" style="text-align:center">농가가 승인하면 배정이 확정됩니다.</div>
+  </div>`}).join('')||'<div class="empty-st">조건에 맞는 모집이 없습니다. 거리를 넓혀 보세요.</div>'}`;
+}
+function myAs(){const r=[];S.jobs.forEach(j=>j.as.forEach(a=>{if(a.w===S.me)r.push({j,a})}));return r}
+function wWork(){
+ const items=myAs().filter(x=>!x.a.paid).sort((a,b)=>a.j.date.localeCompare(b.j.date));
+ const apps=S.jobs.filter(j=>(j.ap||[]).some(x=>x.w===S.me));
+ return `<div><div class="title" style="font-size:18px">내 근무</div><div class="sub">출근·퇴근을 누르면 실제 근무시간이 기록됩니다.</div></div>
+ ${apps.map(j=>{const f=F(j.farm);return `<div class="card ${S.hi['ww'+j.id]?'hi':''}"><div class="row sb"><span class="chip c-pay">승인 대기</span><span class="sub num">${dlabel(j.date)} ${j.st}~${j.en}</span></div><div><div class="title">${j.crop} ${j.task}</div><div class="sub">${f.n} · 시급 ${won(j.pay)}</div></div><div class="row sb"><span class="sub">농가가 신청을 검토하고 있습니다.</span><button class="btn sm line" data-act="cancelApply" data-j="${j.id}">신청 취소</button></div></div>`}).join('')}
+ ${items.map(({j,a})=>{const f=F(j.farm);
+  let act='';
+  if(a.s==='배정')act=`<button class="btn wide" data-act="checkin" data-j="${j.id}">출근하기</button>${j.date!==TODAY?'<div class="sub" style="text-align:center">시연을 위해 작업일 이전에도 출근할 수 있습니다.</div>':''}`;
+  else if(a.s==='출근')act=`<button class="btn call wide" data-act="checkout" data-j="${j.id}">퇴근 · 근무 확정 요청</button>`;
+  else act=`<div class="sub">농가가 근무를 확인하면 바로 입금됩니다.</div>`;
+  return `<div class="card ${S.hi['ww'+j.id]?'hi':''}">
+   <div class="row sb">${asState(a)}<span class="sub num">${dlabel(j.date)}</span></div>
+   <div><div class="title">${j.crop} ${j.task}</div><div class="sub">${f.n} · ${f.a}</div></div>
+   <dl class="kv"><dt>예정 시간</dt><dd class="num">${j.st}~${j.en} (${jh(j)}시간)</dd>${a.in?`<dt>출근</dt><dd class="num">${a.in}</dd>`:''}${a.out?`<dt>퇴근</dt><dd class="num">${a.out} · ${a.h}시간 인정</dd>`:''}<dt>예상 임금</dt><dd class="money">${won((a.h||jh(j))*j.pay)}</dd></dl>
+   ${act}
+  </div>`}).join('')||(apps.length?'':'<div class="empty-st">예정된 근무가 없습니다. 일자리 탭에서 신청해 보세요.</div>')}`;
+}
+const BANKS=['NH농협은행','지역농협·축협','KB국민은행','신한은행','우리은행','하나은행','IBK기업은행','카카오뱅크','토스뱅크','우체국'];
+function wallet(){if(!S.wallet)S.wallet={acct:{bank:'NH농협은행',no:'302-****-****-21'},out:[],ui:null,amt:'',err:''};return S.wallet}
+const thisMonth=()=>TODAY.slice(0,7);
+function earned(){return myAs().filter(x=>x.a.paid&&x.j.date.slice(0,7)===thisMonth()).reduce((s,x)=>s+x.a.h*x.j.pay,0)}
+function sent(){return wallet().out.filter(o=>o.m===thisMonth()).reduce((s,o)=>s+o.amt,0)}
+function balance(){return Math.max(0,earned()-sent())}
+function walletCard(){
+ const wl=wallet(),bal=balance(),e=earned(),sn=sent();
+ let panel='';
+ if(wl.ui==='form'){
+  const amt=Number(wl.amt)||0;
+  panel=`<div class="card" style="background:var(--surface-2)">
+   <div class="row sb"><span class="sect">받는 계좌</span><button class="btn sm line" data-act="wAcct">변경</button></div>
+   <div class="row sb"><b>${esc(wl.acct.bank)}</b><span class="num">${esc(wl.acct.no)}</span></div><div class="sub">예금주 ${W(S.me).n} (본인 명의)</div>
+   <div class="field"><label for="w-amt">이체 금액 (원)</label><input id="w-amt" type="number" inputmode="numeric" min="1" step="1000" data-f="wamt" value="${wl.amt}" placeholder="0"></div>
+   <div class="opts"><button class="opt" data-act="wQuick" data-v="50000">5만</button><button class="opt" data-act="wQuick" data-v="100000">10만</button><button class="opt" data-act="wQuick" data-v="${bal}">전액 ${won(bal)}</button></div>
+   ${wl.err?`<div class="err">${wl.err}</div>`:''}
+   <div class="row"><button class="btn line sm" data-act="wCancel">취소</button><button class="btn call" style="flex:1" data-act="wNext">다음</button></div>
+  </div>`;
+ } else if(wl.ui==='confirm'){
+  panel=`<div class="card" style="background:var(--surface-2)">
+   <div class="sect">이체 확인</div>
+   <dl class="kv"><dt>받는 계좌</dt><dd>${esc(wl.acct.bank)} <span class="num">${esc(wl.acct.no)}</span></dd><dt>예금주</dt><dd>${W(S.me).n}</dd><dt>이체 금액</dt><dd class="money">${won(Number(wl.amt))}</dd><dt>수수료</dt><dd class="num">0원</dd><dt>이체 후 잔액</dt><dd class="num">${won(bal-Number(wl.amt))}</dd></dl>
+   <div class="row"><button class="btn line sm" data-act="wBack">수정</button><button class="btn call" style="flex:1" data-act="wSend">${won(Number(wl.amt))} 이체하기</button></div>
+  </div>`;
+ } else if(wl.ui==='acct'){
+  panel=`<div class="card" style="background:var(--surface-2)">
+   <div class="sect">받는 계좌 변경</div>
+   <div class="field"><label for="w-bank">은행</label><select id="w-bank">${BANKS.map(b=>`<option ${b===wl.acct.bank?'selected':''}>${b}</option>`).join('')}</select></div>
+   <div class="field"><label for="w-no">계좌번호 (숫자만)</label><input id="w-no" inputmode="numeric" autocomplete="off" placeholder="예시 번호를 입력하세요"></div>
+   <div class="sub">본인 명의 계좌만 등록할 수 있습니다. 실제 서비스에서는 1원 인증으로 예금주를 확인합니다. 시연 화면은 뒤 2자리만 보관합니다.</div>
+   ${wl.err?`<div class="err">${wl.err}</div>`:''}
+   <div class="row"><button class="btn line sm" data-act="wForm">취소</button><button class="btn" style="flex:1" data-act="wAcctSave">계좌 등록</button></div>
+  </div>`;
+ }
+ const hist=wl.out.slice(-3).reverse();
+ return `<div class="card">
+  <div class="row sb"><span class="sub">${Number(thisMonth().slice(5))}월 받은 임금</span><span class="money">${won(e)}</span></div>
+  <div class="row sb"><span class="sub">내 계좌로 이체</span><span class="money">− ${won(sn)}</span></div>
+  <div class="row sb" style="border-top:1px solid var(--line);padding-top:8px"><b>이체 가능 금액</b><span class="money big">${won(bal)}</span></div>
+  ${wl.ui?'':`<button class="btn call wide" data-act="wForm" ${bal?'':'disabled'}>내 계좌로 이체</button><div class="sub" style="text-align:center">${esc(wl.acct.bank)} ${esc(wl.acct.no)} · 수수료 0원</div>`}
+  ${panel}
+  ${hist.length?`<div class="sect">최근 이체</div>`+hist.map(o=>`<div class="row sb"><span class="sub num">${o.d} · ${esc(o.bank)} ${esc(o.no)}</span><span class="money">${won(o.amt)}</span></div>`).join(''):''}
+ </div>`;
+}
+function wPay(){
+ const items=myAs().filter(x=>x.a.s==='완료').sort((a,b)=>b.j.date.localeCompare(a.j.date));
+ return `<div><div class="title" style="font-size:18px">내 정산 내역</div><div class="sub">근무시간 × 시급으로 자동 산정 · 수수료 0원</div></div>
+ ${walletCard()}
+ <div class="sect">근무별 정산</div>
+ ${items.map(({j,a})=>{const f=F(j.farm);return `<div class="card ${S.hi['wp'+j.id]?'hi':''}">
+  <div class="row sb">${a.paid?'<span class="chip c-work">입금 완료</span>':'<span class="chip c-pay">정산 대기</span>'}<span class="sub num">${dlabel(j.date)}</span></div>
+  <div class="row sb"><div><div class="title">${f.n}</div><div class="sub">${j.crop} ${j.task} · ${a.h}시간 × ${won(j.pay)}</div></div><span class="money big">${won(a.h*j.pay)}</span></div>
+  ${a.paid?(a.wr?`<div class="row sb"><span class="sub">농가 평가 <span class="star">${'★'.repeat(a.wr)}</span></span>${a.again?'<span class="chip c-work">다음에도 일하기 등록됨</span>':`<button class="btn sm line" data-act="again" data-j="${j.id}">이 농가에서 다시 일하기</button>`}</div>`
+   :`<div class="row sb"><span class="sub">농가 평가</span><div class="stars">${[1,2,3,4,5].map(n=>`<button data-act="rateF" data-j="${j.id}" data-n="${n}" aria-label="${n}점">★</button>`).join('')}</div></div>`):''}
+ </div>`}).join('')||'<div class="empty-st">정산 내역이 없습니다.</div>'}`;
+}
+function wChat(){
+ const threads=Object.keys(S.chats).filter(k=>k.endsWith('|'+S.me)).map(k=>k.split('|')[0]);
+ if(!threads.includes(S.chatSel.worker))S.chatSel.worker=threads[0];
+ const key=S.chatSel.worker+'|'+S.me;
+ return `<div class="threads">${threads.map(f=>`<button class="thread" data-act="thread" data-dev="worker" data-k="${f}" aria-pressed="${f===S.chatSel.worker}">${F(f).n}</button>`).join('')}</div>
+ <div class="msgs">${(S.chats[key]||[]).map(m=>msgHtml(m,'worker')).join('')}</div>`;
+}
+
+/* ---------- LOG / FLOW ---------- */
+function renderLog(){
+ document.querySelectorAll('#flow div').forEach((d,i)=>d.classList.toggle('on',i<=S.stage));
+ const W_={f:['농가','who-f'],w:['구직자','who-w'],s:['시스템','who-s']};
+ document.getElementById('log').innerHTML=S.log.slice(0,40).map(l=>`<div><time class="num">${l.t}</time><span class="${W_[l.who][1]}">${W_[l.who][0]}</span><span>${esc(l.m)}</span></div>`).join('');
+}
+
+/* ---------- CENTER DASHBOARD ---------- */
+const SEASON={'벼':[0,0,1,3,9,4,1,1,3,9,4,0],'사과':[1,1,1,2,4,5,2,2,6,10,6,1],'딸기':[8,7,6,5,2,1,1,3,9,6,7,8],'고추':[0,1,2,4,8,4,6,9,8,3,1,0],'마늘':[0,0,1,2,4,9,2,0,1,8,3,0],'양파':[0,0,1,3,6,9,1,0,1,4,8,1]};
+const REGIONS={'부여군 세도면':{base:14,pool:46},'부여군 규암면':{base:11,pool:38},'논산시 연무읍':{base:16,pool:52},'청양군 정산면':{base:9,pool:24}};
+let fc={region:'부여군 세도면',crops:['딸기','마늘','양파']};
+function renderDash(){
+ const live=S.jobs.filter(j=>j.date>=TODAY);
+ const need=live.reduce((s,j)=>s+j.need,0),got=live.reduce((s,j)=>s+Math.min(j.need,j.as.length),0);
+ const rate=need?got/need*100:0;
+ const ws=Object.values(S.workers),avg=ws.reduce((s,w)=>s+w.rt,0)/ws.length;
+ const paid=[];S.jobs.forEach(j=>j.as.forEach(a=>{if(a.paid)paid.push(a.h*j.pay)}));
+ document.getElementById('dash').innerHTML=`
+ <div class="row sb"><div><h2>농촌인력중개센터 대시보드</h2><div class="sub">부여군 중개센터 · 앱에서 일어난 호출·매칭·정산이 실시간 반영됩니다</div></div><span class="sub num">${dlabel(TODAY)} 기준</span></div>
+ <div class="kpis">
+  <div class="kpi"><span>등록 인력</span><b>${ws.length}명</b><small>시연 인력풀 · 내국인</small></div>
+  <div class="kpi"><span>진행 중 호출</span><b>${live.length}건</b><small>필요 ${need}명 중 ${got}명 배정</small></div>
+  <div class="kpi"><span>실시간 매칭률</span><b>${rate.toFixed(1)}%</b><small>배정 인원 ÷ 필요 인원</small></div>
+  <div class="kpi"><span>평균 신뢰 지수</span><b>${avg.toFixed(2)}</b><small>5점 만점 · 상호 평가 누적</small></div>
+ </div>
+ <div class="dgrid">
+  <div class="panel"><h3>실시간 호출 현황</h3>
+   <div class="tbl-wrap"><table><thead><tr><th>작업일</th><th>농가</th><th>작업</th><th>숙련도</th><th class="r">배정/필요</th><th class="r">시급</th><th>상태</th></tr></thead>
+   <tbody>${[...S.jobs].sort((a,b)=>b.date.localeCompare(a.date)).map(j=>{const[st,cl]=status(j);return `<tr><td class="num">${dlabel(j.date)}</td><td>${F(j.farm).n}</td><td>${j.crop} ${j.task}${j.urgent?' <span class="chip c-urgent">긴급</span>':''}</td><td>${LEVELS[j.lv].n}</td><td class="r num">${j.as.length}/${j.need}</td><td class="r num">${won(j.pay)}</td><td><span class="chip ${cl}">${st}</span></td></tr>`}).join('')}</tbody></table></div>
+  </div>
+  <div class="panel"><h3>읍면별 매칭률 <span class="tag-ex">예시 데이터</span></h3>
+   ${[['세도면',96.8],['규암면',91.2],['구룡면',84.5],['은산면',72.0],['임천면',68.4]].map(([n,v])=>`<div class="regbar"><span>${n}</span><div class="bar" style="height:10px"><span style="width:${v}%;${v<75?'background:var(--call)':''}"></span></div><span class="num" style="text-align:right">${v}%</span></div>`).join('')}
+   <div class="sub">75% 미만 지역은 주황색으로 표시합니다. 은산·임천면은 인근 도시 유휴인력 모집 홍보가 필요합니다.</div>
+   <h3 style="margin-top:6px">누적 정산</h3>
+   <dl class="kv"><dt>송금 완료</dt><dd class="num">${paid.length}건</dd><dt>송금액</dt><dd class="money">${won(paid.reduce((a,b)=>a+b,0))}</dd><dt>중개수수료</dt><dd class="num">0원</dd></dl>
+  </div>
+ </div>
+ <div class="panel"><div class="row sb"><h3>계절별 농촌 인력 수급 예측 <span class="tag-ex">예시 모형</span></h3>
+  <div class="ctrls"><label class="sub" for="fc-region">대상 지역</label><select id="fc-region" data-f="fcRegion">${Object.keys(REGIONS).map(r=>`<option ${r===fc.region?'selected':''}>${r}</option>`).join('')}</select></div></div>
+  <div class="opts">${Object.keys(SEASON).map(c=>`<button class="opt" data-act="fcCrop" data-v="${c}" aria-pressed="${fc.crops.includes(c)}">${c}</button>`).join('')}</div>
+  ${forecastChart()}
+ </div>`;
+}
+function forecastChart(){
+ const R=REGIONS[fc.region];const start=new Date();start.setDate(1);
+ const months=[];for(let i=0;i<12;i++){const d=new Date(start.getFullYear(),start.getMonth()+i,1);months.push(d)}
+ const dem=months.map(d=>Math.round(fc.crops.reduce((s,c)=>s+SEASON[c][d.getMonth()],0)*R.base/3));
+ const sup=months.map((d,i)=>Math.round(R.pool*(1+i*0.02)));
+ const max=Math.max(10,...dem,...sup);const top=Math.ceil(max/20)*20;
+ const w=900,h=260,l=44,r=16,t=16,b=34,cw=(w-l-r)/12;
+ const y=v=>t+(h-t-b)*(1-v/top);
+ let g='';for(let k=0;k<=4;k++){const v=top*k/4;g+=`<line x1="${l}" x2="${w-r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${l-8}" y="${y(v)+4}" text-anchor="end">${v}</text>`}
+ const bars=dem.map((v,i)=>{const x=l+i*cw+cw*.2;const over=v>sup[i];return `<rect x="${x}" y="${y(v)}" width="${cw*.6}" height="${y(0)-y(v)}" rx="3" fill="${over?'var(--call)':'var(--green)'}" opacity="${over?1:.85}"/><text x="${l+i*cw+cw/2}" y="${h-12}" text-anchor="middle">${months[i].getMonth()+1}월</text>`}).join('');
+ const pts=sup.map((v,i)=>`${l+i*cw+cw/2},${y(v)}`).join(' ');
+ const line=`<polyline points="${pts}" fill="none" stroke="var(--info)" stroke-width="2.2"/>`+sup.map((v,i)=>`<circle cx="${l+i*cw+cw/2}" cy="${y(v)}" r="3" fill="var(--info)"/>`).join('');
+ const gaps=dem.map((v,i)=>({m:months[i].getMonth()+1,g:v-sup[i]})).filter(x=>x.g>0);
+ const ins=gaps.length?`<div class="insight"><b>${gaps.map(x=>x.m+'월').join(', ')}</b> 수요가 확보 가능 인력보다 많을 것으로 보입니다. 최대 부족 <b class="num">${Math.max(...gaps.map(x=>x.g))}명</b> · 해당 시기 2주 전부터 예약 호출과 인센티브 안내를 권장합니다.</div>`:`<div class="insight">선택한 작물 기준으로는 향후 12개월 동안 확보 인력으로 수요를 충당할 수 있습니다.</div>`;
+ return `<div class="tbl-wrap"><svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="월별 인력 수요와 확보 가능 인력">${g}${bars}${line}</svg></div>
+ <div class="legend"><span><i style="background:var(--green)"></i>예상 수요(인·일 기준 지수)</span><span><i style="background:var(--call)"></i>수요가 공급을 넘는 달</span><span><i style="background:var(--info)"></i>확보 가능 인력</span></div>${ins}
+ <div class="sub">작물별 월간 작업 강도 지수 × 지역 재배 규모로 계산한 시연용 모형입니다. 실제 운영 시 매칭 이력·기상·재배면적 데이터로 대체합니다.</div>`;
+}
+
+/* ---------- ACTIONS ---------- */
+function renderAll(){renderFarmer();renderWorker();renderLog();if(!document.getElementById('view-center').hidden)renderDash();save()}
+function flash(key){S.hi[key]=1;setTimeout(()=>{delete S.hi[key];renderAll()},4000)}
+function createJob(){
+ if(formErr())return;
+ const fm=S.form;const id='j'+(++S.seq);
+ const j={id,farm:S.farm,crop:fm.crop,task:fm.task,date:fm.mode==='즉시'?TODAY:fm.date,st:fm.st,en:fm.en,need:fm.need,lv:fm.lv,pay:Number(fm.pay),mode:fm.mode,urgent:fm.urgent,as:[],prefer:fm.prefer};
+ S.jobs.push(j);setStage(0);
+ log('f',`${F(S.farm).n} ${j.crop} ${j.task} ${j.need}명 ${j.mode} 호출 등록 (${dlabel(j.date)})`);
+ const elig=Object.values(S.workers).filter(w=>LEVELS[w.lv].r>=LEVELS[j.lv].r&&w.dist<=20).length;
+ log('s',`반경 20km 조건 충족 구직자 ${elig}명에게 알림 발송`);
+ S.tab.farmer='status';S.dot.worker.jobs=1;flash(id);flash('w'+id);
+ const meOk=LEVELS[W(S.me).lv].r>=LEVELS[j.lv].r;
+ if(meOk)toast('worker',fm.prefer===S.me?`${F(S.farm).n}이(가) ${W(S.me).n} 님을 다시 요청했습니다 · ${j.crop} ${j.task}`:`내 주변 ${F(S.farm).dist}km · ${dlabel(j.date)} ${j.crop} ${j.task} · 시급 ${won(j.pay)}`,'새 호출');
+ S.form.prefer=null;
+ renderAll();
+ // 다른 구직자 자동 수락 시뮬레이션 (1자리는 시연자 몫으로 남김)
+ const others=Object.keys(S.workers).filter(k=>k!==S.me&&LEVELS[W(k).lv].r>=LEVELS[j.lv].r).sort((a,b)=>W(a).dist-W(b).dist);
+ let n=Math.max(0,j.need-(meOk?1:0)),delay=1600;
+ others.slice(0,n).forEach(k=>{setTimeout(()=>{const jj=J(id);if(!jj||jj.as.length+(jj.ap||[]).length>=jj.need+1)return;jj.ap=jj.ap||[];jj.ap.push({w:k,t:now().slice(0,5)});setStage(1);
+   log('w',`${W(k).n} 신청 → ${jj.crop} ${jj.task} (승인 대기)`);S.dot.farmer.status=1;
+   toast('farmer',`${W(k).n} (${LEVELS[W(k).lv].n}) 님이 ${jj.crop} ${jj.task}에 신청했습니다.`,'신청');renderAll();},delay);delay+=1400});
+}
+function accept(id){
+ const j=J(id);if(!j||j.as.length>=j.need)return;
+ j.ap=j.ap||[];j.ap.push({w:S.me,t:now().slice(0,5)});setStage(1);
+ log('w',`${W(S.me).n} 신청 → ${F(j.farm).n} ${j.crop} ${j.task} (승인 대기)`);
+ if(j.farm===S.farm){toast('farmer',`${W(S.me).n} (${LEVELS[W(S.me).lv].n}) 님이 ${j.crop} ${j.task}에 신청했습니다. 현황에서 승인해 주세요.`,'신청');S.dot.farmer.status=1;flash(j.id);}
+ else setTimeout(()=>{const jj=J(id);if(jj&&(jj.ap||[]).some(x=>x.w===S.me))approve(id,S.me,true)},2500);
+ toast('worker','신청했습니다. 농가가 승인하면 알려드립니다.','신청');
+ S.tab.worker='work';flash('ww'+id);renderAll();
+}
+function approve(jid,wid,auto){
+ const j=J(jid);if(!j)return;const i=(j.ap||[]).findIndex(x=>x.w===wid);if(i<0||j.as.length>=j.need)return;
+ j.ap.splice(i,1);j.as.push({w:wid,s:'배정'});setStage(1);
+ const key=j.farm+'|'+wid;S.chats[key]=S.chats[key]||[];S.chats[key].push({f:'sys',t:`${dlabel(j.date)} ${j.crop} ${j.task} 배정이 승인되어 대화방이 열렸습니다.`});
+ log('f',`${F(j.farm).n} → ${W(wid).n} 배정 승인${auto?' (농가 앱)':''} (${j.as.length}/${j.need}명)`);
+ if(j.as.length>=j.need)log('s',`${F(j.farm).n} ${j.crop} ${j.task} 정원 충족 · 매칭 완료`);
+ if(wid===S.me){toast('worker',`${F(j.farm).n}이(가) ${dlabel(j.date)} ${j.crop} ${j.task} 배정을 승인했습니다.`,'승인');S.dot.worker.work=1;flash('ww'+jid)}
+ renderAll();
+}
+function reject(jid,wid){
+ const j=J(jid);const i=(j.ap||[]).findIndex(x=>x.w===wid);if(i<0)return;
+ j.ap.splice(i,1);j.rej=j.rej||[];j.rej.push(wid);
+ log('f',`${F(j.farm).n} → ${W(wid).n} 신청 반려`);
+ if(wid===S.me){toast('worker',`${F(j.farm).n} ${j.crop} ${j.task} 신청이 반려되었습니다. 다른 일자리를 확인해 보세요.`,'반려');S.dot.worker.jobs=1}
+ renderAll();
+}
+function cancelApply(jid){const j=J(jid);j.ap=(j.ap||[]).filter(x=>x.w!==S.me);log('w',`${W(S.me).n} 신청 취소 (${F(j.farm).n} ${j.crop} ${j.task})`);if(j.farm===S.farm)toast('farmer',`${W(S.me).n} 님이 신청을 취소했습니다.`,'취소');renderAll()}
+function checkin(id){const j=J(id),a=j.as.find(x=>x.w===S.me);a.s='출근';a.in=j.st;setStage(2);log('w',`${W(S.me).n} 출근 확인 ${a.in} (${j.crop} ${j.task})`);if(j.farm===S.farm){toast('farmer',`${W(S.me).n} 님 출근 ${a.in}`,'근무');S.dot.farmer.status=1}renderAll()}
+function checkout(id){const j=J(id),a=j.as.find(x=>x.w===S.me);a.s='완료';a.out=j.en;a.h=jh(j);setStage(2);
+ log('w',`${W(S.me).n} 퇴근 ${a.out} · 근무 ${a.h}시간 확정 요청`);log('s',`임금 자동 산정 ${won(a.h*j.pay)} (${a.h}h × ${won(j.pay)})`);
+ if(j.farm===S.farm){toast('farmer',`${W(S.me).n} 님 근무 확정 요청 · ${won(a.h*j.pay)}`,'정산');S.dot.farmer.pay=1;flash('p'+j.id+S.me)}
+ else{setTimeout(()=>{a.paid=true;log('f',`${F(j.farm).n} → ${W(S.me).n} ${won(a.h*j.pay)} 송금`);toast('worker',`${F(j.farm).n}에서 ${won(a.h*j.pay)}이 입금되었습니다.`,'입금');S.dot.worker.pay=1;renderAll()},2500)}
+ S.tab.worker='pay';renderAll()}
+function pay(jid,wid){const j=J(jid),a=j.as.find(x=>x.w===wid);a.paid=true;setStage(3);
+ log('f',`${F(j.farm).n} → ${W(wid).n} ${won(a.h*j.pay)} 간편 송금 (수수료 0원)`);
+ if(wid===S.me){toast('worker',`${F(j.farm).n}에서 ${won(a.h*j.pay)}이 입금되었습니다.`,'입금');S.dot.worker.pay=1;flash('wp'+jid)}
+ toast('farmer',`${W(wid).n} 님에게 ${won(a.h*j.pay)} 송금 완료`,'송금');renderAll()}
+function rate(kind,jid,n,wid){const j=J(jid);setStage(4);
+ if(kind==='W'){const a=j.as.find(x=>x.w===wid);a.fr=n;const w=W(wid);w.rt=Math.round(((w.rt*w.cnt+n)/(w.cnt+1))*100)/100;w.cnt++;log('f',`${F(j.farm).n} → ${w.n} 평가 ★${n}`);if(wid===S.me)toast('worker',`${F(j.farm).n}이(가) 회원님을 ★${n}점으로 평가했습니다.`,'평가')}
+ else{const a=j.as.find(x=>x.w===S.me);a.wr=n;const f=F(j.farm);f.rating=Math.round(((f.rating*20+n)/21)*100)/100;log('w',`${W(S.me).n} → ${f.n} 평가 ★${n}`);if(j.farm===S.farm)toast('farmer',`${W(S.me).n} 님이 농가를 ★${n}점으로 평가했습니다.`,'평가')}
+ renderAll()}
+
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-act]');if(!b)return;const d=b.dataset;
+ switch(d.act){
+  case 'view':document.getElementById('view-demo').hidden=d.v!=='demo';document.getElementById('view-center').hidden=d.v!=='center';
+   document.getElementById('v-demo').setAttribute('aria-pressed',d.v==='demo');document.getElementById('v-center').setAttribute('aria-pressed',d.v==='center');if(d.v==='center')renderDash();break;
+  case 'devshow':document.getElementById('demo').dataset.show=d.d;['farmer','worker'].forEach(k=>{const x=document.getElementById('ds-'+k);x.setAttribute('aria-pressed',k===d.d);if(k===d.d)x.textContent=k==='farmer'?'농가 앱':'구직자 앱'});break;
+  case 'reset':S=seed();poolFilter='all';renderAll();break;
+  case 'tab':S.tab[d.dev]=d.tab;delete S.dot[d.dev][d.tab];renderAll();if(d.tab==='chat'){const m=document.getElementById('scr-'+d.dev);m.scrollTop=m.scrollHeight}break;
+  case 'fset':S.form[d.k]=d.k==='urgent'?d.v==='true':d.v;if(d.k==='mode'&&d.v==='즉시')S.form.date=TODAY;renderFarmer();break;
+  case 'need':S.form.need=Math.min(20,Math.max(1,S.form.need+Number(d.d)));renderFarmer();break;
+  case 'createJob':createJob();break;
+  case 'clearPrefer':S.form.prefer=null;renderFarmer();break;
+  case 'accept':accept(d.j);break;
+  case 'checkin':checkin(d.j);break;
+  case 'wForm':{const wl=wallet();wl.ui='form';wl.err='';if(!wl.amt)wl.amt=String(balance());renderWorker();break}
+  case 'wCancel':{const wl=wallet();wl.ui=null;wl.amt='';wl.err='';renderWorker();break}
+  case 'wQuick':{const wl=wallet();wl.amt=String(Math.min(Number(d.v),balance()));wl.err='';renderWorker();break}
+  case 'wNext':{const wl=wallet();const v=Number((document.getElementById('w-amt')||{}).value||wl.amt);wl.amt=String(v||'');
+    if(!(v>0))wl.err='이체할 금액을 입력해 주세요.';else if(v>balance())wl.err=`이체 가능 금액(${won(balance())})보다 많습니다.`;else{wl.err='';wl.ui='confirm'}renderWorker();break}
+  case 'wBack':wallet().ui='form';renderWorker();break;
+  case 'wSend':{const wl=wallet(),v=Number(wl.amt);if(!(v>0&&v<=balance()))break;const dt=new Date();
+    wl.out.push({m:thisMonth(),d:(dt.getMonth()+1)+'.'+dt.getDate()+' '+pad(dt.getHours())+':'+pad(dt.getMinutes()),amt:v,bank:wl.acct.bank,no:wl.acct.no});
+    wl.ui=null;wl.amt='';log('w',`${W(S.me).n} 임금 ${won(v)} → 본인 계좌(${wl.acct.bank}) 이체`);
+    toast('worker',`${wl.acct.bank} ${wl.acct.no}로 ${won(v)}을 이체했습니다.`,'이체');renderAll();break}
+  case 'wAcct':{const wl=wallet();wl.ui='acct';wl.err='';renderWorker();break}
+  case 'wAcctSave':{const wl=wallet();const no=(document.getElementById('w-no').value||'').replace(/\D/g,'');const bank=document.getElementById('w-bank').value;
+    if(no.length<10||no.length>14){wl.err='계좌번호는 숫자 10~14자리로 입력해 주세요.';renderWorker();break}
+    wl.acct={bank,no:'****-****-'+no.slice(-2)};wl.ui='form';wl.err='';log('w',`${W(S.me).n} 받는 계좌 변경 (${bank})`);renderAll();break}
+  case 'approve':approve(d.j,d.w);break;
+  case 'reject':reject(d.j,d.w);break;
+  case 'cancelApply':cancelApply(d.j);break;
+  case 'checkout':checkout(d.j);break;
+  case 'pay':pay(d.j,d.w);break;
+  case 'fconfirm':fconfirm(d.j,d.w);break;
+  case 'payAll':farmerJobs().forEach(j=>j.as.forEach(a=>{if(a.s==='완료'&&!a.paid)pay(j.id,a.w)}));break;
+  case 'rateW':rate('W',d.j,Number(d.n),d.w);break;
+  case 'rateF':rate('F',d.j,Number(d.n));break;
+  case 'again':{const j=J(d.j);j.as.find(x=>x.w===S.me).again=true;log('w',`${W(S.me).n} → ${F(j.farm).n} '다음에도 일하기' 등록`);setStage(4);renderAll();break}
+  case 'rerequest':{const w=W(d.w);const src=d.j?J(d.j):null;S.form.prefer=d.w;if(src){S.form.crop=src.crop;S.form.task=src.task}S.form.need=1;
+   if(LEVELS[S.form.lv].r>LEVELS[w.lv].r)S.form.lv=w.lv;S.tab.farmer='call';renderAll();document.getElementById('scr-farmer').scrollTop=0;break}
+  case 'pool':poolFilter=d.v;renderFarmer();break;
+  case 'thread':S.chatSel[d.dev]=d.k;renderAll();break;
+  case 'fcCrop':{const i=fc.crops.indexOf(d.v);if(i>=0){if(fc.crops.length>1)fc.crops.splice(i,1)}else fc.crops.push(d.v);renderDash();break}
+ }
+});
+document.addEventListener('change',e=>{
+ const k=e.target.dataset&&e.target.dataset.f;if(!k)return;
+ if(k==='crop'){S.form.crop=e.target.value;S.form.task=CROPS[e.target.value][0];renderFarmer()}
+ else if(k==='fcRegion'){fc.region=e.target.value;renderDash()}
+ else if(k==='wamt'){wallet().amt=e.target.value;save()}
+ else if(k==='radius'){S.radius=Number(e.target.value);renderWorker();save()}
+ else if(['task','date','st','en','pay'].includes(k)){S.form[k]=k==='pay'?Number(e.target.value):e.target.value;renderFarmer();save()}
+});
+document.addEventListener('input',e=>{if(e.target.id==='w-radius'){const v=e.target.value;const b=e.target.parentElement.querySelector('b.num');if(b)b.textContent='내 주변 '+v+'km'}});
+document.addEventListener('submit',e=>{
+ const f=e.target.closest('form.composer');if(!f)return;e.preventDefault();
+ const dev=f.dataset.dev,inp=document.getElementById('chat-'+dev),txt=inp.value.trim();if(!txt)return;
+ const d=new Date(),tm=(d.getHours()<12?'오전 ':'오후 ')+((d.getHours()%12)||12)+':'+pad(d.getMinutes());
+ if(dev==='farmer'){const w=S.chatSel.farmer;S.chats[S.farm+'|'+w].push({f:'farm',t:txt,tm});log('f',`${F(S.farm).n} → ${W(w).n} 메시지`);if(w===S.me){toast('worker',`${F(S.farm).n}: ${esc(txt)}`,'메시지');S.dot.worker.chat=1}}
+ else{const fk=S.chatSel.worker;S.chats[fk+'|'+S.me].push({f:'worker',t:txt,tm});log('w',`${W(S.me).n} → ${F(fk).n} 메시지`);if(fk===S.farm){toast('farmer',`${W(S.me).n}: ${esc(txt)}`,'메시지');S.dot.farmer.chat=1}}
+ renderAll();const m=document.getElementById('scr-'+dev);m.scrollTop=m.scrollHeight;setTimeout(()=>{const i=document.getElementById('chat-'+dev);if(i)i.focus()},0);
+});
+renderAll();
+})();
+</script>
+
+</body></html>
